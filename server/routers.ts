@@ -1,13 +1,44 @@
 import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
-import { publicProcedure, router } from "./_core/trpc";
+import { publicProcedure, protectedProcedure, adminProcedure, router } from "./_core/trpc";
+import { z } from "zod";
+import {
+  getApprovedResources,
+  getResourceBySlug,
+  getResourceById,
+  getResourcesByCategory,
+  searchResources,
+  getRelationshipsBySource,
+  getRelationshipsByTarget,
+  getUserVote,
+  getUserBookmarks,
+  isBookmarked,
+  getUserCollections,
+  getCollectionBySlug,
+  getCollectionResources,
+  getCategories,
+  getCategoryBySlug,
+  getSubcategoriesByCategory,
+  getResourceTags,
+  getPendingSubmissions,
+  getSubmissionById,
+  createAuditLog,
+  updateUserReputation,
+  checkDuplicateByUrl,
+  checkDuplicateByTitle,
+  getOrCreateTag,
+  getUserById,
+} from "./db";
+import { getDb } from "./db";
+import { TRPCError } from "@trpc/server";
+import { searchService } from "./search";
 
 export const appRouter = router({
-    // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
   system: systemRouter,
+
   auth: router({
-    me: publicProcedure.query(opts => opts.ctx.user),
+    me: publicProcedure.query((opts) => opts.ctx.user),
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
@@ -17,12 +48,734 @@ export const appRouter = router({
     }),
   }),
 
-  // TODO: add feature routers here, e.g.
-  // todo: router({
-  //   list: protectedProcedure.query(({ ctx }) =>
-  //     db.getUserTodos(ctx.user.id)
-  //   ),
-  // }),
+  // Resources Router
+  resources: router({
+    // Get all approved resources with pagination
+    list: publicProcedure
+      .input(
+        z.object({
+          limit: z.number().min(1).max(100).default(20),
+          offset: z.number().min(0).default(0),
+        })
+      )
+      .query(async ({ input }) => {
+        const resources = await getApprovedResources(input.limit, input.offset);
+        return resources;
+      }),
+
+    // Get resource by slug
+    getBySlug: publicProcedure
+      .input(z.object({ slug: z.string() }))
+      .query(async ({ input }) => {
+        const resource = await getResourceBySlug(input.slug);
+        if (!resource) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Resource not found" });
+        }
+        return resource;
+      }),
+
+    // Get resource by ID
+    getById: publicProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ input }) => {
+        const resource = await getResourceById(input.id);
+        if (!resource) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Resource not found" });
+        }
+        return resource;
+      }),
+
+    // Get resources by category
+    getByCategory: publicProcedure
+      .input(
+        z.object({
+          categoryId: z.number(),
+          limit: z.number().min(1).max(100).default(20),
+          offset: z.number().min(0).default(0),
+        })
+      )
+      .query(async ({ input }) => {
+        return getResourcesByCategory(input.categoryId, input.limit, input.offset);
+      }),
+
+    // Search resources
+    search: publicProcedure
+      .input(
+        z.object({
+          query: z.string().min(1),
+          limit: z.number().min(1).max(100).default(20),
+          offset: z.number().min(0).default(0),
+        })
+      )
+      .query(async ({ input }) => {
+        return searchResources(input.query, input.limit, input.offset);
+      }),
+
+    // Check for duplicate by title
+    checkDuplicateByTitle: publicProcedure
+      .input(z.object({ title: z.string(), categoryId: z.number() }))
+      .query(async ({ input }) => {
+        const duplicates = await checkDuplicateByTitle(input.title, input.categoryId);
+        return duplicates;
+      }),
+
+    // Check for duplicate by URL
+    checkDuplicateByUrl: publicProcedure
+      .input(z.object({ url: z.string() }))
+      .query(async ({ input }) => {
+        const duplicate = await checkDuplicateByUrl(input.url);
+        return duplicate;
+      }),
+
+    // Submit resource (alias for create)
+    submitResource: protectedProcedure
+      .input(
+        z.object({
+          title: z.string().min(1).max(255),
+          url: z.string().url(),
+          description: z.string().optional(),
+          categoryId: z.number(),
+          subcategoryId: z.number().optional(),
+          pricing: z.enum(["free", "freemium", "paid", "open_source", "enterprise"]),
+          license: z.string().optional(),
+          builtBy: z.string().optional(),
+          builtByUrl: z.string().url().optional(),
+          tags: z.array(z.string()).optional(),
+        })
+      )
+      .mutation(async ({ input, ctx }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+
+        const duplicateUrl = await checkDuplicateByUrl(input.url);
+        if (duplicateUrl) {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: "A resource with this URL already exists",
+          });
+        }
+
+        const slug = input.title.toLowerCase().replace(/\s+/g, "-");
+
+        const result = await db.insert(require("../drizzle/schema").resources).values({
+          title: input.title,
+          slug,
+          description: input.description,
+          url: input.url,
+          categoryId: input.categoryId,
+          subcategoryId: input.subcategoryId,
+          pricing: input.pricing,
+          license: input.license,
+          builtBy: input.builtBy,
+          builtByUrl: input.builtByUrl,
+          submittedBy: ctx.user.id,
+          status: "pending",
+        });
+
+        const resourceId = result[0].insertId;
+
+        if (input.tags && input.tags.length > 0) {
+          for (const tagName of input.tags) {
+            const tag = await getOrCreateTag(tagName);
+            if (tag) {
+              await db.insert(require("../drizzle/schema").resourceTags).values({
+                resourceId,
+                tagId: tag.id,
+              });
+            }
+          }
+        }
+
+        await createAuditLog(ctx.user.id, "create", "resource", resourceId);
+
+        return { id: resourceId, slug, status: "pending" };
+      }),
+
+    // Create resource (submit)
+    create: protectedProcedure
+      .input(
+        z.object({
+          title: z.string().min(1).max(255),
+          url: z.string().url(),
+          description: z.string().optional(),
+          categoryId: z.number(),
+          subcategoryId: z.number().optional(),
+          pricing: z.enum(["free", "freemium", "paid", "open_source", "enterprise"]),
+          license: z.string().optional(),
+          builtBy: z.string().optional(),
+          builtByUrl: z.string().url().optional(),
+          tags: z.array(z.string()).optional(),
+        })
+      )
+      .mutation(async ({ input, ctx }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+
+        // Check for duplicates
+        const duplicateUrl = await checkDuplicateByUrl(input.url);
+        if (duplicateUrl) {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: "A resource with this URL already exists",
+          });
+        }
+
+        const slug = input.title.toLowerCase().replace(/\s+/g, "-");
+
+        // Create resource (pending approval)
+        const result = await db.insert(require("../drizzle/schema").resources).values({
+          title: input.title,
+          slug,
+          description: input.description,
+          url: input.url,
+          categoryId: input.categoryId,
+          subcategoryId: input.subcategoryId,
+          pricing: input.pricing,
+          license: input.license,
+          builtBy: input.builtBy,
+          builtByUrl: input.builtByUrl,
+          submittedBy: ctx.user.id,
+          status: "pending",
+        });
+
+        const resourceId = result[0].insertId;
+
+        // Add tags
+        if (input.tags && input.tags.length > 0) {
+          for (const tagName of input.tags) {
+            const tag = await getOrCreateTag(tagName);
+            if (tag) {
+              await db.insert(require("../drizzle/schema").resourceTags).values({
+                resourceId,
+                tagId: tag.id,
+              });
+            }
+          }
+        }
+
+        // Create audit log
+        await createAuditLog(ctx.user.id, "create", "resource", resourceId);
+
+        return { id: resourceId, status: "pending" };
+      }),
+
+    // Update resource (admin only)
+    update: adminProcedure
+      .input(
+        z.object({
+          id: z.number(),
+          title: z.string().optional(),
+          description: z.string().optional(),
+          pricing: z.enum(["free", "freemium", "paid", "open_source", "enterprise"]).optional(),
+          license: z.string().optional(),
+          builtBy: z.string().optional(),
+          status: z.enum(["approved", "pending", "rejected"]).optional(),
+        })
+      )
+      .mutation(async ({ input, ctx }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+
+        const resource = await getResourceById(input.id);
+        if (!resource) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Resource not found" });
+        }
+
+        const updateData: any = {};
+        if (input.title) updateData.title = input.title;
+        if (input.description) updateData.description = input.description;
+        if (input.pricing) updateData.pricing = input.pricing;
+        if (input.license) updateData.license = input.license;
+        if (input.builtBy) updateData.builtBy = input.builtBy;
+        if (input.status) {
+          updateData.status = input.status;
+          if (input.status === "approved") {
+            updateData.approvedAt = new Date();
+          }
+        }
+
+        await db
+          .update(require("../drizzle/schema").resources)
+          .set(updateData)
+          .where(require("drizzle-orm").eq(require("../drizzle/schema").resources.id, input.id));
+
+        await createAuditLog(ctx.user.id, "update", "resource", input.id, updateData);
+
+        return { success: true };
+      }),
+  }),
+
+  // Relationships Router
+  relationships: router({
+    // Get relationships for a resource (outgoing)
+    getBySource: publicProcedure
+      .input(
+        z.object({
+          sourceId: z.number(),
+          type: z
+            .enum([
+              "alternative_to",
+              "similar_to",
+              "integrates_with",
+              "built_by",
+              "depends_on",
+              "part_of",
+              "competitor_of",
+            ])
+            .optional(),
+        })
+      )
+      .query(async ({ input }) => {
+        return getRelationshipsBySource(input.sourceId, input.type);
+      }),
+
+    // Get relationships for a resource (incoming)
+    getByTarget: publicProcedure
+      .input(
+        z.object({
+          targetId: z.number(),
+          type: z
+            .enum([
+              "alternative_to",
+              "similar_to",
+              "integrates_with",
+              "built_by",
+              "depends_on",
+              "part_of",
+              "competitor_of",
+            ])
+            .optional(),
+        })
+      )
+      .query(async ({ input }) => {
+        return getRelationshipsByTarget(input.targetId, input.type);
+      }),
+
+    // Create relationship
+    create: protectedProcedure
+      .input(
+        z.object({
+          sourceId: z.number(),
+          targetId: z.number(),
+          type: z.enum([
+            "alternative_to",
+            "similar_to",
+            "integrates_with",
+            "built_by",
+            "depends_on",
+            "part_of",
+            "competitor_of",
+          ]),
+          strength: z.number().min(0).max(1).default(0.5),
+        })
+      )
+      .mutation(async ({ input, ctx }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+
+        const result = await db
+          .insert(require("../drizzle/schema").relationships)
+          .values({
+            sourceId: input.sourceId,
+            targetId: input.targetId,
+            type: input.type,
+            strength: input.strength,
+            createdBy: ctx.user.id,
+            status: "pending",
+          });
+
+        await createAuditLog(ctx.user.id, "create", "relationship", result[0].insertId);
+
+        return { id: result[0].insertId, status: "pending" };
+      }),
+
+    // Approve relationship (moderator+)
+    approve: adminProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input, ctx }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+
+        await db
+          .update(require("../drizzle/schema").relationships)
+          .set({ status: "approved" })
+          .where(require("drizzle-orm").eq(require("../drizzle/schema").relationships.id, input.id));
+
+        await createAuditLog(ctx.user.id, "approve", "relationship", input.id);
+        return { success: true };
+      }),
+  }),
+
+  // Voting Router
+  votes: router({
+    // Vote on resource
+    voteResource: protectedProcedure
+      .input(
+        z.object({
+          resourceId: z.number(),
+          type: z.enum(["upvote", "downvote"]),
+        })
+      )
+      .mutation(async ({ input, ctx }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+
+        const existingVote = await getUserVote(ctx.user.id, input.resourceId);
+
+        if (existingVote) {
+          if (existingVote.type === input.type) {
+            // Remove vote
+            await db
+              .delete(require("../drizzle/schema").votes)
+              .where(require("drizzle-orm").eq(require("../drizzle/schema").votes.id, existingVote.id));
+          } else {
+            // Update vote
+            await db
+              .update(require("../drizzle/schema").votes)
+              .set({ type: input.type })
+              .where(require("drizzle-orm").eq(require("../drizzle/schema").votes.id, existingVote.id));
+          }
+        } else {
+          // Create new vote
+          await db.insert(require("../drizzle/schema").votes).values({
+            userId: ctx.user.id,
+            resourceId: input.resourceId,
+            type: input.type,
+          });
+        }
+
+        return { success: true };
+      }),
+
+    // Get user's vote on resource
+    getResourceVote: protectedProcedure
+      .input(z.object({ resourceId: z.number() }))
+      .query(async ({ input, ctx }) => {
+        return getUserVote(ctx.user.id, input.resourceId);
+      }),
+  }),
+
+  // Bookmarks Router
+  bookmarks: router({
+    // Get user's bookmarks
+    list: protectedProcedure
+      .input(
+        z.object({
+          limit: z.number().min(1).max(100).default(20),
+          offset: z.number().min(0).default(0),
+        })
+      )
+      .query(async ({ input, ctx }) => {
+        return getUserBookmarks(ctx.user.id, input.limit, input.offset);
+      }),
+
+    // Toggle bookmark
+    toggle: protectedProcedure
+      .input(z.object({ resourceId: z.number() }))
+      .mutation(async ({ input, ctx }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+
+        const bookmarked = await isBookmarked(ctx.user.id, input.resourceId);
+
+        if (bookmarked) {
+          await db
+            .delete(require("../drizzle/schema").bookmarks)
+            .where(
+              require("drizzle-orm").and(
+                require("drizzle-orm").eq(require("../drizzle/schema").bookmarks.userId, ctx.user.id),
+                require("drizzle-orm").eq(
+                  require("../drizzle/schema").bookmarks.resourceId,
+                  input.resourceId
+                )
+              )
+            );
+        } else {
+          await db.insert(require("../drizzle/schema").bookmarks).values({
+            userId: ctx.user.id,
+            resourceId: input.resourceId,
+          });
+        }
+
+        return { bookmarked: !bookmarked };
+      }),
+
+    // Check if bookmarked
+    isBookmarked: protectedProcedure
+      .input(z.object({ resourceId: z.number() }))
+      .query(async ({ input, ctx }) => {
+        return isBookmarked(ctx.user.id, input.resourceId);
+      }),
+  }),
+
+  // Categories Router
+  categories: router({
+    // Get all categories
+    list: publicProcedure.query(async () => {
+      return getCategories();
+    }),
+
+    // Get category by slug
+    getBySlug: publicProcedure
+      .input(z.object({ slug: z.string() }))
+      .query(async ({ input }) => {
+        return getCategoryBySlug(input.slug);
+      }),
+
+    // Get subcategories
+    getSubcategories: publicProcedure
+      .input(z.object({ categoryId: z.number() }))
+      .query(async ({ input }) => {
+        return getSubcategoriesByCategory(input.categoryId);
+      }),
+  }),
+
+  // Collections Router
+  collections: router({
+    // Get user's collections
+    list: protectedProcedure
+      .input(
+        z.object({
+          limit: z.number().min(1).max(100).default(20),
+          offset: z.number().min(0).default(0),
+        })
+      )
+      .query(async ({ input, ctx }) => {
+        return getUserCollections(ctx.user.id, input.limit, input.offset);
+      }),
+
+    // Get collection by slug
+    getBySlug: publicProcedure
+      .input(
+        z.object({
+          ownerId: z.number(),
+          slug: z.string(),
+        })
+      )
+      .query(async ({ input }) => {
+        return getCollectionBySlug(input.ownerId, input.slug);
+      }),
+
+    // Get collection resources
+    getResources: publicProcedure
+      .input(z.object({ collectionId: z.number() }))
+      .query(async ({ input }) => {
+        return getCollectionResources(input.collectionId);
+      }),
+
+    // Create collection
+    create: protectedProcedure
+      .input(
+        z.object({
+          name: z.string().min(1).max(255),
+          description: z.string().optional(),
+          isPublic: z.boolean().default(true),
+        })
+      )
+      .mutation(async ({ input, ctx }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+
+        const slug = input.name.toLowerCase().replace(/\s+/g, "-");
+
+        const result = await db.insert(require("../drizzle/schema").collections).values({
+          ownerId: ctx.user.id,
+          name: input.name,
+          slug,
+          description: input.description,
+          isPublic: input.isPublic,
+        });
+
+        return { id: result[0].insertId, slug };
+      }),
+
+    // Add resource to collection
+    addResource: protectedProcedure
+      .input(
+        z.object({
+          collectionId: z.number(),
+          resourceId: z.number(),
+        })
+      )
+      .mutation(async ({ input, ctx }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+
+        // Verify ownership
+        const collection = await db
+          .select()
+          .from(require("../drizzle/schema").collections)
+          .where(require("drizzle-orm").eq(require("../drizzle/schema").collections.id, input.collectionId))
+          .limit(1);
+
+        if (!collection || collection[0].ownerId !== ctx.user.id) {
+          throw new TRPCError({ code: "FORBIDDEN" });
+        }
+
+        await db.insert(require("../drizzle/schema").collectionResources).values({
+          collectionId: input.collectionId,
+          resourceId: input.resourceId,
+        });
+
+        return { success: true };
+      }),
+  }),
+
+  // Moderation Router
+  moderation: router({
+    // Get pending submissions
+    getPendingSubmissions: adminProcedure
+      .input(
+        z.object({
+          limit: z.number().min(1).max(100).default(20),
+          offset: z.number().min(0).default(0),
+        })
+      )
+      .query(async ({ input }) => {
+        return getPendingSubmissions(input.limit, input.offset);
+      }),
+
+    // Approve submission
+    approveSubmission: adminProcedure
+      .input(z.object({ submissionId: z.number() }))
+      .mutation(async ({ input, ctx }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+
+        const submission = await getSubmissionById(input.submissionId);
+        if (!submission) {
+          throw new TRPCError({ code: "NOT_FOUND" });
+        }
+
+        await db
+          .update(require("../drizzle/schema").submissions)
+          .set({
+            status: "approved",
+            reviewedBy: ctx.user.id,
+            reviewedAt: new Date(),
+          })
+          .where(require("drizzle-orm").eq(require("../drizzle/schema").submissions.id, input.submissionId));
+
+        await createAuditLog(ctx.user.id, "approve", "submission", input.submissionId);
+
+        // Update reputation
+        await updateUserReputation(submission.submittedBy, 10);
+
+        return { success: true };
+      }),
+
+    // Reject submission
+    rejectSubmission: adminProcedure
+      .input(
+        z.object({
+          submissionId: z.number(),
+          reason: z.string().optional(),
+        })
+      )
+      .mutation(async ({ input, ctx }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+
+        await db
+          .update(require("../drizzle/schema").submissions)
+          .set({
+            status: "rejected",
+            rejectionReason: input.reason,
+            reviewedBy: ctx.user.id,
+            reviewedAt: new Date(),
+          })
+          .where(require("drizzle-orm").eq(require("../drizzle/schema").submissions.id, input.submissionId));
+
+        await createAuditLog(ctx.user.id, "reject", "submission", input.submissionId, {
+          reason: input.reason,
+        });
+
+        return { success: true };
+      }),
+  }),
+
+  // Search Router
+  search: router({
+    advancedSearch: publicProcedure
+      .input(
+        z.object({
+          query: z.string().min(1),
+          limit: z.number().min(1).max(100).default(20),
+          offset: z.number().min(0).default(0),
+        })
+      )
+      .query(async ({ input }) => {
+        return searchService.advancedSearch(input.query, input.limit, input.offset);
+      }),
+
+    getSuggestions: publicProcedure
+      .input(
+        z.object({
+          query: z.string().min(1),
+          limit: z.number().min(1).max(10).default(5),
+        })
+      )
+      .query(async ({ input }) => {
+        return searchService.getSuggestions(input.query, input.limit);
+      }),
+
+    getTrending: publicProcedure
+      .input(z.object({ limit: z.number().min(1).max(20).default(5) }))
+      .query(async ({ input }) => {
+        return searchService.getTrending(input.limit);
+      }),
+  }),
+
+  // User Router
+  user: router({
+    // Get user profile
+    getProfile: publicProcedure
+      .input(z.object({ userId: z.number() }))
+      .query(async ({ input }) => {
+        const user = await getUserById(input.userId);
+        if (!user) {
+          throw new TRPCError({ code: "NOT_FOUND" });
+        }
+
+        // Return sanitized user data
+        return {
+          id: user.id,
+          name: user.name,
+          avatar: user.avatar,
+          bio: user.bio,
+          reputation: user.reputation,
+          createdAt: user.createdAt,
+        };
+      }),
+
+    // Update own profile
+    updateProfile: protectedProcedure
+      .input(
+        z.object({
+          name: z.string().optional(),
+          bio: z.string().optional(),
+          avatar: z.string().optional(),
+        })
+      )
+      .mutation(async ({ input, ctx }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+
+        const updateData: any = {};
+        if (input.name) updateData.name = input.name;
+        if (input.bio) updateData.bio = input.bio;
+        if (input.avatar) updateData.avatar = input.avatar;
+
+        await db
+          .update(require("../drizzle/schema").users)
+          .set(updateData)
+          .where(require("drizzle-orm").eq(require("../drizzle/schema").users.id, ctx.user.id));
+
+        await createAuditLog(ctx.user.id, "update", "user", ctx.user.id, updateData);
+
+        return { success: true };
+      }),
+  }),
 });
 
 export type AppRouter = typeof appRouter;
