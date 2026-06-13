@@ -26,26 +26,20 @@ export function AppLayout({ children }: AppLayoutProps) {
       <header className="sticky top-0 z-50 bg-card border-b border-gray-200 shadow-elegant">
         <div className="container h-16 flex items-center justify-between">
           {/* Logo */}
-          <Link href="/">
-            <a className="flex items-center gap-2 font-serif font-bold text-xl hover:opacity-80 transition-opacity">
-              <div className="w-8 h-8 rounded-lg bg-accent flex items-center justify-center">
-                <span className="text-white text-sm font-bold">NS</span>
-              </div>
-              <span className="hidden sm:inline">NorthStar</span>
-            </a>
+          <Link href="/" className="flex items-center gap-2 font-serif font-bold text-xl hover:opacity-80 transition-opacity">
+            <div className="w-8 h-8 rounded-lg bg-accent flex items-center justify-center">
+              <span className="text-white text-sm font-bold">NS</span>
+            </div>
+            <span className="hidden sm:inline">NorthStar</span>
           </Link>
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-8">
-            <Link href="/browse">
-              <a className="text-sm font-medium text-gray-900/80 hover:text-gray-900 transition-colors">
-                Browse
-              </a>
+            <Link href="/browse" className="text-sm font-medium text-gray-900/80 hover:text-gray-900 transition-colors">
+              Browse
             </Link>
-            <Link href="/search">
-              <a className="text-sm font-medium text-gray-900/80 hover:text-gray-900 transition-colors">
-                Search
-              </a>
+            <Link href="/search" className="text-sm font-medium text-gray-900/80 hover:text-gray-900 transition-colors">
+              Search
             </Link>
             <a
               href="#"
@@ -58,10 +52,8 @@ export function AppLayout({ children }: AppLayoutProps) {
           {/* Right side actions */}
           <div className="flex items-center gap-4">
             {/* Search icon */}
-            <Link href="/search">
-              <a className="p-2 hover:bg-secondary rounded-lg transition-colors">
-                <Search className="w-5 h-5 text-gray-900/60" />
-              </a>
+            <Link href="/search" className="p-2 hover:bg-secondary rounded-lg transition-colors">
+              <Search className="w-5 h-5 text-gray-900/60" />
             </Link>
 
             {/* Auth buttons */}
@@ -77,20 +69,14 @@ export function AppLayout({ children }: AppLayoutProps) {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem asChild>
-                    <Link href={`/profile/${user.id}`}>
-                      <a>Profile</a>
-                    </Link>
+                    <a href={`/profile/${user.id}`}>Profile</a>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
-                    <Link href="/collections">
-                      <a>Collections</a>
-                    </Link>
+                    <a href="/collections">Collections</a>
                   </DropdownMenuItem>
                   {user.role === "admin" && (
                     <DropdownMenuItem asChild>
-                      <Link href="/admin">
-                        <a>Admin</a>
-                      </Link>
+                      <a href="/admin">Admin</a>
                     </DropdownMenuItem>
                   )}
                   <DropdownMenuItem onClick={() => logout()}>
