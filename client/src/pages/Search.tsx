@@ -10,7 +10,7 @@ import { Search as SearchIcon, TrendingUp, Lightbulb } from "lucide-react";
 
 export default function Search() {
   const [location] = useLocation();
-  const searchParams = new URLSearchParams(location.split("?")[1]);
+  const searchParams = new URLSearchParams(window.location.search);
   const initialQuery = searchParams.get("q") || "";
 
   const [query, setQuery] = useState(initialQuery);
@@ -162,8 +162,7 @@ export default function Search() {
                     </p>
 
                     {searchResults.map((resource: any) => (
-                      <Link key={resource.id} href={`/resource/${resource.slug}`}>
-                        <a className="card-elegant p-6 hover:shadow-elegant-lg transition-all group">
+                      <Link key={resource.id} href={`/resource/${resource.slug}`} className="card-elegant block p-6 hover:shadow-elegant-lg transition-all group">
                           <div className="flex gap-4">
                             {resource.logo && (
                               <img
@@ -192,7 +191,6 @@ export default function Search() {
                               </div>
                             </div>
                           </div>
-                        </a>
                       </Link>
                     ))}
                   </div>
@@ -203,9 +201,7 @@ export default function Search() {
                       Try a different search term or browse by category
                     </p>
                     <Link href="/browse">
-                      <a>
-                        <Button variant="outline">Browse Categories</Button>
-                      </a>
+                      <Button variant="outline">Browse Categories</Button>
                     </Link>
                   </div>
                 )}
@@ -227,12 +223,10 @@ export default function Search() {
                         <h3 className="font-semibold text-lg mb-3">Resources</h3>
                         <div className="space-y-2">
                           {suggestions.resources.map((resource: any) => (
-                            <Link key={resource.id} href={`/resource/${resource.slug}`}>
-                              <a className="block p-3 rounded-lg hover:bg-secondary transition-colors">
+                            <Link key={resource.id} href={`/resource/${resource.slug}`} className="block p-3 rounded-lg hover:bg-secondary transition-colors">
                                 <p className="font-medium hover:text-accent transition-colors">
                                   {resource.title}
                                 </p>
-                              </a>
                             </Link>
                           ))}
                         </div>

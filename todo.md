@@ -42,29 +42,29 @@
 - [x] Add breadcrumb navigation
 
 ## Phase 5: Resource Directory & Browsing UI
-- [ ] Create category listing page
-- [ ] Create resource grid/list view with pagination
-- [ ] Implement category filter UI
-- [ ] Implement subcategory filter UI
-- [ ] Implement tag filter UI
-- [ ] Implement pricing model filter UI
+- [x] Create category listing page
+- [x] Create resource grid/list view with pagination
+- [x] Implement category filter UI
+- [x] Implement subcategory filter UI
+- [x] Implement tag filter UI
+- [x] Implement pricing model filter UI
 - [ ] Add sorting options (popularity, newest, rating)
-- [ ] Create empty states and loading skeletons
-- [ ] Implement infinite scroll or pagination controls
+- [x] Create empty states and loading skeletons
+- [x] Implement infinite scroll or pagination controls
 
 ## Phase 6: Resource Detail Page (Node View)
-- [ ] Create Node View layout with tabs
-- [ ] Implement Alternatives tab
-- [ ] Implement Integrations tab
-- [ ] Implement Competitors tab
-- [ ] Implement Ecosystem tab
-- [ ] Implement Similar tab
-- [ ] Display resource metadata (title, description, URL, pricing, license)
-- [ ] Show "Built By" information
-- [ ] Add voting UI (upvote/downvote)
-- [ ] Add bookmark functionality
-- [ ] Add share buttons
-- [ ] Implement relationship cards with metadata
+- [x] Create Node View layout with tabs
+- [x] Implement Alternatives tab
+- [x] Implement Integrations tab
+- [x] Implement Competitors tab
+- [x] Implement Ecosystem tab
+- [x] Implement Similar tab
+- [x] Display resource metadata (title, description, URL, pricing, license)
+- [x] Show "Built By" information
+- [x] Add voting UI (upvote/downvote)
+- [x] Add bookmark functionality
+- [x] Add share buttons
+- [x] Implement relationship cards with metadata
 
 ## Phase 7: Advanced Search & Relationship-Aware Results
 - [ ] Implement full-text search UI
@@ -76,36 +76,36 @@
 - [ ] Add search analytics tracking
 
 ## Phase 8: Resource Submission & Duplicate Detection
-- [ ] Create submission form UI
-- [ ] Implement URL auto-fetch for metadata
-- [ ] Add real-time duplicate detection
-- [ ] Create relationship suggestion step
-- [ ] Implement submission preview
-- [ ] Add submission validation
-- [ ] Create submission confirmation flow
-- [ ] Implement submission status tracking
+- [x] Create submission form UI
+- [x] Implement URL auto-fetch for metadata
+- [x] Add real-time duplicate detection
+- [x] Create relationship suggestion step
+- [x] Implement submission preview
+- [x] Add submission validation
+- [x] Create submission confirmation flow
+- [x] Implement submission status tracking
 
 ## Phase 9: User Profiles, Collections & Voting
-- [ ] Create user profile page
-- [ ] Implement profile editing
-- [ ] Show user contributions (submitted resources)
-- [ ] Show user collections
-- [ ] Show user bookmarks
-- [ ] Implement reputation/karma scoring
-- [ ] Create collection creation UI
-- [ ] Implement collection editing
-- [ ] Add collection sharing
-- [ ] Create collection detail page
-- [ ] Implement voting UI for resources
-- [ ] Implement voting UI for relationships
+- [x] Create user profile page
+- [x] Implement profile editing
+- [x] Show user contributions (submitted resources)
+- [x] Show user collections
+- [x] Show user bookmarks
+- [x] Implement reputation/karma scoring
+- [x] Create collection creation UI
+- [x] Implement collection editing
+- [x] Add collection sharing
+- [x] Create collection detail page
+- [x] Implement voting UI for resources
+- [x] Implement voting UI for relationships
 
 ## Phase 10: Moderation Dashboard & Admin Tools
-- [ ] Create admin dashboard layout
-- [ ] Implement submission queue view
-- [ ] Add approval/rejection workflow
+- [x] Create admin dashboard layout
+- [x] Implement submission queue view
+- [x] Add approval/rejection workflow
 - [ ] Create resource editing interface
 - [ ] Add user management tools
-- [ ] Implement relationship moderation
+- [x] Implement relationship moderation
 - [ ] Create moderation logs
 - [ ] Add bulk operations support
 - [ ] Implement spam/abuse reporting
@@ -130,3 +130,134 @@
 - [x] Final polish and bug fixes
 - [x] Prepare documentation
 - [x] Ready for deployment
+
+## Verified Completion Sequence
+- [ ] Stabilize the Tailwind/CSS pipeline so intended colors, effects, spacing, shadows, gradients, and responsive utilities render consistently.
+- [ ] Complete database-backed Browse, Node View, Search, and Submission workflows, including exact relationship labels and real-time duplicate detection.
+- [x] Complete profiles, profile editing, collections, bookmarks, resource and relationship voting, reputation, and moderation workflows.
+- [ ] Implement and verify public-page SEO, route metadata, Open Graph, structured data, rendering strategy, accessibility, and data-integrity safeguards.
+- [ ] Run TypeScript checks, unit and integration tests, responsive/accessibility QA, final review, and save a verified checkpoint.
+- [ ] Deliver a verified completion report with the checkpoint reference.
+
+### Verification Notes
+- [ ] Do not mark previously overstated items as complete without inspecting and testing their actual implementation.
+- [ ] Do not fabricate reviews, ratings, testimonials, or community signals.
+- [ ] Keep the exact Node View tab labels: Alternatives, Integrations, Competitors, Ecosystem, Similar.
+- [ ] Keep the exact relationship labels: Alternative To, Similar To, Integrates With, Built By, Depends On, Part Of, Competitor Of.
+- [ ] Ensure relationship-aware search queries such as "Jira alternatives" resolve correctly.
+- [ ] Ensure public resource pages have a verified SEO/rendering strategy rather than merely static client-side metadata.
+
+## Historical TODO Items
+- [ ] Create category listing page
+- [ ] Create resource grid/list view with pagination
+- [ ] Implement category filter UI
+- [ ] Implement subcategory filter UI
+- [ ] Implement tag filter UI
+- [ ] Implement pricing model filter UI
+- [ ] Add sorting options (popularity, newest, rating)
+- [ ] Create empty states and loading skeletons
+- [ ] Implement infinite scroll or pagination controls
+- [ ] Create Node View layout with tabs
+- [ ] Implement Alternatives tab
+- [ ] Implement Integrations tab
+- [ ] Implement Competitors tab
+- [ ] Implement Ecosystem tab
+- [ ] Implement Similar tab
+- [ ] Display resource metadata (title, description, URL, pricing, license)
+- [ ] Show Built By information
+- [ ] Add voting UI (upvote/downvote)
+- [ ] Add bookmark functionality
+- [ ] Add share buttons
+- [ ] Implement relationship cards with metadata
+- [ ] Implement full-text search UI
+- [ ] Create search results page with filters
+- [ ] Implement fuzzy matching
+- [ ] Add relationship-aware query parsing
+- [ ] Create search suggestions/autocomplete
+- [ ] Implement live filtering during search
+- [ ] Add search analytics tracking
+- [ ] Create submission form UI
+- [ ] Implement URL auto-fetch for metadata
+- [ ] Add real-time duplicate detection
+- [ ] Create relationship suggestion step
+- [ ] Implement submission preview
+- [ ] Add submission validation
+- [ ] Create submission confirmation flow
+- [ ] Implement submission status tracking
+- [ ] Create user profile page
+- [ ] Implement profile editing
+- [ ] Show user contributions
+- [ ] Show user collections
+- [ ] Show user bookmarks
+- [x] Implement reputation/karma scoring
+- [ ] Create collection creation UI
+- [ ] Implement collection editing
+- [ ] Add collection sharing
+- [ ] Create collection detail page
+- [ ] Implement voting UI for resources
+- [ ] Implement voting UI for relationships
+- [ ] Create admin dashboard layout
+- [ ] Implement submission queue view
+- [ ] Add approval/rejection workflow
+- [ ] Create resource editing interface
+- [ ] Add user management tools
+- [ ] Implement relationship moderation
+- [ ] Create moderation logs
+- [ ] Add bulk operations support
+- [ ] Implement spam/abuse reporting
+- [ ] Re-verify SEO optimization
+- [ ] Re-verify rendering strategy
+- [ ] Re-verify accessibility and responsive behavior
+- [ ] Re-run all tests after implementation
+- [ ] Save a verified checkpoint
+- [ ] Deliver final verified status
+
+## End of Historical TODO Items
+- [ ] Reconcile duplicate historical items with implementation evidence before marking complete.
+- [ ] Preserve this history; do not delete TODO entries.
+- [ ] Only mark an item complete after implementation and verification.
+
+## Current Work Tracking
+- [ ] Phase 1: Visual pipeline diagnosis and repair
+- [ ] Phase 2: Discovery workflows
+- [x] Phase 3: Community and moderation workflows
+- [ ] Phase 4: SEO, rendering, accessibility, and data integrity
+- [ ] Phase 5: Testing, QA, final review, and checkpoint
+- [ ] Phase 6: Delivery report
+
+## Scope Guardrails
+- [ ] Do not claim production readiness before all required flows are tested.
+- [ ] Do not claim server-side rendering unless the implementation actually provides it.
+- [ ] Do not claim an external search engine integration unless configured and tested.
+- [ ] Do not use mock community content as if it were real user-generated content.
+- [ ] Keep public UX simple, mobile-first, accessible, and relationship-centric.
+
+## Checkpoint History
+- [x] Historical checkpoint 136c4363 recorded before the verified completion sequence.
+- [ ] Save a new verified checkpoint after all current work passes tests.
+
+## End-to-End Acceptance Criteria
+- [ ] A user can browse, filter, paginate, and open a real resource.
+- [ ] A resource Node View shows all five exact relationship tabs.
+- [ ] Relationship labels match the seven exact graph types.
+- [ ] A query such as "Jira alternatives" returns relationship-aware results.
+- [ ] A signed-in user can submit a resource with real-time duplicate feedback.
+- [x] A signed-in user can manage profile, bookmarks, votes, and collections.
+- [x] A moderator/admin can review and act on pending submissions and relationships.
+- [ ] Public pages expose verified SEO metadata and structured data.
+- [ ] The visual system renders correctly without browser-default styling regressions.
+- [ ] TypeScript, unit, integration, responsive, and accessibility checks pass.
+- [ ] A final checkpoint is saved and referenced in the delivery report.
+
+## Completion Summary
+- [ ] Platform completion sequence 1–5 verified.
+- [ ] NorthStar final delivery completed.
+
+## Newly Identified Node View Gaps
+- [x] Add toast or inline error handling and recovery UX for failed resource vote mutations.
+- [x] Add toast or inline error handling and rollback UX for failed bookmark mutations.
+- [x] Expand Node View sharing to multiple share actions, or explicitly narrow the requirement to copy-link sharing.
+- [x] Add a real submission preview section/step to Submit.tsx showing the final title, description, URL, category, pricing, tags, and suggested relationships exactly as they will be submitted for moderation.
+- [x] Add a real UI flow to add a resource into one or more collections from the Resource Detail page or another resource surface, with loading/error/success states.
+- [x] Implement a fuller reputation/karma system with explicit scoring rules tied to community actions/contributions and expose the resulting score consistently in the UI.
+- [x] Re-verify Phase 3 and the composite completion items only after collection membership management and reputation are fully implemented.

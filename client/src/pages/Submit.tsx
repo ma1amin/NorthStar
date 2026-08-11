@@ -1,13 +1,22 @@
-import { useState, useCallback, useMemo } from 'react';
-import { useAuth } from '@/_core/hooks/useAuth';
-import { trpc } from '@/lib/trpc';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Card } from '@/components/ui/card';
-import { AlertCircle, CheckCircle, AlertTriangle, Loader2 } from 'lucide-react';
-import { useLocation } from 'wouter';
+import { useEffect, useMemo, useState } from "react";
+import { useLocation } from "wouter";
+import {
+  AlertCircle,
+  AlertTriangle,
+  CheckCircle,
+  ExternalLink,
+  Loader2,
+  Plus,
+  Sparkles,
+  X,
+} from "lucide-react";
+import { useAuth } from "@/_core/hooks/useAuth";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { trpc } from "@/lib/trpc";
 
 interface FormData {
   title: string;
@@ -15,146 +24,214 @@ interface FormData {
   url: string;
   categoryId: string;
   subcategoryId: string;
-  pricing: string;
+  pricing: "free" | "freemium" | "paid" | "open_source" | "enterprise";
   license: string;
+  builtBy: string;
+  builtByUrl: string;
   tags: string;
 }
 
+type SuggestedRelationship = {
+  targetId: number;
+  type: "alternative_to" | "similar_to" | "integrates_with" | "built_by" | "depends_on" | "part_of" | "competitor_of";
+};
+
+const RELATIONSHIP_TYPES = [
+  { value: "alternative_to", label: "Alternative To" },
+  { value: "similar_to", label: "Similar To" },
+  { value: "integrates_with", label: "Integrates With" },
+  { value: "built_by", label: "Built By" },
+  { value: "depends_on", label: "Depends On" },
+  { value: "part_of", label: "Part Of" },
+  { value: "competitor_of", label: "Competitor Of" },
+] as const;
+
 export default function Submit() {
-  const { user, isAuthenticated } = useAuth();
+  const { isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
   const [formData, setFormData] = useState<FormData>({
-    title: '',
-    description: '',
-    url: '',
-    categoryId: '',
-    subcategoryId: '',
-    pricing: 'free',
-    license: '',
-    tags: '',
+    title: "",
+    description: "",
+    url: "",
+    categoryId: "",
+    subcategoryId: "",
+    pricing: "free",
+    license: "",
+    builtBy: "",
+    builtByUrl: "",
+    tags: "",
   });
-
-  const [duplicates, setDuplicates] = useState<any[]>([]);
-  const [isCheckingDuplicates, setIsCheckingDuplicates] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [relationSearch, setRelationSearch] = useState("");
+  const [relationType, setRelationType] = useState<SuggestedRelationship["type"]>("alternative_to");
+  const [suggestedRelationships, setSuggestedRelationships] = useState<SuggestedRelationship[]>([]);
   const [submitSuccess, setSubmitSuccess] = useState(false);
-  const [submitError, setSubmitError] = useState('');
+  const [submitError, setSubmitError] = useState("");
+  const [showPreview, setShowPreview] = useState(false);
+  const [metadataApplied, setMetadataApplied] = useState(false);
 
-  const { data: categories } = trpc.categories.list.useQuery();
-  const { data: subcategories } = trpc.categories.getSubcategories.useQuery(
-    { categoryId: parseInt(formData.categoryId) },
-    { enabled: !!formData.categoryId }
+  const { data: categories = [] } = trpc.categories.list.useQuery();
+  const categoryId = formData.categoryId ? Number(formData.categoryId) : undefined;
+  const { data: subcategories = [] } = trpc.categories.getSubcategories.useQuery(
+    { categoryId: categoryId ?? 0 },
+    { enabled: categoryId !== undefined }
   );
 
-  const checkDuplicates = useCallback(async (title: string, url: string) => {
-    if (!title.trim() && !url.trim()) {
-      setDuplicates([]);
-      return;
-    }
-
-    setIsCheckingDuplicates(true);
+  const isUrlValid = useMemo(() => {
     try {
-      const results = await Promise.all([
-        url.trim() ? trpc.resources.checkDuplicateByUrl.useQuery({ url: url.trim() }) : Promise.resolve({ data: null }),
-      ]);
-
-      const combined = results
-        .filter(r => r.data)
-        .map(r => r.data)
-        .filter((item, index, self) => index === self.findIndex(t => t?.id === item?.id));
-
-      setDuplicates(combined as any);
-    } catch (error) {
-      console.error('Duplicate check failed:', error);
-    } finally {
-      setIsCheckingDuplicates(false);
+      const parsed = new URL(formData.url);
+      return ["http:", "https:"].includes(parsed.protocol);
+    } catch {
+      return false;
     }
-  }, []);
+  }, [formData.url]);
+  const urlInput = useMemo(() => ({ url: formData.url }), [formData.url]);
+  const titleInput = useMemo(
+    () => ({ title: formData.title.trim(), categoryId: categoryId ?? 0 }),
+    [formData.title, categoryId]
+  );
 
-  useMemo(() => {
-    const timer = setTimeout(() => {
-      checkDuplicates(formData.title, formData.url);
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [formData.title, formData.url, checkDuplicates]);
+  const { data: metadata, isFetching: metadataLoading, error: metadataError } = trpc.resources.previewMetadata.useQuery(urlInput, {
+    enabled: isUrlValid,
+    retry: false,
+  });
+  const { data: duplicateByUrl, isFetching: urlDuplicateLoading } = trpc.resources.checkDuplicateByUrl.useQuery(urlInput, {
+    enabled: isUrlValid,
+  });
+  const { data: duplicateByTitle = [], isFetching: titleDuplicateLoading } = trpc.resources.checkDuplicateByTitle.useQuery(titleInput, {
+    enabled: Boolean(categoryId && formData.title.trim().length >= 3),
+  });
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
+  const relationshipInput = useMemo(
+    () => ({ limit: 6, offset: 0, query: relationSearch.trim(), sort: "popular" as const }),
+    [relationSearch]
+  );
+  const { data: relationshipResults } = trpc.resources.listFiltered.useQuery(relationshipInput, {
+    enabled: relationSearch.trim().length >= 2,
+  });
 
-  const handleSelectChange = (name: string, value: string) => {
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!isAuthenticated) {
-      setLocation('/');
-      return;
-    }
-
-    if (!formData.title.trim() || !formData.url.trim() || !formData.categoryId) {
-      setSubmitError('Please fill in all required fields');
-      return;
-    }
-
-    if (duplicates.length > 0) {
-      setSubmitError('Please review the duplicate resources below before submitting');
-      return;
-    }
-
-    setIsSubmitting(true);
-    setSubmitError('');
-
-    try {
-      const result = await trpc.resources.submitResource.useMutation().mutateAsync({
-        title: formData.title,
-        description: formData.description,
-        url: formData.url,
-        categoryId: parseInt(formData.categoryId),
-        subcategoryId: formData.subcategoryId ? parseInt(formData.subcategoryId) : undefined,
-        pricing: formData.pricing as any,
-        license: formData.license,
-        tags: formData.tags.split(',').map(t => t.trim()).filter(Boolean),
-      });
-
+  const submitMutation = trpc.resources.submitResource.useMutation({
+    onSuccess: () => {
       setSubmitSuccess(true);
-      setFormData({
-        title: '',
-        description: '',
-        url: '',
-        categoryId: '',
-        subcategoryId: '',
-        pricing: 'free',
-        license: '',
-        tags: '',
-      });
+      setSubmitError("");
+    },
+    onError: (error) => setSubmitError(error.message || "Failed to submit resource"),
+  });
 
-      setTimeout(() => {
-        setLocation(`/resource/${result.slug}`);
-      }, 2000);
-    } catch (error: any) {
-      setSubmitError(error.message || 'Failed to submit resource');
-    } finally {
-      setIsSubmitting(false);
+  useEffect(() => {
+    if (!metadata || metadataApplied) return;
+    setFormData((current) => ({
+      ...current,
+      title: current.title || metadata.title || "",
+      description: current.description || metadata.description || "",
+    }));
+    setMetadataApplied(true);
+  }, [metadata, metadataApplied]);
+
+  useEffect(() => {
+    setMetadataApplied(false);
+  }, [formData.url]);
+
+  const updateField = <K extends keyof FormData>(field: K, value: FormData[K]) => {
+    setFormData((current) => ({ ...current, [field]: value }));
+    setSubmitError("");
+  };
+
+  const duplicateCandidates = [duplicateByUrl, ...duplicateByTitle];
+  const duplicateResources = duplicateCandidates
+    .filter((resource, index, all): resource is NonNullable<typeof resource> =>
+      Boolean(resource) && all.findIndex((item) => item?.id === resource?.id) === index
+    )
+    .map((resource) => ({
+      id: resource.id,
+      title: resource.title,
+      description: resource.description,
+      url: resource.url,
+      slug: "slug" in resource ? resource.slug : undefined,
+      duplicateType: "duplicateType" in resource ? resource.duplicateType : "published_resource" as const,
+    }));
+  const isDuplicateChecking = metadataLoading || urlDuplicateLoading || titleDuplicateLoading;
+  const selectedCategory = categories.find((category) => category.id === categoryId);
+  const selectedSubcategory = subcategories.find((subcategory) => subcategory.id === Number(formData.subcategoryId));
+
+  const addSuggestedRelationship = (targetId: number) => {
+    if (suggestedRelationships.some((item) => item.targetId === targetId && item.type === relationType)) return;
+    setSuggestedRelationships((current) => [...current, { targetId, type: relationType }]);
+    setRelationSearch("");
+  };
+
+  const validateSubmission = () => {
+    if (!formData.title.trim() || !isUrlValid || !categoryId) {
+      setSubmitError("Add a valid URL, title, and category before submitting.");
+      return false;
     }
+    if (duplicateResources.length > 0) {
+      setSubmitError("Review the possible duplicates before submitting this resource.");
+      return false;
+    }
+    return true;
+  };
+
+  const handlePreview = (event: React.FormEvent) => {
+    event.preventDefault();
+    setSubmitError("");
+    if (!isAuthenticated) {
+      setLocation("/");
+      return;
+    }
+    if (validateSubmission()) setShowPreview(true);
+  };
+
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setSubmitError("");
+    if (!isAuthenticated) {
+      setLocation("/");
+      return;
+    }
+    if (!validateSubmission() || !categoryId) return;
+
+    await submitMutation.mutateAsync({
+      title: formData.title.trim(),
+      url: formData.url.trim(),
+      description: formData.description.trim() || undefined,
+      categoryId,
+      subcategoryId: formData.subcategoryId ? Number(formData.subcategoryId) : undefined,
+      pricing: formData.pricing,
+      license: formData.license.trim() || undefined,
+      builtBy: formData.builtBy.trim() || undefined,
+      builtByUrl: formData.builtByUrl.trim() || undefined,
+      tags: formData.tags.split(",").map((tag) => tag.trim()).filter(Boolean),
+      suggestedRelationships,
+    });
   };
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-white py-12">
+      <div className="min-h-[70vh] bg-slate-50 py-16">
         <div className="container max-w-2xl">
-          <Card className="p-8 text-center">
-            <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-            <h1 className="text-2xl font-bold mb-2">Sign In Required</h1>
-            <p className="text-gray-600 mb-6">
-              You need to be signed in to submit a resource.
-            </p>
-            <Button onClick={() => setLocation('/')} className="bg-blue-600 hover:bg-blue-700">
-              Go to Home
-            </Button>
+          <Card className="border-slate-200 bg-white p-10 text-center shadow-sm">
+            <AlertCircle className="mx-auto mb-4 h-12 w-12 text-sky-500" />
+            <h1 className="text-3xl font-bold text-slate-950">Sign in to contribute</h1>
+            <p className="mx-auto mt-3 max-w-md text-slate-600">Contributions are reviewed by the community and moderators before publication.</p>
+            <Button onClick={() => setLocation("/")} className="mt-7 bg-sky-600 text-white hover:bg-sky-700">Go to home</Button>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  if (submitSuccess) {
+    return (
+      <div className="min-h-[70vh] bg-slate-50 py-16">
+        <div className="container max-w-2xl">
+          <Card className="border-emerald-200 bg-white p-10 text-center shadow-sm">
+            <CheckCircle className="mx-auto mb-4 h-12 w-12 text-emerald-500" />
+            <h1 className="text-3xl font-bold text-slate-950">Submission received</h1>
+            <p className="mx-auto mt-3 max-w-md text-slate-600">Thank you. A moderator will review the resource before it appears in the public directory.</p>
+            <div className="mt-7 flex justify-center gap-3">
+              <Button onClick={() => setLocation("/browse")} className="bg-sky-600 text-white hover:bg-sky-700">Browse resources</Button>
+              <Button variant="outline" onClick={() => window.location.reload()}>Submit another</Button>
+            </div>
           </Card>
         </div>
       </div>
@@ -162,242 +239,86 @@ export default function Submit() {
   }
 
   return (
-    <div className="min-h-screen bg-white py-12">
-      <div className="container max-w-2xl">
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-2">Submit a Resource</h1>
-          <p className="text-gray-600">
-            Help the community discover valuable tools and resources. Fill out the form below to submit a new resource.
-          </p>
+    <div className="min-h-screen bg-slate-50">
+      <section className="border-b border-slate-200 bg-white">
+        <div className="container py-10 md:py-14">
+          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-sky-600">Community contribution</p>
+          <h1 className="mt-3 text-4xl font-bold tracking-tight text-slate-950 md:text-5xl">Submit a resource</h1>
+          <p className="mt-4 max-w-2xl text-lg leading-8 text-slate-600">Help the community discover a useful tool. We’ll fetch metadata, check for duplicates, and route the contribution through moderation.</p>
         </div>
+      </section>
 
-        {submitSuccess && (
-          <Card className="mb-8 p-4 bg-green-50 border-green-200">
-            <div className="flex items-center gap-3">
-              <CheckCircle className="w-5 h-5 text-green-600" />
-              <div>
-                <p className="font-semibold text-green-900">Resource submitted successfully!</p>
-                <p className="text-sm text-green-700">Redirecting to resource page...</p>
-              </div>
-            </div>
-          </Card>
-        )}
-
+      <div className="container max-w-4xl py-8 md:py-10">
         {submitError && (
-          <Card className="mb-8 p-4 bg-red-50 border-red-200">
-            <div className="flex items-center gap-3">
-              <AlertCircle className="w-5 h-5 text-red-600" />
-              <p className="text-red-900">{submitError}</p>
-            </div>
+          <Card className="mb-6 border-red-200 bg-red-50 p-4 text-red-900">
+            <div className="flex items-start gap-3"><AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-red-600" /><p>{submitError}</p></div>
           </Card>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <Card className="p-6">
-            <h2 className="text-xl font-semibold mb-4">Basic Information</h2>
-
-            <div className="space-y-4">
+        <form onSubmit={showPreview ? handleSubmit : handlePreview} className="space-y-6">
+          <Card className="border-slate-200 bg-white p-6 shadow-sm md:p-8">
+            <div className="mb-6 flex items-center gap-3"><Sparkles className="h-5 w-5 text-sky-600" /><div><h2 className="text-xl font-semibold text-slate-950">Start with a URL</h2><p className="text-sm text-slate-500">We use the public page to prefill what we can.</p></div></div>
+            <div className="space-y-5">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Resource Title *
-                </label>
-                <Input
-                  type="text"
-                  name="title"
-                  value={formData.title}
-                  onChange={handleInputChange}
-                  placeholder="e.g., Figma, GitHub, Slack"
-                  required
-                  className="w-full"
-                />
+                <label className="mb-2 block text-sm font-semibold text-slate-700" htmlFor="resource-url">Resource URL *</label>
+                <div className="relative"><Input id="resource-url" type="url" value={formData.url} onChange={(event) => updateField("url", event.target.value)} placeholder="https://example.com" required className="pr-10" />{isDuplicateChecking && <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-sky-500" />}</div>
+                {metadataError && <p className="mt-2 text-sm text-amber-700">We couldn’t fetch metadata. You can still complete the fields manually.</p>}
+                {metadata && <p className="mt-2 text-sm text-emerald-700">Metadata preview loaded from {metadata.url}</p>}
               </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Resource URL *
-                </label>
-                <div className="flex gap-2">
-                  <Input
-                    type="url"
-                    name="url"
-                    value={formData.url}
-                    onChange={handleInputChange}
-                    placeholder="https://example.com"
-                    required
-                    className="flex-1"
-                  />
-                  {isCheckingDuplicates && <Loader2 className="w-5 h-5 animate-spin text-blue-500 my-auto" />}
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Description
-                </label>
-                <Textarea
-                  name="description"
-                  value={formData.description}
-                  onChange={handleInputChange}
-                  placeholder="Describe what this resource does and why it's valuable..."
-                  rows={4}
-                  className="w-full"
-                />
-              </div>
+              <div><label className="mb-2 block text-sm font-semibold text-slate-700" htmlFor="resource-title">Resource title *</label><Input id="resource-title" name="title" value={formData.title} onChange={(event) => updateField("title", event.target.value)} placeholder="e.g. Figma, GitHub, or a useful open-source library" required /></div>
+              <div><label className="mb-2 block text-sm font-semibold text-slate-700" htmlFor="resource-description">Description</label><Textarea id="resource-description" name="description" value={formData.description} onChange={(event) => updateField("description", event.target.value)} placeholder="What problem does it solve, and who should use it?" rows={5} /></div>
             </div>
           </Card>
 
-          {duplicates.length > 0 && (
-            <Card className="p-6 border-amber-200 bg-amber-50">
-              <div className="flex items-start gap-3 mb-4">
-                <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-                <div>
-                  <h3 className="font-semibold text-amber-900">Possible Duplicates Found</h3>
-                  <p className="text-sm text-amber-700">
-                    We found {duplicates.length} similar resource{duplicates.length !== 1 ? 's' : ''}. 
-                    Please review before submitting.
-                  </p>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                {duplicates.map(resource => (
-                  <div key={resource.id} className="p-3 bg-white rounded border border-amber-200">
-                    <p className="font-medium text-gray-900">{resource.title}</p>
-                    <p className="text-sm text-gray-600">{resource.description}</p>
-                    <a href={`/resource/${resource.slug}`} className="text-sm text-blue-600 hover:underline">
-                      View Resource →
-                    </a>
-                  </div>
-                ))}
-              </div>
+          {duplicateResources.length > 0 && (
+            <Card className="border-amber-200 bg-amber-50 p-6">
+              <div className="flex items-start gap-3"><AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" /><div><h2 className="font-semibold text-amber-950">Possible duplicates found</h2><p className="mt-1 text-sm text-amber-800">Review these existing resources before submitting.</p></div></div>
+              <div className="mt-4 space-y-3">{duplicateResources.map((resource) => <div key={resource.id} className="rounded-xl border border-amber-200 bg-white p-4"><div className="flex items-start justify-between gap-4"><div><p className="font-semibold text-slate-950">{resource.title}</p><p className="mt-1 line-clamp-2 text-sm text-slate-600">{resource.description || resource.url}</p></div>{resource.duplicateType === "pending_submission" || !resource.slug ? <span className="shrink-0 text-sm font-semibold text-amber-700">Pending review</span> : <a href={`/resource/${resource.slug}`} className="shrink-0 text-sm font-semibold text-sky-600 hover:text-sky-700">View <ExternalLink className="ml-1 inline h-3.5 w-3.5" /></a>}</div></div>)}</div>
             </Card>
           )}
 
-          <Card className="p-6">
-            <h2 className="text-xl font-semibold mb-4">Categorization</h2>
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Category *
-                </label>
-                <Select value={formData.categoryId} onValueChange={(value) => handleSelectChange('categoryId', value)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categories?.map(cat => (
-                      <SelectItem key={cat.id} value={cat.id.toString()}>
-                        {cat.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {subcategories && subcategories.length > 0 && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Subcategory
-                  </label>
-                  <Select value={formData.subcategoryId} onValueChange={(value) => handleSelectChange('subcategoryId', value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a subcategory" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {subcategories.map(subcat => (
-                        <SelectItem key={subcat.id} value={subcat.id.toString()}>
-                          {subcat.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Pricing Model
-                </label>
-                <Select value={formData.pricing} onValueChange={(value) => handleSelectChange('pricing', value)}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="free">Free</SelectItem>
-                    <SelectItem value="freemium">Freemium</SelectItem>
-                    <SelectItem value="paid">Paid</SelectItem>
-                    <SelectItem value="open_source">Open Source</SelectItem>
-                    <SelectItem value="enterprise">Enterprise</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  License
-                </label>
-                <Input
-                  type="text"
-                  name="license"
-                  value={formData.license}
-                  onChange={handleInputChange}
-                  placeholder="e.g., MIT, Apache 2.0, Commercial"
-                  className="w-full"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Tags (comma-separated)
-                </label>
-                <Input
-                  type="text"
-                  name="tags"
-                  value={formData.tags}
-                  onChange={handleInputChange}
-                  placeholder="e.g., design, collaboration, remote"
-                  className="w-full"
-                />
-              </div>
+          <Card className="border-slate-200 bg-white p-6 shadow-sm md:p-8">
+            <h2 className="text-xl font-semibold text-slate-950">Classify the resource</h2>
+            <div className="mt-5 grid gap-5 md:grid-cols-2">
+              <div><label className="mb-2 block text-sm font-semibold text-slate-700">Category *</label><Select value={formData.categoryId || undefined} onValueChange={(value) => { updateField("categoryId", value); updateField("subcategoryId", ""); }}><SelectTrigger><SelectValue placeholder="Select a category" /></SelectTrigger><SelectContent>{categories.map((category) => <SelectItem key={category.id} value={String(category.id)}>{category.name}</SelectItem>)}</SelectContent></Select></div>
+              <div><label className="mb-2 block text-sm font-semibold text-slate-700">Subcategory</label><Select value={formData.subcategoryId || undefined} onValueChange={(value) => updateField("subcategoryId", value)} disabled={!categoryId || subcategories.length === 0}><SelectTrigger><SelectValue placeholder={subcategories.length ? "Select a subcategory" : "No subcategories"} /></SelectTrigger><SelectContent>{subcategories.map((subcategory) => <SelectItem key={subcategory.id} value={String(subcategory.id)}>{subcategory.name}</SelectItem>)}</SelectContent></Select></div>
+              <div><label className="mb-2 block text-sm font-semibold text-slate-700">Pricing model</label><Select value={formData.pricing} onValueChange={(value) => updateField("pricing", value as FormData["pricing"])}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{["free", "freemium", "paid", "open_source", "enterprise"].map((value) => <SelectItem key={value} value={value}>{value.replace("_", " ")}</SelectItem>)}</SelectContent></Select></div>
+              <div><label className="mb-2 block text-sm font-semibold text-slate-700" htmlFor="resource-license">License</label><Input id="resource-license" value={formData.license} onChange={(event) => updateField("license", event.target.value)} placeholder="MIT, Apache 2.0, Commercial" /></div>
+              <div><label className="mb-2 block text-sm font-semibold text-slate-700" htmlFor="resource-built-by">Built by</label><Input id="resource-built-by" value={formData.builtBy} onChange={(event) => updateField("builtBy", event.target.value)} placeholder="Organization or creator" /></div>
+              <div><label className="mb-2 block text-sm font-semibold text-slate-700" htmlFor="resource-built-by-url">Builder URL</label><Input id="resource-built-by-url" type="url" value={formData.builtByUrl} onChange={(event) => updateField("builtByUrl", event.target.value)} placeholder="https://company.example" /></div>
+              <div className="md:col-span-2"><label className="mb-2 block text-sm font-semibold text-slate-700" htmlFor="resource-tags">Tags</label><Input id="resource-tags" value={formData.tags} onChange={(event) => updateField("tags", event.target.value)} placeholder="design, collaboration, open source" /><p className="mt-2 text-xs text-slate-500">Separate tags with commas.</p></div>
             </div>
           </Card>
 
-          <div className="flex gap-3">
-            <Button
-              type="submit"
-              disabled={isSubmitting || duplicates.length > 0}
-              className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Submitting...
-                </>
-              ) : (
-                'Submit Resource'
-              )}
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setLocation('/')}
-            >
-              Cancel
-            </Button>
-          </div>
-        </form>
+          <Card className="border-slate-200 bg-white p-6 shadow-sm md:p-8">
+            <h2 className="text-xl font-semibold text-slate-950">Suggest graph connections</h2>
+            <p className="mt-2 text-sm leading-6 text-slate-500">These suggestions go to moderation with your submission. They are not published automatically.</p>
+            <div className="mt-5 grid gap-3 md:grid-cols-[1fr_190px_auto]">
+              <Input value={relationSearch} onChange={(event) => setRelationSearch(event.target.value)} placeholder="Search an existing resource" />
+              <Select value={relationType} onValueChange={(value) => setRelationType(value as SuggestedRelationship["type"])}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{RELATIONSHIP_TYPES.map((type) => <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>)}</SelectContent></Select>
+              <Button type="button" variant="outline" disabled={!relationSearch.trim() || !relationshipResults?.items?.[0]} onClick={() => relationshipResults?.items?.[0] && addSuggestedRelationship(relationshipResults.items[0].id)}><Plus className="mr-2 h-4 w-4" /> Add first match</Button>
+            </div>
+            {relationshipResults?.items && relationshipResults.items.length > 0 && <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3"><p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Matches</p><div className="mt-2 flex flex-wrap gap-2">{relationshipResults.items.map((resource) => <button type="button" key={resource.id} onClick={() => addSuggestedRelationship(resource.id)} className="rounded-full bg-white px-3 py-1.5 text-sm font-medium text-slate-700 shadow-sm ring-1 ring-slate-200 hover:text-sky-700">{resource.title}</button>)}</div></div>}
+            {suggestedRelationships.length > 0 && <div className="mt-4 space-y-2">{suggestedRelationships.map((relationship, index) => { const target = relationshipResults?.items?.find((item) => item.id === relationship.targetId); return <div key={`${relationship.targetId}-${relationship.type}-${index}`} className="flex items-center justify-between rounded-xl border border-sky-100 bg-sky-50 px-3 py-2 text-sm"><span className="text-slate-700">{target?.title ?? `Resource #${relationship.targetId}`} <strong className="text-sky-700">· {RELATIONSHIP_TYPES.find((type) => type.value === relationship.type)?.label}</strong></span><button type="button" onClick={() => setSuggestedRelationships((current) => current.filter((_, itemIndex) => itemIndex !== index))} aria-label="Remove suggested relationship" className="text-slate-400 hover:text-red-600"><X className="h-4 w-4" /></button></div>; })}</div>}
+          </Card>
 
-        <Card className="mt-8 p-6 bg-blue-50 border-blue-200">
-          <h3 className="font-semibold text-blue-900 mb-2">Tips for a Great Submission</h3>
-          <ul className="text-sm text-blue-800 space-y-1">
-            <li>✓ Use a clear, descriptive title</li>
-            <li>✓ Provide a detailed description of what the resource does</li>
-            <li>✓ Select the most relevant category</li>
-            <li>✓ Add relevant tags to improve discoverability</li>
-            <li>✓ Ensure the URL is correct and accessible</li>
-          </ul>
-        </Card>
+          {showPreview && (
+            <Card className="border-sky-200 bg-sky-50 p-6 shadow-sm md:p-8">
+              <div className="flex items-start gap-3"><CheckCircle className="mt-0.5 h-5 w-5 shrink-0 text-sky-600" /><div><h2 className="text-xl font-semibold text-slate-950">Review before submitting</h2><p className="mt-1 text-sm leading-6 text-slate-600">This is the exact resource payload that will enter human moderation.</p></div></div>
+              <dl className="mt-6 grid gap-4 text-sm md:grid-cols-2">
+                <div><dt className="font-semibold text-slate-500">Title</dt><dd className="mt-1 text-slate-950">{formData.title}</dd></div>
+                <div><dt className="font-semibold text-slate-500">URL</dt><dd className="mt-1 break-all text-sky-700">{formData.url}</dd></div>
+                <div><dt className="font-semibold text-slate-500">Category</dt><dd className="mt-1 text-slate-950">{selectedCategory?.name ?? "—"}{selectedSubcategory ? ` / ${selectedSubcategory.name}` : ""}</dd></div>
+                <div><dt className="font-semibold text-slate-500">Pricing</dt><dd className="mt-1 capitalize text-slate-950">{formData.pricing.replace("_", " ")}</dd></div>
+                <div className="md:col-span-2"><dt className="font-semibold text-slate-500">Description</dt><dd className="mt-1 whitespace-pre-wrap text-slate-700">{formData.description || "No description provided."}</dd></div>
+                <div><dt className="font-semibold text-slate-500">Tags</dt><dd className="mt-1 text-slate-700">{formData.tags || "No tags"}</dd></div>
+                <div><dt className="font-semibold text-slate-500">Suggested relationships</dt><dd className="mt-1 text-slate-700">{suggestedRelationships.length || "None"}</dd></div>
+              </dl>
+            </Card>
+          )}
+
+          <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end"><Button type="button" variant="outline" onClick={() => setLocation("/browse")}>Cancel</Button>{showPreview && <Button type="button" variant="outline" onClick={() => setShowPreview(false)}>Edit details</Button>}<Button type="submit" disabled={submitMutation.isPending || isDuplicateChecking || duplicateResources.length > 0} className="bg-sky-600 text-white hover:bg-sky-700">{submitMutation.isPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Sending to moderation...</> : showPreview ? "Submit for review" : "Review before submitting"}</Button></div>
+        </form>
       </div>
     </div>
   );

@@ -15,6 +15,13 @@
       "when": 1780956561543,
       "tag": "0001_productive_valeria_richards",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1786469153175,
+      "tag": "0002_worthless_terror",
+      "breakpoints": true
     }
   ]
 }

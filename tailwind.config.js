@@ -6,6 +6,24 @@ export default {
   theme: {
     extend: {
       colors: {
+        background: '#ffffff',
+        foreground: '#111827',
+        card: '#ffffff',
+        'card-foreground': '#111827',
+        secondary: {
+          DEFAULT: '#f8fafc',
+          foreground: '#111827',
+          50: '#f8fafc',
+          100: '#f1f5f9',
+          200: '#e2e8f0',
+          300: '#cbd5e1',
+          400: '#94a3b8',
+          500: '#64748b',
+          600: '#475569',
+          700: '#334155',
+          800: '#1e293b',
+          900: '#0f172a',
+        },
         primary: {
           50: '#eff6ff',
           100: '#dbeafe',
@@ -19,6 +37,7 @@ export default {
           900: '#1e3a8a',
         },
         accent: {
+          DEFAULT: '#0ea5e9',
           50: '#faf5ff',
           100: '#f3e8ff',
           200: '#e9d5ff',
@@ -30,6 +49,10 @@ export default {
           800: '#6b21a8',
           900: '#581c87',
         },
+      },
+      fontFamily: {
+        sans: ['Inter', 'system-ui', 'sans-serif'],
+        serif: ['Sora', 'system-ui', 'sans-serif'],
       },
       animation: {
         'blob': 'blob 7s infinite',

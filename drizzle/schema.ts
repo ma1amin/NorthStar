@@ -467,3 +467,32 @@ export const auditLogs = mysqlTable(
 
 export type AuditLog = typeof auditLogs.$inferSelect;
 export type InsertAuditLog = typeof auditLogs.$inferInsert;
+
+/**
+ * Immutable reputation events used to explain and safely aggregate user karma.
+ */
+export const reputationEvents = mysqlTable(
+  "reputation_events",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    userId: int("userId").notNull(),
+    points: int("points").notNull(),
+    reason: varchar("reason", { length: 120 }).notNull(),
+    entityType: varchar("entityType", { length: 80 }).notNull(),
+    entityId: int("entityId").notNull(),
+    eventKey: varchar("eventKey", { length: 255 }).notNull().unique(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  (table) => ({
+    userIdIdx: index("reputation_user_idx").on(table.userId),
+    reasonIdx: index("reputation_reason_idx").on(table.reason),
+    entityIdx: index("reputation_entity_idx").on(table.entityType, table.entityId),
+    userFk: foreignKey({
+      columns: [table.userId],
+      foreignColumns: [users.id],
+    }).onDelete("cascade"),
+  })
+);
+
+export type ReputationEvent = typeof reputationEvents.$inferSelect;
+export type InsertReputationEvent = typeof reputationEvents.$inferInsert;

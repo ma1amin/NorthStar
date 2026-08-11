@@ -11,6 +11,7 @@ import Search from "./pages/Search";
 import Submit from "./pages/Submit";
 import Profile from "./pages/Profile";
 import Collections from "./pages/Collections";
+import CollectionDetail from "./pages/CollectionDetail";
 import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 
@@ -27,8 +28,10 @@ function Router() {
 
         {/* User pages */}
         <Route path={"/submit"} component={Submit} />
+        <Route path={"/profile"} component={Profile} />
         <Route path={"/profile/:userId"} component={Profile} />
         <Route path={"/collections"} component={Collections} />
+        <Route path={"/collection/:id"} component={CollectionDetail} />
 
         {/* Admin pages */}
         <Route path={"/admin"} component={Admin} />

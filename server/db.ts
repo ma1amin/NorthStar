@@ -15,6 +15,7 @@ import {
   tags,
   resourceTags,
   auditLogs,
+  reputationEvents,
 } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
@@ -112,17 +113,104 @@ export async function getUserById(id: number) {
 }
 
 // Resources
-export async function getApprovedResources(limit: number = 50, offset: number = 0) {
-  const db = await getDb();
-  if (!db) return [];
+export type ResourceListOptions = {
+  limit?: number;
+  offset?: number;
+  query?: string;
+  categoryId?: number;
+  subcategoryId?: number;
+  pricing?: "free" | "freemium" | "paid" | "open_source" | "enterprise";
+  tag?: string;
+  sort?: "popular" | "newest";
+};
 
-  return db
-    .select()
-    .from(resources)
-    .where(eq(resources.status, "approved"))
-    .orderBy(desc(resources.createdAt))
-    .limit(limit)
-    .offset(offset);
+export async function listApprovedResources(options: ResourceListOptions = {}) {
+  const db = await getDb();
+  if (!db) return { items: [], total: 0 };
+
+  const limit = Math.min(Math.max(options.limit ?? 20, 1), 100);
+  const offset = Math.max(options.offset ?? 0, 0);
+  const conditions = [eq(resources.status, "approved")];
+
+  if (options.query?.trim()) {
+    const query = `%${options.query.trim()}%`;
+    conditions.push(
+      or(
+        like(resources.title, query),
+        like(resources.description, query),
+        like(resources.builtBy, query)
+      ) as any
+    );
+  }
+
+  if (options.categoryId !== undefined) {
+    conditions.push(eq(resources.categoryId, options.categoryId));
+  }
+  if (options.subcategoryId !== undefined) {
+    conditions.push(eq(resources.subcategoryId, options.subcategoryId));
+  }
+  if (options.pricing !== undefined) {
+    conditions.push(eq(resources.pricing, options.pricing));
+  }
+  if (options.tag?.trim()) {
+    conditions.push(
+      sql`exists (
+        select 1 from ${resourceTags}
+        inner join ${tags} on ${tags.id} = ${resourceTags.tagId}
+        where ${resourceTags.resourceId} = ${resources.id}
+          and lower(${tags.name}) = lower(${options.tag.trim()})
+      )`
+    );
+  }
+
+  const whereClause = and(...conditions);
+  const [items, countRows] = await Promise.all([
+    db
+      .select({
+        id: resources.id,
+        title: resources.title,
+        slug: resources.slug,
+        description: resources.description,
+        url: resources.url,
+        categoryId: resources.categoryId,
+        categoryName: categories.name,
+        subcategoryId: resources.subcategoryId,
+        subcategoryName: subcategories.name,
+        logo: resources.logo,
+        pricing: resources.pricing,
+        license: resources.license,
+        builtBy: resources.builtBy,
+        builtByUrl: resources.builtByUrl,
+        upvotes: resources.upvotes,
+        views: resources.views,
+        featured: resources.featured,
+        createdAt: resources.createdAt,
+        updatedAt: resources.updatedAt,
+      })
+      .from(resources)
+      .leftJoin(categories, eq(resources.categoryId, categories.id))
+      .leftJoin(subcategories, eq(resources.subcategoryId, subcategories.id))
+      .where(whereClause)
+      .orderBy(
+        desc(resources.featured),
+        ...(options.sort === "newest"
+          ? [desc(resources.createdAt), desc(resources.upvotes)]
+          : [desc(resources.upvotes), desc(resources.createdAt)])
+      )
+      .limit(limit)
+      .offset(offset),
+    db.select({ count: sql<number>`count(*)` }).from(resources).where(whereClause),
+  ]);
+
+  return {
+    items,
+    total: Number(countRows[0]?.count ?? 0),
+  };
+}
+
+export async function getApprovedResources(limit: number = 50, offset: number = 0) {
+  const result = await listApprovedResources({ limit, offset });
+  return result.items;
 }
 
 export async function getResourceBySlug(slug: string) {
@@ -190,11 +278,31 @@ export async function getRelationshipsBySource(sourceId: number, type?: string) 
     conditions.push(eq(relationships.type, type as any));
   }
 
-  return db
+  const relationshipRows = await db
     .select()
     .from(relationships)
     .where(and(...conditions))
     .orderBy(desc(relationships.upvotes));
+
+  if (relationshipRows.length === 0) return [];
+
+  const targetRows = await db
+    .select({
+      id: resources.id,
+      title: resources.title,
+      slug: resources.slug,
+      logo: resources.logo,
+      description: resources.description,
+      pricing: resources.pricing,
+    })
+    .from(resources)
+    .where(inArray(resources.id, relationshipRows.map((row) => row.targetId)));
+  const targetById = new Map(targetRows.map((row) => [row.id, row]));
+
+  return relationshipRows.map((row) => ({
+    ...row,
+    target: targetById.get(row.targetId) ?? null,
+  }));
 }
 
 export async function getRelationshipsByTarget(targetId: number, type?: string) {
@@ -210,11 +318,31 @@ export async function getRelationshipsByTarget(targetId: number, type?: string) 
     conditions.push(eq(relationships.type, type as any));
   }
 
-  return db
+  const relationshipRows = await db
     .select()
     .from(relationships)
     .where(and(...conditions))
     .orderBy(desc(relationships.upvotes));
+
+  if (relationshipRows.length === 0) return [];
+
+  const sourceRows = await db
+    .select({
+      id: resources.id,
+      title: resources.title,
+      slug: resources.slug,
+      logo: resources.logo,
+      description: resources.description,
+      pricing: resources.pricing,
+    })
+    .from(resources)
+    .where(inArray(resources.id, relationshipRows.map((row) => row.sourceId)));
+  const sourceById = new Map(sourceRows.map((row) => [row.id, row]));
+
+  return relationshipRows.map((row) => ({
+    ...row,
+    source: sourceById.get(row.sourceId) ?? null,
+  }));
 }
 
 // Votes
@@ -364,7 +492,34 @@ export async function getSubmissionById(id: number) {
   if (!db) return undefined;
 
   const result = await db.select().from(submissions).where(eq(submissions.id, id)).limit(1);
+
   return result.length > 0 ? result[0] : undefined;
+}
+
+export async function getUserSubmissions(userId: number, limit: number = 50, offset: number = 0) {
+  const db = await getDb();
+  if (!db) return [];
+
+  return db
+    .select()
+    .from(submissions)
+    .where(eq(submissions.submittedBy, userId))
+    .orderBy(desc(submissions.createdAt))
+    .limit(limit)
+    .offset(offset);
+}
+
+export async function getPendingRelationships(limit: number = 50, offset: number = 0) {
+  const db = await getDb();
+  if (!db) return [];
+
+  return db
+    .select()
+    .from(relationships)
+    .where(eq(relationships.status, "pending"))
+    .orderBy(asc(relationships.createdAt))
+    .limit(limit)
+    .offset(offset);
 }
 
 // Audit Logs
@@ -394,13 +549,63 @@ export async function updateUserReputation(userId: number, delta: number) {
   const db = await getDb();
   if (!db) return;
 
-  const user = await getUserById(userId);
-  if (!user) return;
-
   await db
     .update(users)
-    .set({ reputation: user.reputation + delta })
+    .set({ reputation: sql`${users.reputation} + ${delta}` })
     .where(eq(users.id, userId));
+}
+
+export async function recordReputationEvent(input: {
+  userId: number;
+  points: number;
+  reason: string;
+  entityType: string;
+  entityId: number;
+  eventKey: string;
+}) {
+  const db = await getDb();
+  if (!db) return false;
+  const existing = await db
+    .select({ id: reputationEvents.id })
+    .from(reputationEvents)
+    .where(eq(reputationEvents.eventKey, input.eventKey))
+    .limit(1);
+  if (existing.length > 0) return false;
+
+  try {
+    await db.insert(reputationEvents).values(input);
+    await updateUserReputation(input.userId, input.points);
+    return true;
+  } catch (error) {
+    console.warn("[Reputation] Could not record event:", error);
+    return false;
+  }
+}
+
+export async function removeReputationEvent(eventKey: string) {
+  const db = await getDb();
+  if (!db) return false;
+  const existing = await db
+    .select()
+    .from(reputationEvents)
+    .where(eq(reputationEvents.eventKey, eventKey))
+    .limit(1);
+  if (!existing[0]) return false;
+
+  await db.delete(reputationEvents).where(eq(reputationEvents.id, existing[0].id));
+  await updateUserReputation(existing[0].userId, -existing[0].points);
+  return true;
+}
+
+export async function getUserReputationEvents(userId: number, limit: number = 20) {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select()
+    .from(reputationEvents)
+    .where(eq(reputationEvents.userId, userId))
+    .orderBy(desc(reputationEvents.createdAt))
+    .limit(limit);
 }
 
 // Check for duplicate resources by URL
@@ -423,6 +628,19 @@ export async function checkDuplicateByUrl(url: string, excludeId?: number) {
 }
 
 // Check for duplicate resources by title (fuzzy)
+export async function checkPendingSubmissionByUrl(url: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+
+  const result = await db
+    .select()
+    .from(submissions)
+    .where(and(eq(submissions.url, url), eq(submissions.status, "pending")))
+    .limit(1);
+
+  return result.length > 0 ? result[0] : undefined;
+}
+
 export async function checkDuplicateByTitle(title: string, categoryId: number, excludeId?: number) {
   const db = await getDb();
   if (!db) return [];
