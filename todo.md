@@ -48,7 +48,7 @@
 - [x] Implement subcategory filter UI
 - [x] Implement tag filter UI
 - [x] Implement pricing model filter UI
-- [ ] Add sorting options (popularity, newest, rating)
+- [x] Add popularity and newest sorting options; intentionally defer ratings until authentic, policy-compliant community rating data exists.
 - [x] Create empty states and loading skeletons
 - [x] Implement infinite scroll or pagination controls
 
@@ -284,3 +284,6 @@
 - [x] Add focused coverage proving filtered relationship queries preserve relationship parsing and only narrow the related resources returned.
 - [x] Add an actual relationship-search query-flow test with structured filters that verifies the base lookup excludes filters while the final related-resource lookup includes them.
 - [x] Assert the mocked base and final Drizzle query conditions directly, proving structured filters are omitted from base traversal and included for final related resources.
+
+## Submission Data-Integrity Hardening
+- [x] Extend URL metadata-fetch safeguards to reject private IPv6, link-local, and unspecified network destinations, with focused security tests.

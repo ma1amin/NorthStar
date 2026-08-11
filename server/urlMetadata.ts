@@ -4,7 +4,12 @@ function isPrivateIpv4(hostname: string) {
   const parts = hostname.split(".").map(Number);
   if (parts.length !== 4 || parts.some((part) => Number.isNaN(part))) return false;
   const [first, second] = parts;
-  return first === 10 || first === 127 || (first === 172 && second >= 16 && second <= 31) || (first === 192 && second === 168);
+  return first === 0 || first === 10 || first === 127 || first === 169 && second === 254 || (first === 172 && second >= 16 && second <= 31) || (first === 192 && second === 168);
+}
+
+function isPrivateIpv6(hostname: string) {
+  const normalized = hostname.replace(/^\[|\]$/g, "").toLowerCase();
+  return normalized === "::" || normalized === "::1" || normalized.startsWith("fe80:") || normalized.startsWith("fc") || normalized.startsWith("fd") || normalized.startsWith("::ffff:127.") || normalized.startsWith("::ffff:10.") || normalized.startsWith("::ffff:192.168.") || normalized.startsWith("::ffff:169.254.");
 }
 
 export function assertSafePublicUrl(rawUrl: string) {
@@ -13,7 +18,7 @@ export function assertSafePublicUrl(rawUrl: string) {
     throw new Error('Only HTTP and HTTPS URLs are supported');
   }
   const hostname = parsed.hostname.toLowerCase();
-  if (BLOCKED_HOSTS.has(hostname) || hostname.endsWith('.local') || isPrivateIpv4(hostname)) {
+  if (BLOCKED_HOSTS.has(hostname) || hostname.endsWith('.local') || isPrivateIpv4(hostname) || isPrivateIpv6(hostname)) {
     throw new Error('Local and private network URLs are not supported');
   }
   return parsed;
