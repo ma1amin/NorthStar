@@ -1,6 +1,48 @@
 # Web App Template (tRPC + Manus Auth + Database)
 
-This template gives you a React 19 + Tailwind 4 + Express 4 + tRPC 11 stack with Manus OAuth already wired. Procedures are your contracts, types flow end to end, and authentication "just works".
+# NorthStar
+
+NorthStar is an open-source **Resource Intelligence Platform**. It helps people discover, understand, organize, and connect digital resources through structured metadata, verified relationships, curated collections, and human-reviewed community contributions.
+
+NorthStar is not a flat link directory. A resource is a knowledge object with context: categories, tags, provenance-aware relationships, community contributions, and a place within a wider ecosystem.
+
+## Current Capabilities
+
+| Area | Included today |
+| --- | --- |
+| Discovery | Public Browse, filters, pagination, sort controls, typo-tolerant search, and relationship-aware queries. |
+| Knowledge graph | Resource nodes, typed graph edges, exact Node View relationship tabs, relationship suggestions, and moderation. |
+| Community | Resource submissions with duplicate feedback, collections, bookmarks, votes, reputation, and reporting. |
+| Moderation | Submission and relationship queues, report triage, audit history, bounded bulk rejection, administrator resource editing, and role management. |
+| Quality | Route metadata, JSON-LD, canonical data, public fallback content, URL metadata safeguards, responsive design, and automated tests. |
+
+> **Architecture note:** NorthStar is currently a client-rendered React SPA with server-injected SEO metadata and public fallback content. It is not full server-side rendering, and it does not claim an external search-engine integration.
+
+## Development
+
+Install dependencies with `pnpm install`, configure private local values described in [ENVIRONMENT.md](./ENVIRONMENT.md), and apply reviewed schema migrations with `pnpm db:push`.
+
+```bash
+pnpm check
+pnpm test
+pnpm build
+```
+
+For a disposable local database only, seed synthetic development data explicitly:
+
+```bash
+NORTHSTAR_ALLOW_SEED=1 pnpm db:seed
+```
+
+The seed script is idempotent and intentionally contains no live database export, credentials, user information, audit history, or production-like data.
+
+## Documentation
+
+Read [ARCHITECTURE.md](./ARCHITECTURE.md) for system boundaries, [API.md](./API.md) for current contract boundaries, [DATA_HANDLING.md](./DATA_HANDLING.md) for source-control safety, [CONTRIBUTING.md](./CONTRIBUTING.md) to contribute, [GOVERNANCE.md](./GOVERNANCE.md) for project decision-making, [SECURITY.md](./SECURITY.md) for vulnerability reporting, and [SPECIFICATION_GAP_AUDIT.md](./SPECIFICATION_GAP_AUDIT.md) for the evidence-based gap register.
+
+## License
+
+NorthStar is licensed under the [MIT License](./LICENSE).
 
 ---
 
