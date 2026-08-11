@@ -132,10 +132,10 @@
 - [x] Ready for deployment
 
 ## Verified Completion Sequence
-- [ ] Stabilize the Tailwind/CSS pipeline so intended colors, effects, spacing, shadows, gradients, and responsive utilities render consistently.
+- [x] Stabilize the Tailwind/CSS pipeline so intended colors, effects, spacing, shadows, gradients, and responsive utilities render consistently.
 - [ ] Complete database-backed Browse, Node View, Search, and Submission workflows, including exact relationship labels and real-time duplicate detection.
 - [x] Complete profiles, profile editing, collections, bookmarks, resource and relationship voting, reputation, and moderation workflows.
-- [ ] Implement and verify public-page SEO, route metadata, Open Graph, structured data, rendering strategy, accessibility, and data-integrity safeguards.
+- [x] Implement and verify public-page SEO, route metadata, Open Graph, structured data, rendering strategy, accessibility, and data-integrity safeguards.
 - [ ] Run TypeScript checks, unit and integration tests, responsive/accessibility QA, final review, and save a verified checkpoint.
 - [ ] Deliver a verified completion report with the checkpoint reference.
 
@@ -287,3 +287,7 @@
 
 ## Submission Data-Integrity Hardening
 - [x] Extend URL metadata-fetch safeguards to reject private IPv6, link-local, and unspecified network destinations, with focused security tests.
+
+## Core Integration-Test Verification
+- [x] Add and run explicit integration tests for core tRPC workflows: relationship-aware search, browse/resource retrieval, submission duplicate detection, and moderation/profile access.
+- [x] Document unit versus integration-test coverage in the final verification notes before re-marking the composite completion item.

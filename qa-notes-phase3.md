@@ -47,3 +47,5 @@ The updated Search route successfully returned the Figma resource for a live `fi
 Opening the Search filter panel exposed category, pricing, and tag controls populated from live data. Selecting the Design category changed the control state to Design, updated the action label to “Filters active,” and initiated a refreshed result query, confirming the end-to-end filter contract is connected.
 
 After the query settled, the browser confirmed category value `2` (Design), an active filter state, and the Figma result remaining visible. This verifies filter state propagates through the active Search procedure rather than only changing local UI state.
+
+Final verification coverage is intentionally split into two layers. The `server/core.integration.test.ts` router-caller suite verifies public relationship-aware Search, filtered Browse retrieval, duplicate-submission feedback, signed-in reputation access, and non-admin moderation denial across tRPC procedure boundaries. Helper-level unit suites cover search parsing, fuzzy fallback, SEO metadata, URL metadata safety, navigation, community rules, and logout behavior. The full suite passed with 53 tests.
