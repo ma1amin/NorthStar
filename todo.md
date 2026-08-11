@@ -107,7 +107,7 @@
 - [x] Add administrator user-management tools with role changes, self-role protection, and moderation audit logging.
 - [x] Implement relationship moderation
 - [x] Create moderation logs
-- [ ] Add bulk operations support
+- [x] Add bounded bulk rejection for up to 25 explicitly selected pending submissions, requiring a shared reason, confirmation, pending-state checks, and per-submission audit entries.
 - [x] Implement community resource reporting with protected submission, duplicate-open-report prevention, review-state integrity checks, and human moderator triage.
 
 ## Phase 11: Polish, Testing & Optimization
@@ -203,7 +203,7 @@
 - [x] Add administrator user-management tools with role changes, self-role protection, and moderation audit logging.
 - [x] Implement relationship moderation
 - [x] Create moderation logs
-- [ ] Add bulk operations support
+- [x] Add bounded bulk rejection for up to 25 explicitly selected pending submissions, requiring a shared reason, confirmation, pending-state checks, and per-submission audit entries.
 - [x] Implement community resource reporting with protected submission, duplicate-open-report prevention, review-state integrity checks, and human moderator triage.
 - [x] Re-verify SEO optimization
 - [x] Re-verify rendering strategy
@@ -304,3 +304,6 @@
 
 ## Resource Report Review Integrity
 - [x] Ensure a report review succeeds only when an open report was actually updated, and cover invalid or already-reviewed report states.
+
+## Bulk Rejection Validation Integrity
+- [x] Require a non-empty shared rejection reason in the server contract and cover omitted or blank values before completing bulk moderation.

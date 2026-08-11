@@ -47,6 +47,8 @@ import {
 } from "./db";
 import { getDb } from "./db";
 import { TRPCError } from "@trpc/server";
+import { eq } from "drizzle-orm";
+import { submissions } from "../drizzle/schema";
 import { searchService } from "./search";
 import { assertSafePublicUrl, fetchResourceMetadata } from "./urlMetadata";
 import { canViewCollection, collectionSlug, normalizeProfileUpdate } from "./community";
@@ -1073,6 +1075,23 @@ export const appRouter = router({
         await recordReputationEvent({ userId: submission.submittedBy, points: 10, reason: "Resource submission approved", entityType: "submission", entityId: input.submissionId, eventKey: `submission-approved:${input.submissionId}` });
 
         return { success: true, resourceId, slug };
+      }),
+
+    bulkRejectSubmissions: adminProcedure
+      .input(z.object({ submissionIds: z.array(z.number().int().positive()).min(1).max(25).refine((ids) => new Set(ids).size === ids.length, "Submission IDs must be unique"), reason: z.string().trim().min(1, "A batch rejection reason is required").max(1000) }))
+      .mutation(async ({ input, ctx }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        const rejectedIds: number[] = [];
+        const skippedIds: number[] = [];
+        for (const submissionId of input.submissionIds) {
+          const submission = await getSubmissionById(submissionId);
+          if (!submission || submission.status !== "pending") { skippedIds.push(submissionId); continue; }
+          await db.update(submissions).set({ status: "rejected", rejectionReason: input.reason, reviewedBy: ctx.user.id, reviewedAt: new Date() }).where(eq(submissions.id, submissionId));
+          await createAuditLog(ctx.user.id, "bulk_reject", "submission", submissionId, { reason: input.reason, batchSize: input.submissionIds.length });
+          rejectedIds.push(submissionId);
+        }
+        return { rejectedIds, skippedIds };
       }),
 
     // Reject relationship suggestion

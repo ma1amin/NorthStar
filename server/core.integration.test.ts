@@ -13,11 +13,13 @@ const mocks = vi.hoisted(() => ({
   createResourceReport: vi.fn(),
   reviewResourceReport: vi.fn(),
   createAuditLog: vi.fn(),
+  getDb: vi.fn(),
+  getSubmissionById: vi.fn(),
 }));
 
 vi.mock("./search", () => ({ searchService: { advancedSearch: mocks.advancedSearch, getSuggestions: vi.fn(), getTrending: vi.fn() } }));
 vi.mock("./db", () => ({
-  getDb: vi.fn(), listApprovedResources: mocks.listApprovedResources,
+  getDb: mocks.getDb, listApprovedResources: mocks.listApprovedResources,
   checkDuplicateByUrl: mocks.checkDuplicateByUrl, checkPendingSubmissionByUrl: mocks.checkPendingSubmissionByUrl,
   getUserReputationEvents: mocks.getUserReputationEvents,
   getAuditLogs: mocks.getAuditLogs,
@@ -26,6 +28,7 @@ vi.mock("./db", () => ({
   createResourceReport: mocks.createResourceReport,
   reviewResourceReport: mocks.reviewResourceReport,
   createAuditLog: mocks.createAuditLog,
+  getSubmissionById: mocks.getSubmissionById,
 }));
 
 import { appRouter } from "./routers";
@@ -68,6 +71,22 @@ describe("core tRPC workflows", () => {
     expect(mocks.createAuditLog).not.toHaveBeenCalledWith(expect.anything(), expect.anything(), "resource_report", 999, expect.anything());
   });
 
+  it("bulk-rejects only selected submissions that are still pending and audits each one", async () => {
+    const where = vi.fn().mockResolvedValue(undefined);
+    const set = vi.fn().mockReturnValue({ where });
+    mocks.getDb.mockResolvedValue({ update: vi.fn().mockReturnValue({ set }) });
+    mocks.getSubmissionById.mockResolvedValueOnce({ id: 2, status: "pending" }).mockResolvedValueOnce({ id: 3, status: "rejected" });
+    const result = await appRouter.createCaller(context("admin")).moderation.bulkRejectSubmissions({ submissionIds: [2, 3], reason: "Duplicate campaign" });
+    expect(result).toEqual({ rejectedIds: [2], skippedIds: [3] });
+    expect(mocks.createAuditLog).toHaveBeenCalledWith(7, "bulk_reject", "submission", 2, { reason: "Duplicate campaign", batchSize: 2 });
+    expect(mocks.createAuditLog).not.toHaveBeenCalledWith(7, "bulk_reject", "submission", 3, expect.anything());
+  });
+
+  it("rejects missing or blank reasons before a bulk moderation action reaches storage", async () => {
+    await expect(appRouter.createCaller(context("admin")).moderation.bulkRejectSubmissions({ submissionIds: [2], reason: " " })).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    await expect(appRouter.createCaller(context("admin")).moderation.bulkRejectSubmissions({ submissionIds: [2] } as any)).rejects.toMatchObject({ code: "BAD_REQUEST" });
+  });
+
   it("enforces admin moderation access and returns a signed-in reputation summary", async () => {
     mocks.getUserReputationEvents.mockResolvedValue([{ eventType: "resource_approved", points: 10 }]);
     await expect(appRouter.createCaller(context()).user.getReputationSummary()).resolves.toMatchObject({ score: 12, events: [{ points: 10 }] });
@@ -76,6 +95,7 @@ describe("core tRPC workflows", () => {
     await expect(appRouter.createCaller(context("moderator")).resources.update({ id: 42, title: "Edited resource" })).rejects.toMatchObject({ code: "FORBIDDEN" });
     await expect(appRouter.createCaller(context("moderator")).moderation.listUsers({ limit: 20, offset: 0 })).rejects.toMatchObject({ code: "FORBIDDEN" });
     await expect(appRouter.createCaller(context()).moderation.setUserRole({ userId: 8, role: "moderator" })).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await expect(appRouter.createCaller({ user: null, req: { protocol: "https", headers: {} } as TrpcContext["req"], res: { clearCookie: vi.fn() } as TrpcContext["res"] }).moderation.bulkRejectSubmissions({ submissionIds: [1] })).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 
   it("serves moderation history only to an admin caller", async () => {

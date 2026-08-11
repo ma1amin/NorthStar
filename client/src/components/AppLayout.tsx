@@ -4,6 +4,7 @@ import {
   Compass,
   FolderOpen,
   Flag,
+  ListChecks,
   LogOut,
   Menu,
   Network,
@@ -120,6 +121,7 @@ export function AppLayout({ children }: AppLayoutProps) {
                   <DropdownMenuItem onClick={() => navigate("/collections")}><FolderOpen className="mr-2 h-4 w-4" />Collections</DropdownMenuItem>
                   {(user.role === "admin" || user.role === "moderator") && <DropdownMenuItem onClick={() => navigate("/admin")}><Network className="mr-2 h-4 w-4" />Moderation</DropdownMenuItem>}
                   {(user.role === "admin" || user.role === "moderator") && <DropdownMenuItem onClick={() => navigate("/admin/reports")}><Flag className="mr-2 h-4 w-4" />Report triage</DropdownMenuItem>}
+                  {(user.role === "admin" || user.role === "moderator") && <DropdownMenuItem onClick={() => navigate("/admin/bulk")}><ListChecks className="mr-2 h-4 w-4" />Bulk rejection</DropdownMenuItem>}
                   {user.role === "admin" && <DropdownMenuItem onClick={() => navigate("/admin/users")}><Users className="mr-2 h-4 w-4" />User management</DropdownMenuItem>}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={() => logout()} className="text-red-600 focus:text-red-700"><LogOut className="mr-2 h-4 w-4" />Log out</DropdownMenuItem>
