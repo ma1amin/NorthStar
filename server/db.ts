@@ -544,6 +544,12 @@ export async function createAuditLog(
   });
 }
 
+export async function getAuditLogs(limit: number = 50, offset: number = 0) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(auditLogs).orderBy(desc(auditLogs.createdAt)).limit(limit).offset(offset);
+}
+
 // Reputation
 export async function updateUserReputation(userId: number, delta: number) {
   const db = await getDb();

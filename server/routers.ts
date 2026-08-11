@@ -27,6 +27,7 @@ import {
   getSubmissionById,
   getUserSubmissions,
   getPendingRelationships,
+  getAuditLogs,
   createAuditLog,
   updateUserReputation,
   recordReputationEvent,
@@ -938,6 +939,10 @@ export const appRouter = router({
 
   // Moderation Router
   moderation: router({
+    getAuditLogs: adminProcedure
+      .input(z.object({ limit: z.number().min(1).max(100).default(50), offset: z.number().min(0).default(0) }))
+      .query(({ input }) => getAuditLogs(input.limit, input.offset)),
+
     // Get pending relationship suggestions
     getPendingRelationships: adminProcedure
       .input(

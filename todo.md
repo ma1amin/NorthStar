@@ -136,7 +136,7 @@
 - [ ] Complete database-backed Browse, Node View, Search, and Submission workflows, including exact relationship labels and real-time duplicate detection.
 - [x] Complete profiles, profile editing, collections, bookmarks, resource and relationship voting, reputation, and moderation workflows.
 - [x] Implement and verify public-page SEO, route metadata, Open Graph, structured data, rendering strategy, accessibility, and data-integrity safeguards.
-- [ ] Run TypeScript checks, unit and integration tests, responsive/accessibility QA, final review, and save a verified checkpoint.
+- [x] Run TypeScript checks, unit and integration tests, responsive/accessibility QA, final review, and save a verified checkpoint.
 - [ ] Deliver a verified completion report with the checkpoint reference.
 
 ### Verification Notes
@@ -291,3 +291,7 @@
 ## Core Integration-Test Verification
 - [x] Add and run explicit integration tests for core tRPC workflows: relationship-aware search, browse/resource retrieval, submission duplicate detection, and moderation/profile access.
 - [x] Document unit versus integration-test coverage in the final verification notes before re-marking the composite completion item.
+
+## Moderation Audit Trail
+- [x] Add an admin audit-log query with actor, action, entity, date, and pagination data; render a searchable, accessible moderation-history table with empty and loading states.
+- [x] Surface failed moderation-history loads with an accessible error state rather than an empty table.

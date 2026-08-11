@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
   checkDuplicateByUrl: vi.fn(),
   checkPendingSubmissionByUrl: vi.fn(),
   getUserReputationEvents: vi.fn(),
+  getAuditLogs: vi.fn(),
 }));
 
 vi.mock("./search", () => ({ searchService: { advancedSearch: mocks.advancedSearch, getSuggestions: vi.fn(), getTrending: vi.fn() } }));
@@ -14,6 +15,7 @@ vi.mock("./db", () => ({
   getDb: vi.fn(), listApprovedResources: mocks.listApprovedResources,
   checkDuplicateByUrl: mocks.checkDuplicateByUrl, checkPendingSubmissionByUrl: mocks.checkPendingSubmissionByUrl,
   getUserReputationEvents: mocks.getUserReputationEvents,
+  getAuditLogs: mocks.getAuditLogs,
 }));
 
 import { appRouter } from "./routers";
@@ -44,5 +46,11 @@ describe("core tRPC workflows", () => {
     mocks.getUserReputationEvents.mockResolvedValue([{ eventType: "resource_approved", points: 10 }]);
     await expect(appRouter.createCaller(context()).user.getReputationSummary()).resolves.toMatchObject({ score: 12, events: [{ points: 10 }] });
     await expect(appRouter.createCaller(context()).moderation.getPendingSubmissions({ limit: 20, offset: 0 })).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+
+  it("serves moderation history only to an admin caller", async () => {
+    mocks.getAuditLogs.mockResolvedValue([{ id: 8, action: "approve", entityType: "submission", entityId: 4, userId: 1, createdAt: new Date() }]);
+    await expect(appRouter.createCaller(context("admin")).moderation.getAuditLogs({ limit: 20, offset: 0 })).resolves.toHaveLength(1);
+    expect(mocks.getAuditLogs).toHaveBeenCalledWith(20, 0);
   });
 });
