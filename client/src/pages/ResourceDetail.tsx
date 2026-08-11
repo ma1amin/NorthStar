@@ -23,6 +23,7 @@ import { getLoginUrl } from "@/const";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { applyClientSeo } from "@/lib/seo";
+import { ReportResourceDialog } from "@/components/ReportResourceDialog";
 
 const RELATIONSHIP_TABS = [
   { value: "alternatives", label: "Alternatives", type: "alternative_to" as const },
@@ -367,6 +368,7 @@ export default function ResourceDetail() {
                 {isBookmarked ? <BookmarkCheck className="mr-2 h-4 w-4" /> : <Bookmark className="mr-2 h-4 w-4" />}
                 {isBookmarked ? "Saved" : "Save"}
               </Button>
+              <ReportResourceDialog resourceId={resource.id} isAuthenticated={isAuthenticated} />
               <Button variant="outline" onClick={handleShare}>
                 {copied ? <Check className="mr-2 h-4 w-4 text-emerald-600" /> : <Share2 className="mr-2 h-4 w-4" />}
                 {copied ? "Copied" : "Copy link"}

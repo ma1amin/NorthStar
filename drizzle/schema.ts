@@ -492,6 +492,37 @@ export type SearchAnalyticsEvent = typeof searchAnalytics.$inferSelect;
 export type InsertSearchAnalyticsEvent = typeof searchAnalytics.$inferInsert;
 
 /**
+ * Community resource reports are queued for moderator review; they never alter
+ * public resource data automatically.
+ */
+export const resourceReports = mysqlTable(
+  "resource_reports",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    resourceId: int("resourceId").notNull(),
+    reporterId: int("reporterId").notNull(),
+    reason: mysqlEnum("reason", ["spam", "duplicate", "inaccurate", "malicious", "other"]).notNull(),
+    details: text("details"),
+    status: mysqlEnum("status", ["open", "resolved", "dismissed"]).default("open").notNull(),
+    reviewedBy: int("reviewedBy"),
+    reviewNote: text("reviewNote"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    reviewedAt: timestamp("reviewedAt"),
+  },
+  (table) => ({
+    resourceStatusIdx: index("resource_reports_resource_status_idx").on(table.resourceId, table.status),
+    reporterIdx: index("resource_reports_reporter_idx").on(table.reporterId),
+    statusCreatedIdx: index("resource_reports_status_created_idx").on(table.status, table.createdAt),
+    resourceFk: foreignKey({ columns: [table.resourceId], foreignColumns: [resources.id] }).onDelete("cascade"),
+    reporterFk: foreignKey({ columns: [table.reporterId], foreignColumns: [users.id] }).onDelete("restrict"),
+    reviewerFk: foreignKey({ columns: [table.reviewedBy], foreignColumns: [users.id] }).onDelete("set null"),
+  })
+);
+
+export type ResourceReport = typeof resourceReports.$inferSelect;
+export type InsertResourceReport = typeof resourceReports.$inferInsert;
+
+/**
  * Immutable reputation events used to explain and safely aggregate user karma.
  */
 export const reputationEvents = mysqlTable(

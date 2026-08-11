@@ -108,7 +108,7 @@
 - [x] Implement relationship moderation
 - [x] Create moderation logs
 - [ ] Add bulk operations support
-- [ ] Implement spam/abuse reporting
+- [x] Implement community resource reporting with protected submission, duplicate-open-report prevention, review-state integrity checks, and human moderator triage.
 
 ## Phase 11: Polish, Testing & Optimization
 - [x] Implement SEO optimization (meta tags, structured data)
@@ -204,7 +204,7 @@
 - [x] Implement relationship moderation
 - [x] Create moderation logs
 - [ ] Add bulk operations support
-- [ ] Implement spam/abuse reporting
+- [x] Implement community resource reporting with protected submission, duplicate-open-report prevention, review-state integrity checks, and human moderator triage.
 - [x] Re-verify SEO optimization
 - [x] Re-verify rendering strategy
 - [x] Re-verify accessibility and responsive behavior
@@ -301,3 +301,6 @@
 
 ## Resource Editor Authorization Alignment
 - [x] Restrict the resource editor interface to administrators so its visibility matches the existing admin-only update procedure, and add focused authorization coverage.
+
+## Resource Report Review Integrity
+- [x] Ensure a report review succeeds only when an open report was actually updated, and cover invalid or already-reviewed report states.

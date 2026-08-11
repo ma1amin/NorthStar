@@ -14,6 +14,7 @@ import Collections from "./pages/Collections";
 import CollectionDetail from "./pages/CollectionDetail";
 import Admin from "./pages/Admin";
 import AdminUsers from "./pages/AdminUsers";
+import AdminReports from "./pages/AdminReports";
 import NotFound from "./pages/NotFound";
 
 function Router() {
@@ -37,6 +38,7 @@ function Router() {
         {/* Admin pages */}
         <Route path={"/admin"} component={Admin} />
         <Route path={"/admin/users"} component={AdminUsers} />
+        <Route path={"/admin/reports"} component={AdminReports} />
 
         {/* 404 */}
         <Route path={"/404"} component={NotFound} />

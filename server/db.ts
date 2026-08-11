@@ -16,6 +16,7 @@ import {
   resourceTags,
   auditLogs,
   searchAnalytics,
+  resourceReports,
   reputationEvents,
 } from "../drizzle/schema";
 import { ENV } from "./_core/env";
@@ -580,6 +581,28 @@ export async function recordSearchAnalytics(input: { query: string; resultCount:
     resultCount: Math.max(0, input.resultCount),
     relationshipIntent: input.relationshipIntent,
   });
+}
+
+export async function createResourceReport(input: { resourceId: number; reporterId: number; reason: "spam" | "duplicate" | "inaccurate" | "malicious" | "other"; details?: string }) {
+  const db = await getDb();
+  if (!db) return { created: false, duplicate: false };
+  const existing = await db.select({ id: resourceReports.id }).from(resourceReports).where(and(eq(resourceReports.resourceId, input.resourceId), eq(resourceReports.reporterId, input.reporterId), eq(resourceReports.status, "open"))).limit(1);
+  if (existing.length) return { created: false, duplicate: true };
+  await db.insert(resourceReports).values(input);
+  return { created: true, duplicate: false };
+}
+
+export async function getOpenResourceReports(limit: number = 50, offset: number = 0) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select({ id: resourceReports.id, resourceId: resourceReports.resourceId, reporterId: resourceReports.reporterId, reason: resourceReports.reason, details: resourceReports.details, status: resourceReports.status, createdAt: resourceReports.createdAt, resourceTitle: resources.title, resourceSlug: resources.slug, reporterName: users.name }).from(resourceReports).innerJoin(resources, eq(resourceReports.resourceId, resources.id)).innerJoin(users, eq(resourceReports.reporterId, users.id)).where(eq(resourceReports.status, "open")).orderBy(desc(resourceReports.createdAt)).limit(limit).offset(offset);
+}
+
+export async function reviewResourceReport(input: { reportId: number; reviewerId: number; status: "resolved" | "dismissed"; reviewNote?: string }) {
+  const db = await getDb();
+  if (!db) return false;
+  const result = await db.update(resourceReports).set({ status: input.status, reviewedBy: input.reviewerId, reviewNote: input.reviewNote || null, reviewedAt: new Date() }).where(and(eq(resourceReports.id, input.reportId), eq(resourceReports.status, "open")));
+  return Number((result as any)[0]?.affectedRows ?? 0) > 0;
 }
 
 // Reputation

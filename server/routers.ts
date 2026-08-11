@@ -30,6 +30,9 @@ import {
   getAuditLogs,
   listUsersForAdmin,
   setUserRole,
+  createResourceReport,
+  getOpenResourceReports,
+  reviewResourceReport,
   recordSearchAnalytics,
   createAuditLog,
   updateUserReputation,
@@ -113,6 +116,17 @@ export const appRouter = router({
           throw new TRPCError({ code: "NOT_FOUND", message: "Resource not found" });
         }
         return resource;
+      }),
+
+    report: protectedProcedure
+      .input(z.object({ resourceId: z.number().int().positive(), reason: z.enum(["spam", "duplicate", "inaccurate", "malicious", "other"]), details: z.string().trim().max(2000).optional() }))
+      .mutation(async ({ input, ctx }) => {
+        const resource = await getResourceById(input.resourceId);
+        if (!resource) throw new TRPCError({ code: "NOT_FOUND", message: "Resource not found" });
+        const result = await createResourceReport({ ...input, reporterId: ctx.user.id });
+        if (result.duplicate) throw new TRPCError({ code: "CONFLICT", message: "You already have an open report for this resource" });
+        if (!result.created) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        return { success: true };
       }),
 
     // Get resources by category
@@ -945,6 +959,19 @@ export const appRouter = router({
 
   // Moderation Router
   moderation: router({
+    getOpenReports: adminProcedure
+      .input(z.object({ limit: z.number().min(1).max(100).default(50), offset: z.number().min(0).default(0) }))
+      .query(({ input }) => getOpenResourceReports(input.limit, input.offset)),
+
+    reviewReport: adminProcedure
+      .input(z.object({ reportId: z.number().int().positive(), status: z.enum(["resolved", "dismissed"]), reviewNote: z.string().trim().max(2000).optional() }))
+      .mutation(async ({ input, ctx }) => {
+        const reviewed = await reviewResourceReport({ ...input, reviewerId: ctx.user.id });
+        if (!reviewed) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        await createAuditLog(ctx.user.id, input.status === "resolved" ? "resolve_report" : "dismiss_report", "resource_report", input.reportId, { reviewNote: input.reviewNote });
+        return { success: true };
+      }),
+
     listUsers: adminProcedure
       .input(z.object({ limit: z.number().min(1).max(100).default(50), offset: z.number().min(0).default(0) }))
       .query(({ input, ctx }) => {

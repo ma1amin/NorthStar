@@ -9,6 +9,10 @@ const mocks = vi.hoisted(() => ({
   getUserReputationEvents: vi.fn(),
   getAuditLogs: vi.fn(),
   recordSearchAnalytics: vi.fn(),
+  getResourceById: vi.fn(),
+  createResourceReport: vi.fn(),
+  reviewResourceReport: vi.fn(),
+  createAuditLog: vi.fn(),
 }));
 
 vi.mock("./search", () => ({ searchService: { advancedSearch: mocks.advancedSearch, getSuggestions: vi.fn(), getTrending: vi.fn() } }));
@@ -18,6 +22,10 @@ vi.mock("./db", () => ({
   getUserReputationEvents: mocks.getUserReputationEvents,
   getAuditLogs: mocks.getAuditLogs,
   recordSearchAnalytics: mocks.recordSearchAnalytics,
+  getResourceById: mocks.getResourceById,
+  createResourceReport: mocks.createResourceReport,
+  reviewResourceReport: mocks.reviewResourceReport,
+  createAuditLog: mocks.createAuditLog,
 }));
 
 import { appRouter } from "./routers";
@@ -43,6 +51,21 @@ describe("core tRPC workflows", () => {
   it("returns duplicate submission feedback before persistence", async () => {
     mocks.checkDuplicateByUrl.mockResolvedValue({ id: 44, title: "Existing resource" }); mocks.checkPendingSubmissionByUrl.mockResolvedValue(undefined);
     await expect(appRouter.createCaller(context()).resources.checkDuplicateByUrl({ url: "https://example.com" })).resolves.toMatchObject({ duplicateType: "published_resource", id: 44 });
+  });
+
+  it("requires sign-in and records a valid community resource report", async () => {
+    const anonymousContext = { user: null, req: { protocol: "https", headers: {} } as TrpcContext["req"], res: { clearCookie: vi.fn() } as TrpcContext["res"] };
+    await expect(appRouter.createCaller(anonymousContext).resources.report({ resourceId: 1, reason: "spam" })).rejects.toMatchObject({ code: "UNAUTHORIZED" });
+    mocks.getResourceById.mockResolvedValue({ id: 1, title: "Reported resource" });
+    mocks.createResourceReport.mockResolvedValue({ created: true, duplicate: false });
+    await expect(appRouter.createCaller(context()).resources.report({ resourceId: 1, reason: "spam", details: "Unwanted promotional content" })).resolves.toEqual({ success: true });
+    expect(mocks.createResourceReport).toHaveBeenCalledWith({ resourceId: 1, reporterId: 7, reason: "spam", details: "Unwanted promotional content" });
+  });
+
+  it("refuses to audit a report review when no open report was updated", async () => {
+    mocks.reviewResourceReport.mockResolvedValue(false);
+    await expect(appRouter.createCaller(context("admin")).moderation.reviewReport({ reportId: 999, status: "dismissed" })).rejects.toMatchObject({ code: "INTERNAL_SERVER_ERROR" });
+    expect(mocks.createAuditLog).not.toHaveBeenCalledWith(expect.anything(), expect.anything(), "resource_report", 999, expect.anything());
   });
 
   it("enforces admin moderation access and returns a signed-in reputation summary", async () => {
