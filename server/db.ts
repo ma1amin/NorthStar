@@ -17,6 +17,7 @@ import {
   auditLogs,
   searchAnalytics,
   resourceReports,
+  resourceEditSuggestions,
   reputationEvents,
 } from "../drizzle/schema";
 import { ENV } from "./_core/env";
@@ -603,6 +604,66 @@ export async function reviewResourceReport(input: { reportId: number; reviewerId
   if (!db) return false;
   const result = await db.update(resourceReports).set({ status: input.status, reviewedBy: input.reviewerId, reviewNote: input.reviewNote || null, reviewedAt: new Date() }).where(and(eq(resourceReports.id, input.reportId), eq(resourceReports.status, "open")));
   return Number((result as any)[0]?.affectedRows ?? 0) > 0;
+}
+
+export async function createResourceEditSuggestion(input: {
+  resourceId: number;
+  suggestedBy: number;
+  changes: Record<string, string>;
+  note?: string;
+}) {
+  const db = await getDb();
+  if (!db) return { created: false, duplicate: false };
+  const existing = await db
+    .select({ id: resourceEditSuggestions.id })
+    .from(resourceEditSuggestions)
+    .where(and(eq(resourceEditSuggestions.resourceId, input.resourceId), eq(resourceEditSuggestions.suggestedBy, input.suggestedBy), eq(resourceEditSuggestions.status, "pending")))
+    .limit(1);
+  if (existing.length) return { created: false, duplicate: true };
+  const result = await db.insert(resourceEditSuggestions).values(input);
+  return { created: true, duplicate: false, id: result[0].insertId };
+}
+
+export async function getPendingResourceEditSuggestions(limit: number = 50, offset: number = 0) {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select({
+      id: resourceEditSuggestions.id,
+      resourceId: resourceEditSuggestions.resourceId,
+      suggestedBy: resourceEditSuggestions.suggestedBy,
+      changes: resourceEditSuggestions.changes,
+      note: resourceEditSuggestions.note,
+      createdAt: resourceEditSuggestions.createdAt,
+      resourceTitle: resources.title,
+      resourceSlug: resources.slug,
+      contributorName: users.name,
+    })
+    .from(resourceEditSuggestions)
+    .innerJoin(resources, eq(resourceEditSuggestions.resourceId, resources.id))
+    .innerJoin(users, eq(resourceEditSuggestions.suggestedBy, users.id))
+    .where(eq(resourceEditSuggestions.status, "pending"))
+    .orderBy(desc(resourceEditSuggestions.createdAt))
+    .limit(limit)
+    .offset(offset);
+}
+
+export async function reviewResourceEditSuggestion(input: {
+  suggestionId: number;
+  reviewerId: number;
+  status: "approved" | "rejected";
+  reviewNote?: string;
+}) {
+  const db = await getDb();
+  if (!db) return { updated: false };
+  const suggestion = await db.select().from(resourceEditSuggestions).where(and(eq(resourceEditSuggestions.id, input.suggestionId), eq(resourceEditSuggestions.status, "pending"))).limit(1);
+  if (!suggestion.length) return { updated: false };
+  const current = suggestion[0];
+  if (input.status === "approved") {
+    await db.update(resources).set(current.changes as Record<string, unknown>).where(eq(resources.id, current.resourceId));
+  }
+  const result = await db.update(resourceEditSuggestions).set({ status: input.status, reviewedBy: input.reviewerId, reviewNote: input.reviewNote || null, reviewedAt: new Date() }).where(and(eq(resourceEditSuggestions.id, input.suggestionId), eq(resourceEditSuggestions.status, "pending")));
+  return { updated: Number((result as any)[0]?.affectedRows ?? 0) > 0, resourceId: current.resourceId, changes: current.changes };
 }
 
 // Reputation

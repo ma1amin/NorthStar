@@ -36,6 +36,20 @@
       "when": 1786478081515,
       "tag": "0004_exotic_rogue",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "5",
+      "when": 1786484356839,
+      "tag": "0005_fixed_titania",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1786484689232,
+      "tag": "0006_messy_blue_shield",
+      "breakpoints": true
     }
   ]
 }

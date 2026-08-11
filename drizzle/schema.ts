@@ -199,7 +199,7 @@ export type InsertResourceTag = typeof resourceTags.$inferInsert;
 
 /**
  * Knowledge graph relationships between resources.
- * Supported types: Alternative To, Similar To, Integrates With, Built By, Depends On, Part Of, Competitor Of
+ * Supported types: Alternative To, Similar To, Integrates With, Built By, Maintained By, Funded By, Used By, Depends On, Part Of, Competitor Of
  */
 export const relationships = mysqlTable(
   "relationships",
@@ -212,6 +212,9 @@ export const relationships = mysqlTable(
       "similar_to",
       "integrates_with",
       "built_by",
+      "maintained_by",
+      "funded_by",
+      "used_by",
       "depends_on",
       "part_of",
       "competitor_of",
@@ -221,6 +224,9 @@ export const relationships = mysqlTable(
     upvotes: int("upvotes").default(0).notNull(),
     createdBy: int("createdBy").notNull(),
     status: mysqlEnum("status", ["approved", "pending", "rejected"]).default("pending").notNull(),
+    evidenceUrl: varchar("evidenceUrl", { length: 2048 }),
+    rationale: text("rationale"),
+    sourceContext: varchar("sourceContext", { length: 255 }),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
     updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   },
@@ -521,6 +527,37 @@ export const resourceReports = mysqlTable(
 
 export type ResourceReport = typeof resourceReports.$inferSelect;
 export type InsertResourceReport = typeof resourceReports.$inferInsert;
+
+/**
+ * Contributor-proposed resource corrections. Suggestions are never applied
+ * automatically; moderators review them against the existing resource data.
+ */
+export const resourceEditSuggestions = mysqlTable(
+  "resource_edit_suggestions",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    resourceId: int("resourceId").notNull(),
+    suggestedBy: int("suggestedBy").notNull(),
+    changes: json("changes").notNull(),
+    note: text("note"),
+    status: mysqlEnum("status", ["pending", "approved", "rejected"]).default("pending").notNull(),
+    reviewedBy: int("reviewedBy"),
+    reviewNote: text("reviewNote"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    reviewedAt: timestamp("reviewedAt"),
+  },
+  (table) => ({
+    resourceStatusIdx: index("resource_edit_suggestions_resource_status_idx").on(table.resourceId, table.status),
+    suggestedByIdx: index("resource_edit_suggestions_suggested_by_idx").on(table.suggestedBy),
+    statusCreatedIdx: index("resource_edit_suggestions_status_created_idx").on(table.status, table.createdAt),
+    resourceFk: foreignKey({ columns: [table.resourceId], foreignColumns: [resources.id] }).onDelete("cascade"),
+    suggestedByFk: foreignKey({ columns: [table.suggestedBy], foreignColumns: [users.id] }).onDelete("restrict"),
+    reviewedByFk: foreignKey({ columns: [table.reviewedBy], foreignColumns: [users.id] }).onDelete("set null"),
+  })
+);
+
+export type ResourceEditSuggestion = typeof resourceEditSuggestions.$inferSelect;
+export type InsertResourceEditSuggestion = typeof resourceEditSuggestions.$inferInsert;
 
 /**
  * Immutable reputation events used to explain and safely aggregate user karma.

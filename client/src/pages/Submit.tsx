@@ -34,7 +34,10 @@ interface FormData {
 
 type SuggestedRelationship = {
   targetId: number;
-  type: "alternative_to" | "similar_to" | "integrates_with" | "built_by" | "depends_on" | "part_of" | "competitor_of";
+  type: "alternative_to" | "similar_to" | "integrates_with" | "built_by" | "maintained_by" | "funded_by" | "used_by" | "depends_on" | "part_of" | "competitor_of";
+  evidenceUrl?: string;
+  rationale?: string;
+  sourceContext?: string;
 };
 
 const RELATIONSHIP_TYPES = [
@@ -42,6 +45,9 @@ const RELATIONSHIP_TYPES = [
   { value: "similar_to", label: "Similar To" },
   { value: "integrates_with", label: "Integrates With" },
   { value: "built_by", label: "Built By" },
+  { value: "maintained_by", label: "Maintained By" },
+  { value: "funded_by", label: "Funded By" },
+  { value: "used_by", label: "Used By" },
   { value: "depends_on", label: "Depends On" },
   { value: "part_of", label: "Part Of" },
   { value: "competitor_of", label: "Competitor Of" },
@@ -64,6 +70,9 @@ export default function Submit() {
   });
   const [relationSearch, setRelationSearch] = useState("");
   const [relationType, setRelationType] = useState<SuggestedRelationship["type"]>("alternative_to");
+  const [relationshipEvidenceUrl, setRelationshipEvidenceUrl] = useState("");
+  const [relationshipRationale, setRelationshipRationale] = useState("");
+  const [relationshipSourceContext, setRelationshipSourceContext] = useState("");
   const [suggestedRelationships, setSuggestedRelationships] = useState<SuggestedRelationship[]>([]);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [submitError, setSubmitError] = useState("");
@@ -156,8 +165,15 @@ export default function Submit() {
 
   const addSuggestedRelationship = (targetId: number) => {
     if (suggestedRelationships.some((item) => item.targetId === targetId && item.type === relationType)) return;
-    setSuggestedRelationships((current) => [...current, { targetId, type: relationType }]);
+    setSuggestedRelationships((current) => [...current, {
+      targetId,
+      type: relationType,
+      evidenceUrl: relationshipEvidenceUrl.trim() || undefined,
+      rationale: relationshipRationale.trim() || undefined,
+      sourceContext: relationshipSourceContext.trim() || undefined,
+    }]);
     setRelationSearch("");
+    setRelationshipEvidenceUrl(""); setRelationshipRationale(""); setRelationshipSourceContext("");
   };
 
   const validateSubmission = () => {
@@ -302,8 +318,9 @@ export default function Submit() {
               <Select value={relationType} onValueChange={(value) => setRelationType(value as SuggestedRelationship["type"])}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{RELATIONSHIP_TYPES.map((type) => <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>)}</SelectContent></Select>
               <Button type="button" variant="outline" disabled={!relationSearch.trim() || !relationshipResults?.items?.[0]} onClick={() => relationshipResults?.items?.[0] && addSuggestedRelationship(relationshipResults.items[0].id)}><Plus className="mr-2 h-4 w-4" /> Add first match</Button>
             </div>
+            <div className="mt-3 grid gap-3 md:grid-cols-2"><Input type="url" value={relationshipEvidenceUrl} onChange={(event) => setRelationshipEvidenceUrl(event.target.value)} placeholder="Evidence URL (optional)" /><Input value={relationshipSourceContext} onChange={(event) => setRelationshipSourceContext(event.target.value)} maxLength={255} placeholder="Source context, e.g. project docs (optional)" /><Textarea value={relationshipRationale} onChange={(event) => setRelationshipRationale(event.target.value)} maxLength={2000} rows={3} className="md:col-span-2" placeholder="Why is this relationship meaningful? Add enough context for a moderator to verify it. (optional)" /></div>
             {relationshipResults?.items && relationshipResults.items.length > 0 && <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3"><p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Matches</p><div className="mt-2 flex flex-wrap gap-2">{relationshipResults.items.map((resource) => <button type="button" key={resource.id} onClick={() => addSuggestedRelationship(resource.id)} className="rounded-full bg-white px-3 py-1.5 text-sm font-medium text-slate-700 shadow-sm ring-1 ring-slate-200 hover:text-sky-700">{resource.title}</button>)}</div></div>}
-            {suggestedRelationships.length > 0 && <div className="mt-4 space-y-2">{suggestedRelationships.map((relationship, index) => { const target = relationshipResults?.items?.find((item) => item.id === relationship.targetId); return <div key={`${relationship.targetId}-${relationship.type}-${index}`} className="flex items-center justify-between rounded-xl border border-sky-100 bg-sky-50 px-3 py-2 text-sm"><span className="text-slate-700">{target?.title ?? `Resource #${relationship.targetId}`} <strong className="text-sky-700">· {RELATIONSHIP_TYPES.find((type) => type.value === relationship.type)?.label}</strong></span><button type="button" onClick={() => setSuggestedRelationships((current) => current.filter((_, itemIndex) => itemIndex !== index))} aria-label="Remove suggested relationship" className="text-slate-400 hover:text-red-600"><X className="h-4 w-4" /></button></div>; })}</div>}
+            {suggestedRelationships.length > 0 && <div className="mt-4 space-y-2">{suggestedRelationships.map((relationship, index) => { const target = relationshipResults?.items?.find((item) => item.id === relationship.targetId); return <div key={`${relationship.targetId}-${relationship.type}-${index}`} className="flex items-start justify-between gap-3 rounded-xl border border-sky-100 bg-sky-50 px-3 py-2 text-sm"><span className="text-slate-700"><span className="block">{target?.title ?? `Resource #${relationship.targetId}`} <strong className="text-sky-700">· {RELATIONSHIP_TYPES.find((type) => type.value === relationship.type)?.label}</strong></span>{relationship.evidenceUrl && <a href={relationship.evidenceUrl} target="_blank" rel="noreferrer" className="mt-1 block text-xs font-medium text-sky-700 hover:text-sky-900">Evidence supplied</a>}{relationship.rationale && <span className="mt-1 block text-xs text-slate-500">{relationship.rationale}</span>}</span><button type="button" onClick={() => setSuggestedRelationships((current) => current.filter((_, itemIndex) => itemIndex !== index))} aria-label="Remove suggested relationship" className="text-slate-400 hover:text-red-600"><X className="h-4 w-4" /></button></div>; })}</div>}
           </Card>
 
           {showPreview && (

@@ -12,6 +12,9 @@ const mocks = vi.hoisted(() => ({
   getResourceById: vi.fn(),
   createResourceReport: vi.fn(),
   reviewResourceReport: vi.fn(),
+  createResourceEditSuggestion: vi.fn(),
+  getPendingResourceEditSuggestions: vi.fn(),
+  reviewResourceEditSuggestion: vi.fn(),
   createAuditLog: vi.fn(),
   getDb: vi.fn(),
   getSubmissionById: vi.fn(),
@@ -27,6 +30,9 @@ vi.mock("./db", () => ({
   getResourceById: mocks.getResourceById,
   createResourceReport: mocks.createResourceReport,
   reviewResourceReport: mocks.reviewResourceReport,
+  createResourceEditSuggestion: mocks.createResourceEditSuggestion,
+  getPendingResourceEditSuggestions: mocks.getPendingResourceEditSuggestions,
+  reviewResourceEditSuggestion: mocks.reviewResourceEditSuggestion,
   createAuditLog: mocks.createAuditLog,
   getSubmissionById: mocks.getSubmissionById,
 }));
@@ -63,6 +69,23 @@ describe("core tRPC workflows", () => {
     mocks.createResourceReport.mockResolvedValue({ created: true, duplicate: false });
     await expect(appRouter.createCaller(context()).resources.report({ resourceId: 1, reason: "spam", details: "Unwanted promotional content" })).resolves.toEqual({ success: true });
     expect(mocks.createResourceReport).toHaveBeenCalledWith({ resourceId: 1, reporterId: 7, reason: "spam", details: "Unwanted promotional content" });
+  });
+
+  it("records a protected contributor edit suggestion without changing the resource directly", async () => {
+    const anonymousContext = { user: null, req: { protocol: "https", headers: {} } as TrpcContext["req"], res: { clearCookie: vi.fn() } as TrpcContext["res"] };
+    await expect(appRouter.createCaller(anonymousContext).resources.suggestEdit({ resourceId: 1, changes: { title: "Corrected title" } })).rejects.toMatchObject({ code: "UNAUTHORIZED" });
+    mocks.getResourceById.mockResolvedValue({ id: 1, title: "Resource" });
+    mocks.createResourceEditSuggestion.mockResolvedValue({ created: true, duplicate: false, id: 41 });
+    await expect(appRouter.createCaller(context()).resources.suggestEdit({ resourceId: 1, changes: { title: "Corrected title" }, note: "Official naming has changed." })).resolves.toEqual({ success: true, id: 41 });
+    expect(mocks.createResourceEditSuggestion).toHaveBeenCalledWith({ resourceId: 1, suggestedBy: 7, changes: { title: "Corrected title" }, note: "Official naming has changed." });
+    expect(mocks.createAuditLog).toHaveBeenCalledWith(7, "suggest_edit", "resource_edit_suggestion", 41, { resourceId: 1, fields: ["title"] });
+  });
+
+  it("allows only administrators to apply a pending edit suggestion", async () => {
+    mocks.reviewResourceEditSuggestion.mockResolvedValue({ updated: true, resourceId: 1, changes: { title: "Corrected title" } });
+    await expect(appRouter.createCaller(context("moderator")).moderation.reviewEditSuggestion({ suggestionId: 41, status: "approved" })).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await expect(appRouter.createCaller(context("admin")).moderation.reviewEditSuggestion({ suggestionId: 41, status: "approved", reviewNote: "Verified against source." })).resolves.toEqual({ success: true });
+    expect(mocks.reviewResourceEditSuggestion).toHaveBeenCalledWith({ suggestionId: 41, status: "approved", reviewNote: "Verified against source.", reviewerId: 7 });
   });
 
   it("refuses to audit a report review when no open report was updated", async () => {

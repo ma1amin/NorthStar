@@ -3,6 +3,20 @@ import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, adminProcedure, router } from "./_core/trpc";
 import { z } from "zod";
+
+const relationshipTypeValues = [
+  "alternative_to",
+  "similar_to",
+  "integrates_with",
+  "built_by",
+  "maintained_by",
+  "funded_by",
+  "used_by",
+  "depends_on",
+  "part_of",
+  "competitor_of",
+] as const;
+
 import {
   getApprovedResources,
   listApprovedResources,
@@ -33,6 +47,9 @@ import {
   createResourceReport,
   getOpenResourceReports,
   reviewResourceReport,
+  createResourceEditSuggestion,
+  getPendingResourceEditSuggestions,
+  reviewResourceEditSuggestion,
   recordSearchAnalytics,
   createAuditLog,
   updateUserReputation,
@@ -131,6 +148,31 @@ export const appRouter = router({
         return { success: true };
       }),
 
+    suggestEdit: protectedProcedure
+      .input(z.object({
+        resourceId: z.number().int().positive(),
+        changes: z.object({
+          title: z.string().trim().min(1).max(255).optional(),
+          description: z.string().trim().max(5000).optional(),
+          url: z.string().url().optional(),
+          pricing: z.enum(["free", "freemium", "paid", "open_source", "enterprise"]).optional(),
+          license: z.string().trim().max(255).optional(),
+          builtBy: z.string().trim().max(255).optional(),
+          builtByUrl: z.string().url().optional(),
+        }).refine((changes) => Object.values(changes).some((value) => value !== undefined && value !== ""), "Add at least one proposed change"),
+        note: z.string().trim().max(2000).optional(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const resource = await getResourceById(input.resourceId);
+        if (!resource) throw new TRPCError({ code: "NOT_FOUND", message: "Resource not found" });
+        const changes = Object.fromEntries(Object.entries(input.changes).filter(([, value]) => value !== undefined && value !== ""));
+        const result = await createResourceEditSuggestion({ resourceId: input.resourceId, suggestedBy: ctx.user.id, changes, note: input.note });
+        if (result.duplicate) throw new TRPCError({ code: "CONFLICT", message: "You already have a pending edit suggestion for this resource" });
+        if (!result.created || !result.id) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        await createAuditLog(ctx.user.id, "suggest_edit", "resource_edit_suggestion", result.id, { resourceId: input.resourceId, fields: Object.keys(changes) });
+        return { success: true, id: result.id };
+      }),
+
     // Get resources by category
     getByCategory: publicProcedure
       .input(
@@ -211,15 +253,10 @@ export const appRouter = router({
             .array(
               z.object({
                 targetId: z.number().int().positive(),
-                type: z.enum([
-                  "alternative_to",
-                  "similar_to",
-                  "integrates_with",
-                  "built_by",
-                  "depends_on",
-                  "part_of",
-                  "competitor_of",
-                ]),
+                type: z.enum(relationshipTypeValues),
+                evidenceUrl: z.string().url().optional(),
+                rationale: z.string().trim().min(12).max(2000).optional(),
+                sourceContext: z.string().trim().max(255).optional(),
               })
             )
             .optional(),
@@ -387,17 +424,7 @@ export const appRouter = router({
       .input(
         z.object({
           sourceId: z.number(),
-          type: z
-            .enum([
-              "alternative_to",
-              "similar_to",
-              "integrates_with",
-              "built_by",
-              "depends_on",
-              "part_of",
-              "competitor_of",
-            ])
-            .optional(),
+          type: z.enum(relationshipTypeValues).optional(),
         })
       )
       .query(async ({ input }) => {
@@ -409,17 +436,7 @@ export const appRouter = router({
       .input(
         z.object({
           targetId: z.number(),
-          type: z
-            .enum([
-              "alternative_to",
-              "similar_to",
-              "integrates_with",
-              "built_by",
-              "depends_on",
-              "part_of",
-              "competitor_of",
-            ])
-            .optional(),
+          type: z.enum(relationshipTypeValues).optional(),
         })
       )
       .query(async ({ input }) => {
@@ -432,16 +449,11 @@ export const appRouter = router({
         z.object({
           sourceId: z.number(),
           targetId: z.number(),
-          type: z.enum([
-            "alternative_to",
-            "similar_to",
-            "integrates_with",
-            "built_by",
-            "depends_on",
-            "part_of",
-            "competitor_of",
-          ]),
+          type: z.enum(relationshipTypeValues),
           strength: z.number().min(0).max(1).default(0.5),
+          evidenceUrl: z.string().url().optional(),
+          rationale: z.string().trim().min(12).max(2000).optional(),
+          sourceContext: z.string().trim().max(255).optional(),
         })
       )
       .mutation(async ({ input, ctx }) => {
@@ -455,11 +467,14 @@ export const appRouter = router({
             targetId: input.targetId,
             type: input.type,
             strength: input.strength,
+            evidenceUrl: input.evidenceUrl,
+            rationale: input.rationale,
+            sourceContext: input.sourceContext,
             createdBy: ctx.user.id,
             status: "pending",
           });
 
-        await createAuditLog(ctx.user.id, "create", "relationship", result[0].insertId);
+        await createAuditLog(ctx.user.id, "create", "relationship", result[0].insertId, { evidenceUrl: input.evidenceUrl, rationale: input.rationale, sourceContext: input.sourceContext });
 
         return { id: result[0].insertId, status: "pending" };
       }),
@@ -974,6 +989,20 @@ export const appRouter = router({
         return { success: true };
       }),
 
+    getPendingEditSuggestions: adminProcedure
+      .input(z.object({ limit: z.number().min(1).max(100).default(50), offset: z.number().min(0).default(0) }))
+      .query(({ input }) => getPendingResourceEditSuggestions(input.limit, input.offset)),
+
+    reviewEditSuggestion: adminProcedure
+      .input(z.object({ suggestionId: z.number().int().positive(), status: z.enum(["approved", "rejected"]), reviewNote: z.string().trim().max(2000).optional() }))
+      .mutation(async ({ input, ctx }) => {
+        if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN", message: "Only administrators can apply resource edit suggestions" });
+        const result = await reviewResourceEditSuggestion({ ...input, reviewerId: ctx.user.id });
+        if (!result.updated) throw new TRPCError({ code: "CONFLICT", message: "This suggestion is no longer pending" });
+        await createAuditLog(ctx.user.id, input.status === "approved" ? "approve_edit_suggestion" : "reject_edit_suggestion", "resource_edit_suggestion", input.suggestionId, { resourceId: result.resourceId, fields: Object.keys((result.changes as Record<string, unknown>) ?? {}), reviewNote: input.reviewNote });
+        return { success: true };
+      }),
+
     listUsers: adminProcedure
       .input(z.object({ limit: z.number().min(1).max(100).default(50), offset: z.number().min(0).default(0) }))
       .query(({ input, ctx }) => {
@@ -1061,6 +1090,25 @@ export const appRouter = router({
           }
         }
 
+        const suggestedRelationships = Array.isArray(submission.suggestedRelationships) ? submission.suggestedRelationships as Array<{ targetId: number; type: (typeof relationshipTypeValues)[number]; evidenceUrl?: string; rationale?: string; sourceContext?: string }> : [];
+        for (const suggested of suggestedRelationships) {
+          try {
+            await db.insert(require("../drizzle/schema").relationships).values({
+              sourceId: resourceId,
+              targetId: suggested.targetId,
+              type: suggested.type,
+              strength: "0.50",
+              evidenceUrl: suggested.evidenceUrl,
+              rationale: suggested.rationale,
+              sourceContext: suggested.sourceContext,
+              createdBy: submission.submittedBy,
+              status: "pending",
+            });
+          } catch (error) {
+            console.warn("[Moderation] Skipped duplicate or invalid suggested relationship", { submissionId: submission.id, targetId: suggested.targetId, type: suggested.type });
+          }
+        }
+
         await db
           .update(require("../drizzle/schema").submissions)
           .set({
@@ -1071,7 +1119,7 @@ export const appRouter = router({
           })
           .where(require("drizzle-orm").eq(require("../drizzle/schema").submissions.id, input.submissionId));
 
-        await createAuditLog(ctx.user.id, "approve", "submission", input.submissionId, { resourceId });
+        await createAuditLog(ctx.user.id, "approve", "submission", input.submissionId, { resourceId, suggestedRelationshipCount: suggestedRelationships.length });
         await recordReputationEvent({ userId: submission.submittedBy, points: 10, reason: "Resource submission approved", entityType: "submission", entityId: input.submissionId, eventKey: `submission-approved:${input.submissionId}` });
 
         return { success: true, resourceId, slug };

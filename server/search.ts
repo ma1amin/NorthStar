@@ -51,7 +51,7 @@ function buildApprovedResourceConditions(filters?: SearchFilters) {
  */
 export function parseRelationshipQuery(query: string): {
   baseQuery: string;
-  relationshipType?: "alternative_to" | "similar_to" | "integrates_with" | "built_by" | "depends_on" | "part_of" | "competitor_of";
+  relationshipType?: "alternative_to" | "similar_to" | "integrates_with" | "built_by" | "maintained_by" | "funded_by" | "used_by" | "depends_on" | "part_of" | "competitor_of";
 } {
   const lowerQuery = query.toLowerCase();
 
@@ -68,6 +68,15 @@ export function parseRelationshipQuery(query: string): {
     competitors: "competitor_of",
     competitor: "competitor_of",
     competitor_of: "competitor_of",
+    maintainers: "maintained_by",
+    maintained: "maintained_by",
+    maintained_by: "maintained_by",
+    funding: "funded_by",
+    funded: "funded_by",
+    funded_by: "funded_by",
+    users: "used_by",
+    used: "used_by",
+    used_by: "used_by",
     dependencies: "depends_on",
     dependency: "depends_on",
     depends_on: "depends_on",
@@ -82,7 +91,7 @@ export function parseRelationshipQuery(query: string): {
       if (baseQuery.length > 0) {
         return {
           baseQuery,
-          relationshipType: relationshipType as "alternative_to" | "similar_to" | "integrates_with" | "built_by" | "depends_on" | "part_of" | "competitor_of",
+          relationshipType: relationshipType as "alternative_to" | "similar_to" | "integrates_with" | "built_by" | "maintained_by" | "funded_by" | "used_by" | "depends_on" | "part_of" | "competitor_of",
         };
       }
     }
@@ -172,7 +181,7 @@ export async function searchResourcesAdvanced(
         .where(
           and(
             eq(relationships.targetId, baseResource.id),
-            eq(relationships.type, relationshipType as "alternative_to" | "similar_to" | "integrates_with" | "built_by" | "depends_on" | "part_of" | "competitor_of"),
+            eq(relationships.type, relationshipType as "alternative_to" | "similar_to" | "integrates_with" | "built_by" | "maintained_by" | "funded_by" | "used_by" | "depends_on" | "part_of" | "competitor_of"),
             eq(relationships.status, "approved")
           )
         )
@@ -300,6 +309,9 @@ export async function getSearchSuggestions(
     `${query} alternatives`,
     `${query} integrations`,
     `${query} competitors`,
+    `${query} maintainers`,
+    `${query} funding`,
+    `${query} users`,
     `similar to ${query}`,
   ];
 
@@ -401,7 +413,7 @@ export async function calculateRelationshipStrength(
       and(
         eq(relationships.sourceId, sourceId),
         eq(relationships.targetId, targetId),
-        eq(relationships.type, relationshipType as "alternative_to" | "similar_to" | "integrates_with" | "built_by" | "depends_on" | "part_of" | "competitor_of")
+        eq(relationships.type, relationshipType as "alternative_to" | "similar_to" | "integrates_with" | "built_by" | "maintained_by" | "funded_by" | "used_by" | "depends_on" | "part_of" | "competitor_of")
       )
     )
     .limit(1);

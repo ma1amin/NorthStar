@@ -24,6 +24,7 @@ import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { applyClientSeo } from "@/lib/seo";
 import { ReportResourceDialog } from "@/components/ReportResourceDialog";
+import { SuggestResourceEditDialog } from "@/components/SuggestResourceEditDialog";
 
 const RELATIONSHIP_TABS = [
   { value: "alternatives", label: "Alternatives", type: "alternative_to" as const },
@@ -38,6 +39,9 @@ const RELATIONSHIP_LABELS: Record<string, string> = {
   similar_to: "Similar To",
   integrates_with: "Integrates With",
   built_by: "Built By",
+  maintained_by: "Maintained By",
+  funded_by: "Funded By",
+  used_by: "Used By",
   depends_on: "Depends On",
   part_of: "Part Of",
   competitor_of: "Competitor Of",
@@ -163,6 +167,30 @@ export default function ResourceDetail() {
   );
   const { data: dependsOnIncoming = [] } = trpc.relationships.getByTarget.useQuery(
     { targetId: resource?.id ?? 0, type: "depends_on" },
+    { enabled: Boolean(resource?.id) }
+  );
+  const { data: maintainedBy = [] } = trpc.relationships.getBySource.useQuery(
+    { sourceId: resource?.id ?? 0, type: "maintained_by" },
+    { enabled: Boolean(resource?.id) }
+  );
+  const { data: maintainedByIncoming = [] } = trpc.relationships.getByTarget.useQuery(
+    { targetId: resource?.id ?? 0, type: "maintained_by" },
+    { enabled: Boolean(resource?.id) }
+  );
+  const { data: fundedBy = [] } = trpc.relationships.getBySource.useQuery(
+    { sourceId: resource?.id ?? 0, type: "funded_by" },
+    { enabled: Boolean(resource?.id) }
+  );
+  const { data: fundedByIncoming = [] } = trpc.relationships.getByTarget.useQuery(
+    { targetId: resource?.id ?? 0, type: "funded_by" },
+    { enabled: Boolean(resource?.id) }
+  );
+  const { data: usedBy = [] } = trpc.relationships.getBySource.useQuery(
+    { sourceId: resource?.id ?? 0, type: "used_by" },
+    { enabled: Boolean(resource?.id) }
+  );
+  const { data: usedByIncoming = [] } = trpc.relationships.getByTarget.useQuery(
+    { targetId: resource?.id ?? 0, type: "used_by" },
     { enabled: Boolean(resource?.id) }
   );
   const { data: similar = [] } = trpc.relationships.getBySource.useQuery(
@@ -330,7 +358,10 @@ export default function ResourceDetail() {
     alternatives: mergeRelationships(alternatives, alternativesIncoming),
     integrations: mergeRelationships(integrations, integrationsIncoming),
     competitors: mergeRelationships(competitors, competitorsIncoming),
-    ecosystem: mergeRelationships([...partOf, ...dependsOn], [...partOfIncoming, ...dependsOnIncoming]),
+    ecosystem: mergeRelationships(
+      [...partOf, ...dependsOn, ...maintainedBy, ...fundedBy, ...usedBy],
+      [...partOfIncoming, ...dependsOnIncoming, ...maintainedByIncoming, ...fundedByIncoming, ...usedByIncoming]
+    ),
     similar: mergeRelationships(similar, similarIncoming),
   };
   const connectionCount = Object.values(tabData).reduce((count, relationships) => count + relationships.length, 0);
@@ -368,6 +399,7 @@ export default function ResourceDetail() {
                 {isBookmarked ? <BookmarkCheck className="mr-2 h-4 w-4" /> : <Bookmark className="mr-2 h-4 w-4" />}
                 {isBookmarked ? "Saved" : "Save"}
               </Button>
+              <SuggestResourceEditDialog resource={resource} isAuthenticated={isAuthenticated} />
               <ReportResourceDialog resourceId={resource.id} isAuthenticated={isAuthenticated} />
               <Button variant="outline" onClick={handleShare}>
                 {copied ? <Check className="mr-2 h-4 w-4 text-emerald-600" /> : <Share2 className="mr-2 h-4 w-4" />}

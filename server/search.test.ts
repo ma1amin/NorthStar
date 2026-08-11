@@ -85,6 +85,14 @@ describe('Search Service', () => {
       expect(result.baseQuery).toBe('React');
     });
 
+    it.each([
+      ['OpenJS Foundation maintainers', 'maintained_by'],
+      ['Open-source tooling funding', 'funded_by'],
+      ['GitHub users', 'used_by'],
+    ])('should recognize the %s graph intent', (query, relationshipType) => {
+      expect(parseRelationshipQuery(query).relationshipType).toBe(relationshipType);
+    });
+
     it('should preserve query case for baseQuery', () => {
       const result = parseRelationshipQuery('MyTool alternatives');
       expect(result.baseQuery).toBe('MyTool');
@@ -98,12 +106,15 @@ describe('Search Service', () => {
         'similar_to',
         'integrates_with',
         'built_by',
+        'maintained_by',
+        'funded_by',
+        'used_by',
         'depends_on',
         'part_of',
         'competitor_of',
       ];
 
-      expect(types).toHaveLength(7);
+      expect(types).toHaveLength(10);
       types.forEach(type => {
         expect(type).toBeTruthy();
       });

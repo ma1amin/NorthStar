@@ -16,6 +16,7 @@ import Admin from "./pages/Admin";
 import AdminUsers from "./pages/AdminUsers";
 import AdminReports from "./pages/AdminReports";
 import AdminBulk from "./pages/AdminBulk";
+import AdminEditSuggestions from "./pages/AdminEditSuggestions";
 import NotFound from "./pages/NotFound";
 
 function Router() {
@@ -41,6 +42,7 @@ function Router() {
         <Route path={"/admin/users"} component={AdminUsers} />
         <Route path={"/admin/reports"} component={AdminReports} />
         <Route path={"/admin/bulk"} component={AdminBulk} />
+        <Route path={"/admin/edit-suggestions"} component={AdminEditSuggestions} />
 
         {/* 404 */}
         <Route path={"/404"} component={NotFound} />

@@ -1,0 +1,1 @@
+ALTER TABLE `relationships` MODIFY COLUMN `type` enum('alternative_to','similar_to','integrates_with','built_by','maintained_by','funded_by','used_by','depends_on','part_of','competitor_of') NOT NULL;
