@@ -20,6 +20,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { useLocation } from "wouter";
+import { getLoginUrl } from "@/const";
 
 export default function Profile() {
   const { user, isAuthenticated } = useAuth();
@@ -90,7 +91,10 @@ export default function Profile() {
             <AlertCircle className="mx-auto mb-4 h-12 w-12 text-red-500" />
             <h1 className="mb-2 text-2xl font-bold text-slate-950">Sign In Required</h1>
             <p className="mb-6 text-slate-600">You need to be signed in to view your profile.</p>
-            <Button onClick={() => setLocation("/")} className="bg-sky-600 text-white hover:bg-sky-700">Go to Home</Button>
+            <div className="flex flex-wrap justify-center gap-3">
+              <Button onClick={() => { window.location.href = getLoginUrl(); }} className="bg-sky-600 text-white hover:bg-sky-700">Sign in to view profile</Button>
+              <Button variant="outline" onClick={() => setLocation("/browse")} className="border-slate-300 bg-white text-slate-700 hover:bg-slate-50">Browse resources</Button>
+            </div>
           </Card>
         </div>
       </div>

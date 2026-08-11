@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { trpc } from "@/lib/trpc";
+import { getLoginUrl } from "@/const";
 
 interface FormData {
   title: string;
@@ -175,7 +176,7 @@ export default function Submit() {
     event.preventDefault();
     setSubmitError("");
     if (!isAuthenticated) {
-      setLocation("/");
+      window.location.href = getLoginUrl();
       return;
     }
     if (validateSubmission()) setShowPreview(true);
@@ -185,7 +186,7 @@ export default function Submit() {
     event.preventDefault();
     setSubmitError("");
     if (!isAuthenticated) {
-      setLocation("/");
+      window.location.href = getLoginUrl();
       return;
     }
     if (!validateSubmission() || !categoryId) return;
@@ -213,7 +214,10 @@ export default function Submit() {
             <AlertCircle className="mx-auto mb-4 h-12 w-12 text-sky-500" />
             <h1 className="text-3xl font-bold text-slate-950">Sign in to contribute</h1>
             <p className="mx-auto mt-3 max-w-md text-slate-600">Contributions are reviewed by the community and moderators before publication.</p>
-            <Button onClick={() => setLocation("/")} className="mt-7 bg-sky-600 text-white hover:bg-sky-700">Go to home</Button>
+            <div className="mt-7 flex flex-wrap justify-center gap-3">
+              <Button onClick={() => { window.location.href = getLoginUrl(); }} className="bg-sky-600 text-white hover:bg-sky-700">Sign in to contribute</Button>
+              <Button variant="outline" onClick={() => setLocation("/browse")} className="border-slate-300 bg-white text-slate-700 hover:bg-slate-50">Browse resources</Button>
+            </div>
           </Card>
         </div>
       </div>

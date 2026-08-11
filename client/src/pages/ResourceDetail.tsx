@@ -22,6 +22,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { getLoginUrl } from "@/const";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
+import { applyClientSeo } from "@/lib/seo";
 
 const RELATIONSHIP_TABS = [
   { value: "alternatives", label: "Alternatives", type: "alternative_to" as const },
@@ -191,6 +192,16 @@ export default function ResourceDetail() {
   useEffect(() => {
     setIsBookmarked(Boolean(bookmarked));
   }, [bookmarked]);
+
+  useEffect(() => {
+    if (!resource) return;
+    applyClientSeo({
+      title: `${resource.title} — NorthStar`,
+      description: resource.description || `Explore ${resource.title} in the NorthStar resource intelligence graph.`,
+      canonicalPath: `/resource/${resource.slug}`,
+      robots: resource.status === "approved" ? "index,follow" : "noindex,follow",
+    });
+  }, [resource]);
 
   const voteMutation = trpc.votes.voteResource.useMutation({
     onSuccess: async () => {

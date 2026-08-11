@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { trpc } from "@/lib/trpc";
+import { applyClientSeo } from "@/lib/seo";
 
 const ITEMS_PER_PAGE = 12;
 
@@ -45,6 +46,10 @@ export default function Browse() {
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 
   const { data: categories = [], isLoading: categoriesLoading } = trpc.categories.list.useQuery();
+
+  useEffect(() => {
+    applyClientSeo({ title: "Browse verified resources — NorthStar", description: "Browse verified tools, services, and ecosystems with rich metadata and knowledge-graph context.", canonicalPath: routeParams?.categorySlug ? `/browse/${routeParams.categorySlug}` : "/browse" });
+  }, [routeParams?.categorySlug]);
 
   useEffect(() => {
     if (!routeParams?.categorySlug || categories.length === 0) return;

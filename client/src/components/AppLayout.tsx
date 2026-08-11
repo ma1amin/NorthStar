@@ -74,6 +74,7 @@ export function AppLayout({ children }: AppLayoutProps) {
 
   return (
     <div className="flex min-h-screen flex-col bg-[#f8fafc] text-slate-950">
+      <a href="#main-content" className="sr-only z-[60] rounded-b-lg bg-slate-950 px-4 py-2 text-sm font-semibold text-white focus:not-sr-only focus:absolute focus:left-4 focus:top-0">Skip to main content</a>
       <header className="sticky top-0 z-50 border-b border-slate-200/80 bg-white/85 backdrop-blur-xl">
         <div className="container flex h-16 items-center justify-between gap-3">
           <Link href="/" className="group flex shrink-0 items-center gap-2.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500">
@@ -143,7 +144,7 @@ export function AppLayout({ children }: AppLayoutProps) {
         </CommandList>
       </CommandDialog>
 
-      <main className="flex-1">{children}</main>
+      <main id="main-content" className="flex-1" tabIndex={-1}>{children}</main>
 
       <footer className="mt-16 border-t border-slate-200 bg-white">
         <div className="container py-10"><div className="flex flex-col gap-8 md:flex-row md:items-start md:justify-between"><div className="max-w-sm"><div className="flex items-center gap-2"><div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-900 text-white"><Network className="h-4 w-4" /></div><span className="font-['Sora'] font-bold text-slate-950">NorthStar</span></div><p className="mt-3 text-sm leading-6 text-slate-500">An open resource intelligence platform for discovering tools, understanding context, and navigating the relationships between them.</p></div><div className="grid grid-cols-2 gap-x-10 gap-y-3 text-sm"><Link href="/browse" className="font-medium text-slate-600 hover:text-sky-700">Explore resources</Link><Link href="/search" className="font-medium text-slate-600 hover:text-sky-700">Relationship search</Link><Link href="/collections" className="font-medium text-slate-600 hover:text-sky-700">Collections</Link><Link href="/submit" className="font-medium text-slate-600 hover:text-sky-700">Submit a resource</Link></div></div><div className="mt-8 flex flex-col gap-2 border-t border-slate-100 pt-5 text-xs text-slate-400 sm:flex-row sm:items-center sm:justify-between"><span>© 2026 NorthStar. Open resource intelligence.</span><span>Designed for discovery, context, and community verification.</span></div></div>

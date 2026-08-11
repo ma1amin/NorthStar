@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+
+  <head>
+    <script type="module">import { injectIntoGlobalHook } from "/@react-refresh";
+injectIntoGlobalHook(window);
+window.$RefreshReg$ = () => {};
+window.$RefreshSig$ = () => (type) => type;</script>
+
+    <script type="module" src="/@vite/client"></script>
+
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+    <title>NorthStar (ORIG) - Resource Intelligence Platform</title>    
+    <!-- THIS IS THE START OF A COMMENT BLOCK, BLOCK TO BE DELETED: Google Fonts here, example:
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    THIS IS THE END OF A COMMENT BLOCK, BLOCK TO BE DELETED -->
+    <script src="/__manus__/debug-collector.js" defer></script>
+  </head>
+
+  <body>
+    <script id="manus-runtime">window.__MANUS_HOST_DEV__ = true;
+(function(){"use strict";var Mr={exports:{}},Kn={};/**
+ * @license React
+ * react-jsx-runtime.production.js
+ *
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ */var $c;function um(){if($c)return Kn;$c=1;var r=Symbol.for("react.transitional.element"),i=Symbol.for("react.fragment");function c(s,d,m){var x=null;if(m!==void 0&&(x=""+m),d.key!==void 0&&(x=""+d.key),"key"in d){m={};for(var R in d)R!=="key"&&(m[R]=d[R])}else m=d;return d=m.ref,{$$typeof:r,type:s,key:x,ref:d!==void 0?d:null,props:m}}return Kn.Fragment=i,Kn.jsx=c,Kn.jsxs=c,Kn}var Fc;function dm(){return Fc||(Fc=1,Mr.exports=um()),Mr.exports}var h=dm(),Ar={exports:{}},Pn={},Rr={exports:{}},Nr={};/**
+ * @license React
+ * scheduler.production.js
+ *
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ */var Ic;function fm(){return Ic||(Ic=1,function(r){function i(A,q){var B=A.length;A.push(q);t:for(;0<B;){var bt=B-1>>>1,p=A[bt];if(0<d(p,q))A[bt]=q,A[B]=p,B=bt;else break t}}function c(A){return A.length===0?null:A[0]}function s(A){if(A.length===0)return null;var q=A[0],B=A.pop();if(B!==q){A[0]=B;t:for(var bt=0,p=A.length,O=p>>>1;bt<O;){var X=2*(bt+1)-1,G=A[X],Z=X+1,st=A[Z];if(0>d(G,B))Z<p&&0>d(st,G)?(A[bt]=st,A[Z]=B,bt=Z):(A[bt]=G,A[X]=B,bt=X);else if(Z<p&&0>d(st,B))A[bt]=st,A[Z]=B,bt=Z;else break t}}return q}function d(A,q){var B=A.sortIndex-q.sortIndex;return B!==0?B:A.id-q.id}if(r.unstable_now=void 0,typeof performance=="object"&&typeof performance.now=="function"){var m=performance;r.unstable_now=function(){return m.now()}}else{var x=Date,R=x.now();r.unstable_now=function(){return x.now()-R}}var C=[],v=[],D=1,j=null,J=3,at=!1,$=!1,nt=!1,ct=!1,ht=typeof setTimeout=="function"?setTimeout:null,St=typeof clearTimeout=="function"?clearTimeout:null,_=typeof setImmediate<"u"?setImmediate:null;function Y(A){for(var q=c(v);q!==null;){if(q.callback===null)s(v);else if(q.startTime<=A)s(v),q.sortIndex=q.expirationTime,i(C,q);else break;q=c(v)}}function H(A){if(nt=!1,Y(A),!$)if(c(C)!==null)$=!0,it||(it=!0,Bt());else{var q=c(v);q!==null&&Mt(H,q.startTime-A)}}var it=!1,rt=-1,V=5,xt=-1;function Be(){return ct?!0:!(r.unstable_now()-xt<V)}function te(){if(ct=!1,it){var A=r.unstable_now();xt=A;var q=!0;try{t:{$=!1,nt&&(nt=!1,St(rt),rt=-1),at=!0;var B=J;try{e:{for(Y(A),j=c(C);j!==null&&!(j.expirationTime>A&&Be());){var bt=j.callback;if(typeof bt=="function"){j.callback=null,J=j.priorityLevel;var p=bt(j.expirationTime<=A);if(A=r.unstable_now(),typeof p=="function"){j.callback=p,Y(A),q=!0;break e}j===c(C)&&s(C),Y(A)}else s(C);j=c(C)}if(j!==null)q=!0;else{var O=c(v);O!==null&&Mt(H,O.startTime-A),q=!1}}break t}finally{j=null,J=B,at=!1}q=void 0}}finally{q?Bt():it=!1}}}var Bt;if(typeof _=="function")Bt=function(){_(te)};else if(typeof MessageChannel<"u"){var me=new MessageChannel,Se=me.port2;me.port1.onmessage=te,Bt=function(){Se.postMessage(null)}}else Bt=function(){ht(te,0)};function Mt(A,q){rt=ht(function(){A(r.unstable_now())},q)}r.unstable_IdlePriority=5,r.unstable_ImmediatePriority=1,r.unstable_LowPriority=4,r.unstable_NormalPriority=3,r.unstable_Profiling=null,r.unstable_UserBlockingPriority=2,r.unstable_cancelCallback=function(A){A.callback=null},r.unstable_forceFrameRate=function(A){0>A||125<A?console.error("forceFrameRate takes a positive int between 0 and 125, forcing frame rates higher than 125 fps is not supported"):V=0<A?Math.floor(1e3/A):5},r.unstable_getCurrentPriorityLevel=function(){return J},r.unstable_next=function(A){switch(J){case 1:case 2:case 3:var q=3;break;default:q=J}var B=J;J=q;try{return A()}finally{J=B}},r.unstable_requestPaint=function(){ct=!0},r.unstable_runWithPriority=function(A,q){switch(A){case 1:case 2:case 3:case 4:case 5:break;default:A=3}var B=J;J=A;try{return q()}finally{J=B}},r.unstable_scheduleCallback=function(A,q,B){var bt=r.unstable_now();switch(typeof B=="object"&&B!==null?(B=B.delay,B=typeof B=="number"&&0<B?bt+B:bt):B=bt,A){case 1:var p=-1;break;case 2:p=250;break;case 5:p=1073741823;break;case 4:p=1e4;break;default:p=5e3}return p=B+p,A={id:D++,callback:q,priorityLevel:A,startTime:B,expirationTime:p,sortIndex:-1},B>bt?(A.sortIndex=B,i(v,A),c(C)===null&&A===c(v)&&(nt?(St(rt),rt=-1):nt=!0,Mt(H,B-bt))):(A.sortIndex=p,i(C,A),$||at||($=!0,it||(it=!0,Bt()))),A},r.unstable_shouldYield=Be,r.unstable_wrapCallback=function(A){var q=J;return function(){var B=J;J=q;try{return A.apply(this,arguments)}finally{J=B}}}}(Nr)),Nr}var tu;function hm(){return tu||(tu=1,Rr.exports=fm()),Rr.exports}var zr={exports:{}},ut={};/**
+ * @license React
+ * react.production.js
+
+---RESOURCE---
+<!doctype html>
+<html lang="en">
+
+  <head>
+    <script type="module">import { injectIntoGlobalHook } from "/@react-refresh";
+injectIntoGlobalHook(window);
+window.$RefreshReg$ = () => {};
+window.$RefreshSig$ = () => (type) => type;</script>
+
+    <script type="module" src="/@vite/client"></script>
+
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+    <title>NorthStar (ORIG) - Resource Intelligence Platform</title>    
+    <!-- THIS IS THE START OF A COMMENT BLOCK, BLOCK TO BE DELETED: Google Fonts here, example:
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    THIS IS THE END OF A COMMENT BLOCK, BLOCK TO BE DELETED -->
+    <script src="/__manus__/debug-collector.js" defer></script>
+  </head>
+
+  <body>
+    <script id="manus-runtime">window.__MANUS_HOST_DEV__ = true;
+(function(){"use strict";var Mr={exports:{}},Kn={};/**
+ * @license React
+ * react-jsx-runtime.production.js
+ *
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ */var $c;function um(){if($c)return Kn;$c=1;var r=Symbol.for("react.transitional.element"),i=Symbol.for("react.fragment");function c(s,d,m){var x=null;if(m!==void 0&&(x=""+m),d.key!==void 0&&(x=""+d.key),"key"in d){m={};for(var R in d)R!=="key"&&(m[R]=d[R])}else m=d;return d=m.ref,{$$typeof:r,type:s,key:x,ref:d!==void 0?d:null,props:m}}return Kn.Fragment=i,Kn.jsx=c,Kn.jsxs=c,Kn}var Fc;function dm(){return Fc||(Fc=1,Mr.exports=um()),Mr.exports}var h=dm(),Ar={exports:{}},Pn={},Rr={exports:{}},Nr={};/**
+ * @license React
+ * scheduler.production.js
+ *
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ */var Ic;function fm(){return Ic||(Ic=1,function(r){function i(A,q){var B=A.length;A.push(q);t:for(;0<B;){var bt=B-1>>>1,p=A[bt];if(0<d(p,q))A[bt]=q,A[B]=p,B=bt;else break t}}function c(A){return A.length===0?null:A[0]}function s(A){if(A.length===0)return null;var q=A[0],B=A.pop();if(B!==q){A[0]=B;t:for(var bt=0,p=A.length,O=p>>>1;bt<O;){var X=2*(bt+1)-1,G=A[X],Z=X+1,st=A[Z];if(0>d(G,B))Z<p&&0>d(st,G)?(A[bt]=st,A[Z]=B,bt=Z):(A[bt]=G,A[X]=B,bt=X);else if(Z<p&&0>d(st,B))A[bt]=st,A[Z]=B,bt=Z;else break t}}return q}function d(A,q){var B=A.sortIndex-q.sortIndex;return B!==0?B:A.id-q.id}if(r.unstable_now=void 0,typeof performance=="object"&&typeof performance.now=="function"){var m=performance;r.unstable_now=function(){return m.now()}}else{var x=Date,R=x.now();r.unstable_now=function(){return x.now()-R}}var C=[],v=[],D=1,j=null,J=3,at=!1,$=!1,nt=!1,ct=!1,ht=typeof setTimeout=="function"?setTimeout:null,St=typeof clearTimeout=="function"?clearTimeout:null,_=typeof setImmediate<"u"?setImmediate:null;function Y(A){for(var q=c(v);q!==null;){if(q.callback===null)s(v);else if(q.startTime<=A)s(v),q.sortIndex=q.expirationTime,i(C,q);else break;q=c(v)}}function H(A){if(nt=!1,Y(A),!$)if(c(C)!==null)$=!0,it||(it=!0,Bt());else{var q=c(v);q!==null&&Mt(H,q.startTime-A)}}var it=!1,rt=-1,V=5,xt=-1;function Be(){return ct?!0:!(r.unstable_now()-xt<V)}function te(){if(ct=!1,it){var A=r.unstable_now();xt=A;var q=!0;try{t:{$=!1,nt&&(nt=!1,St(rt),rt=-1),at=!0;var B=J;try{e:{for(Y(A),j=c(C);j!==null&&!(j.expirationTime>A&&Be());){var bt=j.callback;if(typeof bt=="function"){j.callback=null,J=j.priorityLevel;var p=bt(j.expirationTime<=A);if(A=r.unstable_now(),typeof p=="function"){j.callback=p,Y(A),q=!0;break e}j===c(C)&&s(C),Y(A)}else s(C);j=c(C)}if(j!==null)q=!0;else{var O=c(v);O!==null&&Mt(H,O.startTime-A),q=!1}}break t}finally{j=null,J=B,at=!1}q=void 0}}finally{q?Bt():it=!1}}}var Bt;if(typeof _=="function")Bt=function(){_(te)};else if(typeof MessageChannel<"u"){var me=new MessageChannel,Se=me.port2;me.port1.onmessage=te,Bt=function(){Se.postMessage(null)}}else Bt=function(){ht(te,0)};function Mt(A,q){rt=ht(function(){A(r.unstable_now())},q)}r.unstable_IdlePriority=5,r.unstable_ImmediatePriority=1,r.unstable_LowPriority=4,r.unstable_NormalPriority=3,r.unstable_Profiling=null,r.unstable_UserBlockingPriority=2,r.unstable_cancelCallback=function(A){A.callback=null},r.unstable_forceFrameRate=function(A){0>A||125<A?console.error("forceFrameRate takes a positive int between 0 and 125, forcing frame rates higher than 125 fps is not supported"):V=0<A?Math.floor(1e3/A):5},r.unstable_getCurrentPriorityLevel=function(){return J},r.unstable_next=function(A){switch(J){case 1:case 2:case 3:var q=3;break;default:q=J}var B=J;J=q;try{return A()}finally{J=B}},r.unstable_requestPaint=function(){ct=!0},r.unstable_runWithPriority=function(A,q){switch(A){case 1:case 2:case 3:case 4:case 5:break;default:A=3}var B=J;J=A;try{return q()}finally{J=B}},r.unstable_scheduleCallback=function(A,q,B){var bt=r.unstable_now();switch(typeof B=="object"&&B!==null?(B=B.delay,B=typeof B=="number"&&0<B?bt+B:bt):B=bt,A){case 1:var p=-1;break;case 2:p=250;break;case 5:p=1073741823;break;case 4:p=1e4;break;default:p=5e3}return p=B+p,A={id:D++,callback:q,priorityLevel:A,startTime:B,expirationTime:p,sortIndex:-1},B>bt?(A.sortIndex=B,i(v,A),c(C)===null&&A===c(v)&&(nt?(St(rt),rt=-1):nt=!0,Mt(H,B-bt))):(A.sortIndex=p,i(C,A),$||at||($=!0,it||(it=!0,Bt()))),A},r.unstable_shouldYield=Be,r.unstable_wrapCallback=function(A){var q=J;return function(){var B=J;J=q;try{return A.apply(this,arguments)}finally{J=B}}}}(Nr)),Nr}var tu;function hm(){return tu||(tu=1,Rr.exports=fm()),Rr.exports}var zr={exports:{}},ut={};/**
+ * @license React
+ * react.production.js

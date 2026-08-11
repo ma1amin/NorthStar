@@ -5,6 +5,22 @@ import { nanoid } from "nanoid";
 import path from "path";
 import { createServer as createViteServer } from "vite";
 import viteConfig from "../../vite.config";
+import { getPublicSeoMetadata, injectPublicFallback, injectSeoHead, renderPublicFallback } from "../seo.ts";
+
+function requestOrigin(req: express.Request) {
+  const protocol = req.get("x-forwarded-proto")?.split(",")[0] || req.protocol || "http";
+  const host = req.get("x-forwarded-host") || req.get("host") || "localhost";
+  return `${protocol}://${host}`;
+}
+
+async function renderPublicHtml(template: string, requestUrl: string, origin: string) {
+  const url = new URL(requestUrl, origin);
+  const [metadata, fallback] = await Promise.all([
+    getPublicSeoMetadata(url.pathname, origin),
+    renderPublicFallback(url.pathname),
+  ]);
+  return injectPublicFallback(injectSeoHead(template, metadata), fallback);
+}
 
 export async function setupVite(app: Express, server: Server) {
   const serverOptions = {
@@ -38,6 +54,7 @@ export async function setupVite(app: Express, server: Server) {
         `src="/src/main.tsx"`,
         `src="/src/main.tsx?v=${nanoid()}"`
       );
+      template = await renderPublicHtml(template, url, requestOrigin(req));
       const page = await vite.transformIndexHtml(url, template);
       res.status(200).set({ "Content-Type": "text/html" }).end(page);
     } catch (e) {
@@ -58,10 +75,16 @@ export function serveStatic(app: Express) {
     );
   }
 
-  app.use(express.static(distPath));
+  app.use(express.static(distPath, { index: false }));
 
   // fall through to index.html if the file doesn't exist
-  app.use("*", (_req, res) => {
-    res.sendFile(path.resolve(distPath, "index.html"));
+  app.use("*", async (req, res, next) => {
+    try {
+      const template = await fs.promises.readFile(path.resolve(distPath, "index.html"), "utf-8");
+      const page = await renderPublicHtml(template, req.originalUrl, requestOrigin(req));
+      res.status(200).set({ "Content-Type": "text/html" }).end(page);
+    } catch (error) {
+      next(error);
+    }
   });
 }

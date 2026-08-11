@@ -112,7 +112,7 @@
 
 ## Phase 11: Polish, Testing & Optimization
 - [x] Implement SEO optimization (meta tags, structured data)
-- [x] Add server-side rendering for all pages
+- [x] Add a server-generated public-content rendering strategy for Home, Browse, Search, and approved Resource Detail pages; the current app is still a client-rendered SPA shell.
 - [x] Optimize images and assets
 - [x] Implement lazy loading
 - [x] Add accessibility features (WCAG compliance)
@@ -244,8 +244,8 @@
 - [ ] A signed-in user can submit a resource with real-time duplicate feedback.
 - [x] A signed-in user can manage profile, bookmarks, votes, and collections.
 - [x] A moderator/admin can review and act on pending submissions and relationships.
-- [ ] Public pages expose verified SEO metadata and structured data.
-- [ ] The visual system renders correctly without browser-default styling regressions.
+- [x] Public pages expose verified SEO metadata and structured data.
+- [x] The visual system renders correctly without browser-default styling regressions.
 - [ ] TypeScript, unit, integration, responsive, and accessibility checks pass.
 - [ ] A final checkpoint is saved and referenced in the delivery report.
 
@@ -267,3 +267,13 @@
 - [x] Introduce a denser, more purposeful application shell with richer contextual navigation and mobile ergonomics.
 - [x] Upgrade resource discovery, Node View, and collection surfaces with refined information hierarchy, command-oriented actions, and polished state feedback.
 - [x] Verify the enhanced interface for responsiveness, keyboard accessibility, and visual consistency.
+
+## Public-Page SEO and Quality Verification
+- [x] Audit actual HTML responses, route metadata, Open Graph data, structured data, and public rendering behavior for Home, Browse, Search, and Resource Detail.
+- [x] Implement route-specific SEO metadata and JSON-LD only where it is rendered in the document response and accurately reflects live data.
+- [x] Add accessible document landmarks, page titles, and route-change metadata behavior that works for client-side navigation.
+- [x] Add focused automated tests for metadata and structured-data helpers, then verify public-page output in the running application.
+- [x] Render meaningful, route-specific public fallback content in the initial HTML response so crawlers receive more than metadata from the SPA shell.
+- [x] Run and record desktop/mobile visual QA across Home, Browse, Search, Resource Detail, Submit, Profile, Collections, and Admin before marking the global visual-system acceptance criterion complete.
+- [x] Refine the Search workspace discovered during visual QA: improve result density, action affordances, and styling consistency with the enhanced NorthStar navigator.
+- [x] Replace the unauthenticated Submit and Profile guard panels’ misleading home action with a direct sign-in action and a clear optional browse return path.

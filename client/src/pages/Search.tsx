@@ -1,262 +1,74 @@
-import { useState, useEffect, useMemo } from "react";
-import { useLocation } from "wouter";
+import { useEffect, useState } from "react";
+import { Link, useLocation } from "wouter";
+import { ArrowRight, ArrowUpRight, GitBranch, Lightbulb, Network, Search as SearchIcon, Sparkles, TrendingUp } from "lucide-react";
 import { trpc } from "@/lib/trpc";
-import { Link } from "wouter";
+import { applyClientSeo } from "@/lib/seo";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search as SearchIcon, TrendingUp, Lightbulb } from "lucide-react";
+
+const relationshipPrompts = ["Jira alternatives", "Slack integrations", "GitHub competitors", "Figma similar tools", "Notion alternatives"];
 
 export default function Search() {
-  const [location] = useLocation();
+  const [, setLocation] = useLocation();
   const searchParams = new URLSearchParams(window.location.search);
   const initialQuery = searchParams.get("q") || "";
-
   const [query, setQuery] = useState(initialQuery);
   const [debouncedQuery, setDebouncedQuery] = useState(initialQuery);
   const [activeTab, setActiveTab] = useState<"results" | "suggestions">("results");
 
-  // Debounce search query
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedQuery(query);
-    }, 300);
-    return () => clearTimeout(timer);
+    applyClientSeo({ title: "Relationship-aware resource search — NorthStar", description: "Search digital resources by name, category, tags, and relationships such as alternatives or integrations.", canonicalPath: "/search" });
+  }, []);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedQuery(query), 300);
+    return () => window.clearTimeout(timer);
   }, [query]);
 
-  // Fetch search results
-  const { data: searchResults, isLoading: resultsLoading } =
-    trpc.search.advancedSearch.useQuery(
-      { query: debouncedQuery, limit: 50 },
-      { enabled: debouncedQuery.length > 0 }
-    );
-
-  // Fetch search suggestions
-  const { data: suggestions, isLoading: suggestionsLoading } =
-    trpc.search.getSuggestions.useQuery(
-      { query: debouncedQuery, limit: 5 },
-      { enabled: debouncedQuery.length > 2 }
-    );
-
-  // Fetch trending searches
+  const { data: searchResults, isLoading: resultsLoading } = trpc.search.advancedSearch.useQuery({ query: debouncedQuery, limit: 50 }, { enabled: debouncedQuery.length > 0 });
+  const { data: suggestions, isLoading: suggestionsLoading } = trpc.search.getSuggestions.useQuery({ query: debouncedQuery, limit: 5 }, { enabled: debouncedQuery.length > 2 });
   const { data: trending } = trpc.search.getTrending.useQuery({ limit: 5 });
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (query.trim()) {
-      window.location.href = `/search?q=${encodeURIComponent(query)}`;
-    }
+  const submitSearch = (event: React.FormEvent) => {
+    event.preventDefault();
+    const normalized = query.trim();
+    if (normalized) setLocation(`/search?q=${encodeURIComponent(normalized)}`);
   };
 
-  const handleSuggestionClick = (suggestion: string) => {
-    setQuery(suggestion);
-    setDebouncedQuery(suggestion);
+  const selectQuery = (value: string) => {
+    setQuery(value);
+    setDebouncedQuery(value);
+    setActiveTab("results");
   };
 
   return (
-    <div className="min-h-screen bg-white">
-      {/* Search Header */}
-      <div className="bg-gradient-to-br from-background via-background to-secondary/20 py-12 md:py-16">
-        <div className="container">
-          <h1 className="text-4xl md:text-5xl font-serif font-bold text-center mb-8">
-            Find Resources
-          </h1>
+    <div className="min-h-screen bg-slate-50">
+      <section className="relative overflow-hidden border-b border-slate-200 bg-white"><div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_72%_-20%,rgba(125,211,252,0.45),transparent_35%),radial-gradient(circle_at_24%_120%,rgba(221,214,254,0.4),transparent_42%)]" /><div className="container relative py-12 md:py-16"><div className="mx-auto max-w-3xl text-center"><div className="inline-flex items-center gap-2 rounded-full border border-sky-200 bg-white/90 px-3 py-1.5 text-xs font-semibold text-sky-800 shadow-sm"><GitBranch className="h-3.5 w-3.5" /> Relationship-aware discovery</div><h1 className="mt-5 text-4xl font-bold tracking-[-0.04em] text-slate-950 md:text-5xl">Find the connection that matters.</h1><p className="mx-auto mt-4 max-w-2xl text-base leading-7 text-slate-600 md:text-lg">Search by tool, need, or relationship. NorthStar interprets the context around alternatives, integrations, competitors, and similar resources.</p><form onSubmit={submitSearch} className="mt-7"><div className="flex rounded-2xl border border-slate-200 bg-white p-2 shadow-[0_14px_34px_rgba(15,23,42,0.1)] transition focus-within:border-sky-300 focus-within:shadow-[0_16px_40px_rgba(14,165,233,0.15)]"><SearchIcon className="ml-2 mr-3 mt-3 h-5 w-5 shrink-0 text-sky-600" /><Input type="search" placeholder="Try “Jira alternatives” or “Slack integrations”" value={query} onChange={(event) => setQuery(event.target.value)} className="h-11 border-0 bg-transparent px-0 text-base shadow-none focus-visible:ring-0" autoFocus /><Button type="submit" className="h-11 rounded-xl bg-slate-900 px-4 text-white hover:bg-slate-800">Search <ArrowRight className="ml-2 h-4 w-4" /></Button></div></form><div className="mt-4 flex flex-wrap justify-center gap-2">{["Alternatives", "Integrations", "Competitors", "Similar tools"].map((prompt) => <button key={prompt} type="button" onClick={() => setQuery(prompt.toLowerCase())} className="rounded-full border border-slate-200 bg-white/90 px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:border-sky-200 hover:text-sky-700">{prompt}</button>)}</div></div></div></section>
 
-          {/* Search Bar */}
-          <form onSubmit={handleSearch} className="max-w-2xl mx-auto">
-            <div className="relative">
-              <Input
-                type="text"
-                placeholder="Search resources, try 'Jira alternatives' or 'Slack integrations'..."
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                className="input-elegant pl-10 text-lg h-12"
-                autoFocus
-              />
-              <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-900/40" />
-            </div>
-          </form>
-
-          {/* Help text */}
-          <p className="text-center text-sm text-gray-900/60 mt-4">
-            💡 Try searching for alternatives, integrations, or competitors
-          </p>
-        </div>
-      </div>
-
-      <div className="container py-12">
-        {/* Empty state - no query */}
-        {!debouncedQuery ? (
-          <div className="max-w-2xl mx-auto">
-            {/* Trending Section */}
-            {trending && trending.length > 0 && (
-              <div className="mb-12">
-                <h2 className="text-2xl font-serif font-bold mb-6 flex items-center gap-2">
-                  <TrendingUp className="w-6 h-6 text-accent" />
-                  Trending Now
-                </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {trending.map((term: string, idx: number) => (
-                    <button
-                      key={idx}
-                      onClick={() => handleSuggestionClick(term)}
-                      className="card-elegant p-4 text-left hover:shadow-elegant-lg transition-all group"
-                    >
-                      <p className="font-semibold group-hover:text-accent transition-colors">{term}</p>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Suggestions Section */}
-            <div>
-              <h2 className="text-2xl font-serif font-bold mb-6 flex items-center gap-2">
-                <Lightbulb className="w-6 h-6 text-accent" />
-                Try These Searches
-              </h2>
-              <div className="space-y-3">
-                {[
-                  "Jira alternatives",
-                  "Slack integrations",
-                  "GitHub competitors",
-                  "Figma similar tools",
-                  "Notion alternatives",
-                ].map((suggestion, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => handleSuggestionClick(suggestion)}
-                    className="w-full card-elegant p-4 text-left hover:shadow-elegant-lg transition-all group"
-                  >
-                    <p className="font-medium group-hover:text-accent transition-colors">{suggestion}</p>
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        ) : (
-          // Results view
-          <div>
-            <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="w-full">
-              <TabsList className="mb-8">
-                <TabsTrigger value="results">
-                  Results {searchResults && `(${searchResults.length})`}
-                </TabsTrigger>
-                <TabsTrigger value="suggestions">Suggestions</TabsTrigger>
-              </TabsList>
-
-              {/* Results Tab */}
-              <TabsContent value="results">
-                {resultsLoading ? (
-                  <div className="grid gap-4">
-                    {[...Array(5)].map((_: any, i: number) => (
-                      <Skeleton key={i} className="h-32 w-full" />
-                    ))}
-                  </div>
-                ) : searchResults && searchResults.length > 0 ? (
-                  <div className="space-y-4">
-                    <p className="text-sm text-gray-900/60 mb-6">
-                      Found {searchResults.length} result{searchResults.length !== 1 ? "s" : ""} for "
-                      <span className="font-semibold">{debouncedQuery}</span>"
-                    </p>
-
-                    {searchResults.map((resource: any) => (
-                      <Link key={resource.id} href={`/resource/${resource.slug}`} className="card-elegant block p-6 hover:shadow-elegant-lg transition-all group">
-                          <div className="flex gap-4">
-                            {resource.logo && (
-                              <img
-                                src={resource.logo}
-                                alt={resource.title}
-                                className="w-12 h-12 rounded-lg object-cover flex-shrink-0"
-                              />
-                            )}
-                            <div className="flex-1 min-w-0">
-                              <h3 className="font-semibold text-lg group-hover:text-accent transition-colors mb-1 line-clamp-1">
-                                {resource.title}
-                              </h3>
-                              <p className="text-sm text-gray-900/70 mb-3 line-clamp-2">
-                                {resource.description}
-                              </p>
-                              <div className="flex flex-wrap items-center gap-3">
-                                <span className="px-2 py-1 rounded text-xs font-medium bg-secondary text-secondary-foreground">
-                                  {resource.pricing}
-                                </span>
-                                {resource.upvotes > 0 && (
-                                  <span className="text-xs text-gray-900/60">👍 {resource.upvotes}</span>
-                                )}
-                                {resource.views > 0 && (
-                                  <span className="text-xs text-gray-900/60">👁 {resource.views}</span>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                      </Link>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-12">
-                    <p className="text-gray-900/60 mb-4">No results found for "{debouncedQuery}"</p>
-                    <p className="text-sm text-gray-900/50 mb-6">
-                      Try a different search term or browse by category
-                    </p>
-                    <Link href="/browse">
-                      <Button variant="outline">Browse Categories</Button>
-                    </Link>
-                  </div>
-                )}
-              </TabsContent>
-
-              {/* Suggestions Tab */}
-              <TabsContent value="suggestions">
-                {suggestionsLoading ? (
-                  <div className="grid gap-4">
-                    {[...Array(3)].map((_: any, i: number) => (
-                      <Skeleton key={i} className="h-20 w-full" />
-                    ))}
-                  </div>
-                ) : suggestions ? (
-                  <div className="space-y-4">
-                    {/* Resource suggestions */}
-                    {suggestions.resources && suggestions.resources.length > 0 && (
-                      <div>
-                        <h3 className="font-semibold text-lg mb-3">Resources</h3>
-                        <div className="space-y-2">
-                          {suggestions.resources.map((resource: any) => (
-                            <Link key={resource.id} href={`/resource/${resource.slug}`} className="block p-3 rounded-lg hover:bg-secondary transition-colors">
-                                <p className="font-medium hover:text-accent transition-colors">
-                                  {resource.title}
-                                </p>
-                            </Link>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Query suggestions */}
-                    {suggestions.suggestions && suggestions.suggestions.length > 0 && (
-                      <div>
-                        <h3 className="font-semibold text-lg mb-3">Try These Searches</h3>
-                        <div className="space-y-2">
-                          {suggestions.suggestions.map((suggestion: string, idx: number) => (
-                            <button
-                              key={idx}
-                              onClick={() => handleSuggestionClick(suggestion)}
-                              className="w-full text-left p-3 rounded-lg hover:bg-secondary transition-colors"
-                            >
-                              <p className="font-medium hover:text-accent transition-colors">{suggestion}</p>
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ) : null}
-              </TabsContent>
-            </Tabs>
-          </div>
-        )}
-      </div>
+      <main className="container py-10 md:py-14">
+        {!debouncedQuery ? <DiscoveryEmptyState trending={trending ?? []} onSelect={selectQuery} /> : <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "results" | "suggestions")} className="mx-auto max-w-5xl"><div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-sm font-semibold uppercase tracking-[0.16em] text-sky-700">Search results</p><h2 className="mt-1 text-2xl font-semibold tracking-tight text-slate-950">Results for “{debouncedQuery}”</h2></div><TabsList className="h-auto w-fit rounded-xl border border-slate-200 bg-white p-1 shadow-sm"><TabsTrigger value="results" className="rounded-lg px-3 py-2 text-sm">Results{searchResults ? ` (${searchResults.length})` : ""}</TabsTrigger><TabsTrigger value="suggestions" className="rounded-lg px-3 py-2 text-sm">Suggestions</TabsTrigger></TabsList></div><TabsContent value="results" className="mt-0"><SearchResults query={debouncedQuery} results={searchResults ?? []} loading={resultsLoading} /></TabsContent><TabsContent value="suggestions" className="mt-0"><SearchSuggestions suggestions={suggestions} loading={suggestionsLoading} onSelect={selectQuery} /></TabsContent></Tabs>}
+      </main>
     </div>
   );
+}
+
+function DiscoveryEmptyState({ trending, onSelect }: { trending: string[]; onSelect: (value: string) => void }) {
+  return <div className="mx-auto grid max-w-5xl gap-5 lg:grid-cols-[0.92fr_1.08fr]"><Card className="rounded-2xl border-slate-200 bg-white p-6 shadow-sm"><div className="flex items-center gap-3"><div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-50 text-sky-700"><TrendingUp className="h-5 w-5" /></div><div><p className="text-sm font-semibold text-slate-950">Trending in the graph</p><p className="text-xs text-slate-500">Start with a live resource signal.</p></div></div><div className="mt-5 grid gap-2">{trending.length ? trending.map((term) => <button type="button" key={term} onClick={() => onSelect(term)} className="group flex items-center justify-between rounded-xl border border-slate-200 px-3 py-3 text-left text-sm font-semibold text-slate-700 transition hover:border-sky-200 hover:bg-sky-50 hover:text-sky-800"><span>{term}</span><ArrowUpRight className="h-4 w-4 text-slate-400 transition group-hover:text-sky-700" /></button>) : <p className="rounded-xl bg-slate-50 p-4 text-sm text-slate-500">Live trend signals will appear here as the resource graph grows.</p>}</div></Card><Card className="rounded-2xl border-slate-200 bg-white p-6 shadow-sm"><div className="flex items-center gap-3"><div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-50 text-violet-700"><Lightbulb className="h-5 w-5" /></div><div><p className="text-sm font-semibold text-slate-950">Explore a relationship</p><p className="text-xs text-slate-500">Use plain language; NorthStar recognizes common graph intents.</p></div></div><div className="mt-5 grid gap-2 sm:grid-cols-2">{relationshipPrompts.map((prompt) => <button type="button" key={prompt} onClick={() => onSelect(prompt)} className="group rounded-xl border border-slate-200 p-4 text-left transition hover:-translate-y-0.5 hover:border-violet-200 hover:bg-violet-50"><Network className="h-4 w-4 text-violet-600" /><p className="mt-3 text-sm font-semibold text-slate-800 group-hover:text-violet-800">{prompt}</p><p className="mt-1 text-xs text-slate-500">Open graph query <ArrowRight className="inline h-3 w-3" /></p></button>)}</div></Card></div>;
+}
+
+function SearchResults({ query, results, loading }: { query: string; results: any[]; loading: boolean }) {
+  if (loading) return <div className="grid gap-4">{Array.from({ length: 5 }).map((_, index) => <Skeleton key={index} className="h-36 rounded-2xl" />)}</div>;
+  if (!results.length) return <Card className="rounded-2xl border-dashed border-slate-300 bg-white p-10 text-center"><SearchIcon className="mx-auto h-9 w-9 text-slate-300" /><h3 className="mt-4 text-lg font-semibold text-slate-900">No resources matched “{query}”</h3><p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">Try a broader term, search the name of a tool, or start with an alternative or integration prompt.</p><Link href="/browse"><Button variant="outline" className="mt-5 border-slate-300">Browse resources <ArrowRight className="ml-2 h-4 w-4" /></Button></Link></Card>;
+  return <div className="grid gap-4">{results.map((resource: any) => <Link key={resource.id} href={`/resource/${resource.slug}`} className="group block rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"><Card className="border-slate-200 bg-white p-5 shadow-sm transition-all group-hover:-translate-y-0.5 group-hover:border-sky-200 group-hover:shadow-lg md:p-6"><div className="flex gap-4"><div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-sky-50 to-violet-50 text-sm font-bold text-sky-700">{resource.logo ? <img src={resource.logo} alt="" className="h-full w-full object-cover" /> : resource.title?.slice(0, 2).toUpperCase()}</div><div className="min-w-0 flex-1"><div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between"><div><p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-sky-700">{resource.categoryName || "Resource"}</p><h3 className="mt-1 text-lg font-semibold text-slate-950 transition group-hover:text-sky-700">{resource.title}</h3></div><span className="w-fit rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold capitalize text-slate-600">{resource.pricing?.replace("_", " ")}</span></div><p className="mt-2 line-clamp-2 text-sm leading-6 text-slate-600">{resource.description || "Explore this resource and its verified graph connections."}</p><div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3 text-xs"><span className="font-medium text-slate-500">{resource.subcategoryName || "Knowledge graph node"}</span><span className="inline-flex items-center gap-1 font-semibold text-sky-700">Open node <ArrowRight className="h-3.5 w-3.5" /></span></div></div></div></Card></Link>)}</div>;
+}
+
+function SearchSuggestions({ suggestions, loading, onSelect }: { suggestions: any; loading: boolean; onSelect: (value: string) => void }) {
+  if (loading) return <div className="grid gap-4">{Array.from({ length: 3 }).map((_, index) => <Skeleton key={index} className="h-20 rounded-xl" />)}</div>;
+  const resourceSuggestions = suggestions?.resources ?? [];
+  const querySuggestions = suggestions?.suggestions ?? [];
+  if (!resourceSuggestions.length && !querySuggestions.length) return <Card className="rounded-2xl border-dashed border-slate-300 bg-white p-10 text-center"><Sparkles className="mx-auto h-8 w-8 text-slate-300" /><p className="mt-4 text-sm text-slate-500">Keep typing to surface resource and relationship suggestions.</p></Card>;
+  return <div className="grid gap-5 md:grid-cols-2"><Card className="rounded-2xl border-slate-200 bg-white p-5"><h3 className="text-sm font-semibold text-slate-950">Resource suggestions</h3><div className="mt-3 space-y-2">{resourceSuggestions.length ? resourceSuggestions.map((resource: any) => <Link key={resource.id} href={`/resource/${resource.slug}`} className="flex items-center justify-between rounded-xl border border-slate-200 px-3 py-3 text-sm font-semibold text-slate-700 transition hover:border-sky-200 hover:bg-sky-50 hover:text-sky-800"><span className="truncate">{resource.title}</span><ArrowUpRight className="ml-3 h-4 w-4 shrink-0" /></Link>) : <p className="rounded-xl bg-slate-50 p-3 text-sm text-slate-500">No resource suggestions yet.</p>}</div></Card><Card className="rounded-2xl border-slate-200 bg-white p-5"><h3 className="text-sm font-semibold text-slate-950">Related queries</h3><div className="mt-3 space-y-2">{querySuggestions.length ? querySuggestions.map((suggestion: string) => <button type="button" key={suggestion} onClick={() => onSelect(suggestion)} className="flex w-full items-center justify-between rounded-xl border border-slate-200 px-3 py-3 text-left text-sm font-semibold text-slate-700 transition hover:border-violet-200 hover:bg-violet-50 hover:text-violet-800"><span>{suggestion}</span><ArrowRight className="h-4 w-4" /></button>) : <p className="rounded-xl bg-slate-50 p-3 text-sm text-slate-500">No related queries yet.</p>}</div></Card></div>;
 }

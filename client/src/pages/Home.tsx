@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { ArrowRight, Command, Compass, FolderOpen, GitBranch, Network, Search, Sparkles } from "lucide-react";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -7,6 +7,7 @@ import { getLoginUrl } from "@/const";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { applyClientSeo } from "@/lib/seo";
 
 const graphSignals = [
   { label: "Alternatives", tone: "bg-sky-50 text-sky-700 ring-sky-100" },
@@ -20,6 +21,10 @@ export default function Home() {
   const [, setLocation] = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
   const { data: categories = [] } = trpc.categories.list.useQuery();
+
+  useEffect(() => {
+    applyClientSeo({ title: "NorthStar — Resource Intelligence Platform", description: "Discover, compare, and organize digital resources through verified knowledge-graph relationships.", canonicalPath: "/" });
+  }, []);
 
   const handleSearch = (event: React.FormEvent) => {
     event.preventDefault();

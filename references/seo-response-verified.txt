@@ -1,0 +1,23 @@
+--- HOME ---
+    <title>NorthStar — Resource Intelligence Platform</title>
+    <meta name="description" content="Discover, compare, and organize digital resources through verified knowledge-graph relationships." />
+    <meta name="robots" content="index,follow" />
+    <link rel="canonical" href="http://127.0.0.1:3000/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="NorthStar" />
+    <meta property="og:title" content="NorthStar — Resource Intelligence Platform" />
+    <meta property="og:description" content="Discover, compare, and organize digital resources through verified knowledge-graph relationships." />
+    <meta property="og:url" content="http://127.0.0.1:3000/" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebPage","name":"NorthStar — Resource Intelligence Platform","description":"Discover, compare, and organize digital resources through verified knowledge-graph relationships.","url":"http://127.0.0.1:3000/","isPartOf":{"@type":"WebSite","name":"NorthStar","url":"http://127.0.0.1:3000/"}}</script>
+--- RESOURCE ---
+    <title>Figma — NorthStar</title>
+    <meta name="description" content="Collaborative interface design and prototyping software for product teams." />
+    <meta name="robots" content="index,follow" />
+    <link rel="canonical" href="http://127.0.0.1:3000/resource/figma" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="NorthStar" />
+    <meta property="og:title" content="Figma — NorthStar" />
+    <meta property="og:description" content="Collaborative interface design and prototyping software for product teams." />
+    <meta property="og:url" content="http://127.0.0.1:3000/resource/figma" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebPage","name":"Figma — NorthStar","description":"Collaborative interface design and prototyping software for product teams.","url":"http://127.0.0.1:3000/resource/figma","isPartOf":{"@type":"WebSite","name":"NorthStar","url":"http://127.0.0.1:3000/"}}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"NorthStar","item":"http://127.0.0.1:3000/"},{"@type":"ListItem","position":2,"name":"Browse resources","item":"http://127.0.0.1:3000/browse"},{"@type":"ListItem","position":3,"name":"Figma","item":"http://127.0.0.1:3000/resource/figma"}]}</script>
