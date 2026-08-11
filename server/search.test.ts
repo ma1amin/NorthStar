@@ -4,7 +4,7 @@ import { vi } from 'vitest';
 const { mockGetDb } = vi.hoisted(() => ({ mockGetDb: vi.fn() }));
 vi.mock('./db', () => ({ getDb: mockGetDb }));
 
-import { normalizeSearchFilters, parseRelationshipQuery, searchResourcesAdvanced, shouldFilterBaseResources } from './search';
+import { editDistance, fuzzySearchResources, normalizeSearchFilters, parseRelationshipQuery, searchResourcesAdvanced, shouldFilterBaseResources } from './search';
 
 function selectChain(result: unknown, terminal: 'limit' | 'orderBy' | 'offset') {
   const chain: Record<string, any> = {};
@@ -142,6 +142,29 @@ describe('Search Service', () => {
 
     it('drops invalid category values and blank tag filters', () => {
       expect(normalizeSearchFilters({ categoryId: 0, tag: '   ' })).toEqual({});
+    });
+
+    it('uses the fuzzy matcher when an exact resource lookup has no match', async () => {
+      const exactLookup = selectChain([], 'limit');
+      const fuzzyLookup = selectChain([{ id: 30, title: 'Linear', description: 'Planning tool', categoryId: 1, pricing: 'freemium' }], 'limit');
+      mockGetDb.mockResolvedValue({
+        select: vi.fn()
+          .mockReturnValueOnce(exactLookup)
+          .mockReturnValueOnce(fuzzyLookup),
+      });
+
+      const result = await searchResourcesAdvanced('linear', 20, 0);
+
+      expect(exactLookup.where).toHaveBeenCalledTimes(1);
+      expect(fuzzyLookup.where).toHaveBeenCalledTimes(1);
+      expect(result).toEqual([{ id: 30, title: 'Linear', description: 'Planning tool', categoryId: 1, pricing: 'freemium' }]);
+    });
+
+    it('matches a one-character typo against a resource title', async () => {
+      const fuzzyLookup = selectChain([{ id: 31, title: 'Figma', description: 'Design collaboration', categoryId: 2, pricing: 'freemium' }], 'limit');
+      mockGetDb.mockResolvedValue({ select: vi.fn().mockReturnValueOnce(fuzzyLookup) });
+      expect(editDistance('figma', 'figmae')).toBe(1);
+      await expect(fuzzySearchResources('figmae', 10)).resolves.toEqual([{ id: 31, title: 'Figma', description: 'Design collaboration', categoryId: 2, pricing: 'freemium' }]);
     });
 
     it('keeps the named base resource unfiltered for relationship queries before narrowing final related results', () => {

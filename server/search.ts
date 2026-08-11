@@ -121,7 +121,7 @@ export async function searchResourcesAdvanced(
   const baseLookupConditions = shouldFilterBaseResources(query)
     ? approvedConditions
     : [eq(resources.status, "approved")];
-  const baseResources = await db
+  let baseResources = await db
     .select()
     .from(resources)
     .where(
@@ -137,13 +137,26 @@ export async function searchResourcesAdvanced(
     .orderBy(desc(resources.upvotes))
     .limit(Math.min(Math.max(limit + offset, 10), 100));
 
+  let usedFuzzyFallback = false;
+  if (baseResources.length === 0) {
+    const fuzzyMatches = await fuzzySearchResources(baseQuery, Math.min(Math.max(limit + offset, 10), 50));
+    const normalized = normalizeSearchFilters(filters);
+    baseResources = fuzzyMatches.filter((resource) => {
+      if (relationshipType) return true;
+      if (normalized.tag) return false;
+      return (!normalized.categoryId || resource.categoryId === normalized.categoryId)
+        && (!normalized.pricing || resource.pricing === normalized.pricing);
+    });
+    usedFuzzyFallback = baseResources.length > 0;
+  }
+
   if (baseResources.length === 0) {
     return [];
   }
 
   // If no relationship type specified, return base resources
   if (!relationshipType) {
-    return baseResources.slice(offset, offset + limit);
+    return usedFuzzyFallback ? baseResources.slice(offset, offset + limit) : baseResources.slice(offset, offset + limit);
   }
 
   // Step 2: If relationship type specified, find related resources
@@ -191,6 +204,30 @@ export async function searchResourcesAdvanced(
  * Fuzzy search on resource titles
  * Returns resources with similar titles (useful for autocomplete/suggestions)
  */
+export function editDistance(left: string, right: string) {
+  const previous = Array.from({ length: right.length + 1 }, (_, index) => index);
+  for (let row = 1; row <= left.length; row += 1) {
+    const current = [row];
+    for (let column = 1; column <= right.length; column += 1) {
+      current[column] = Math.min(
+        current[column - 1] + 1,
+        previous[column] + 1,
+        previous[column - 1] + (left[row - 1] === right[column - 1] ? 0 : 1)
+      );
+    }
+    for (let index = 0; index < current.length; index += 1) previous[index] = current[index];
+  }
+  return previous[right.length];
+}
+
+function fuzzyWordScore(word: string, text: string, directScore: number) {
+  if (text.includes(word)) return directScore;
+  if (word.length < 3) return 0;
+  const threshold = word.length <= 5 ? 1 : 2;
+  const tokenDistance = text.split(/[^a-z0-9]+/).filter(Boolean).reduce((best, token) => Math.min(best, editDistance(word, token)), Number.POSITIVE_INFINITY);
+  return tokenDistance <= threshold ? Math.max(1, directScore - tokenDistance - 1) : 0;
+}
+
 export async function fuzzySearchResources(
   query: string,
   limit: number = 10
@@ -208,7 +245,7 @@ export async function fuzzySearchResources(
     .orderBy(desc(resources.upvotes))
     .limit(limit * 2); // Get more to filter
 
-  // Score results based on word matches
+  // Score direct and bounded typo-tolerant word matches.
   const scored = results
     .map((r) => {
       let score = 0;
@@ -216,8 +253,8 @@ export async function fuzzySearchResources(
       const descLower = (r.description || "").toLowerCase();
 
       for (const word of words) {
-        if (titleLower.includes(word)) score += 3;
-        if (descLower.includes(word)) score += 1;
+        score += fuzzyWordScore(word, titleLower, 4);
+        score += fuzzyWordScore(word, descLower, 1);
       }
 
       return { resource: r, score };

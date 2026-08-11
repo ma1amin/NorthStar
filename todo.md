@@ -69,7 +69,7 @@
 ## Phase 7: Advanced Search & Relationship-Aware Results
 - [x] Implement full-text search UI
 - [x] Create search results page with filters
-- [ ] Implement fuzzy matching
+- [x] Implement typo-tolerant fuzzy matching for near-miss resource queries, not only substring matching.
 - [x] Add relationship-aware query parsing (e.g., "Jira alternatives")
 - [x] Create search suggestions/autocomplete
 - [x] Implement live filtering during search
