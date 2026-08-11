@@ -67,12 +67,12 @@
 - [x] Implement relationship cards with metadata
 
 ## Phase 7: Advanced Search & Relationship-Aware Results
-- [ ] Implement full-text search UI
-- [ ] Create search results page with filters
+- [x] Implement full-text search UI
+- [x] Create search results page with filters
 - [ ] Implement fuzzy matching
-- [ ] Add relationship-aware query parsing (e.g., "Jira alternatives")
-- [ ] Create search suggestions/autocomplete
-- [ ] Implement live filtering during search
+- [x] Add relationship-aware query parsing (e.g., "Jira alternatives")
+- [x] Create search suggestions/autocomplete
+- [x] Implement live filtering during search
 - [ ] Add search analytics tracking
 
 ## Phase 8: Resource Submission & Duplicate Detection
@@ -277,3 +277,10 @@
 - [x] Run and record desktop/mobile visual QA across Home, Browse, Search, Resource Detail, Submit, Profile, Collections, and Admin before marking the global visual-system acceptance criterion complete.
 - [x] Refine the Search workspace discovered during visual QA: improve result density, action affordances, and styling consistency with the enhanced NorthStar navigator.
 - [x] Replace the unauthenticated Submit and Profile guard panels’ misleading home action with a direct sign-in action and a clear optional browse return path.
+
+## Core Search Verification Gap
+- [x] Wire category, pricing, and tag filters through the active relationship-aware Search procedure and expose them in the Search workspace without losing parsed relationship intent.
+- [x] Apply category, pricing, and tag filters only to final relationship-search results so the named base resource remains eligible for relationship traversal.
+- [x] Add focused coverage proving filtered relationship queries preserve relationship parsing and only narrow the related resources returned.
+- [x] Add an actual relationship-search query-flow test with structured filters that verifies the base lookup excludes filters while the final related-resource lookup includes them.
+- [x] Assert the mocked base and final Drizzle query conditions directly, proving structured filters are omitted from base traversal and included for final related resources.

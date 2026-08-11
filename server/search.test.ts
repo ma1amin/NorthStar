@@ -1,5 +1,33 @@
 import { describe, it, expect } from 'vitest';
-import { parseRelationshipQuery } from './search';
+import { vi } from 'vitest';
+
+const { mockGetDb } = vi.hoisted(() => ({ mockGetDb: vi.fn() }));
+vi.mock('./db', () => ({ getDb: mockGetDb }));
+
+import { normalizeSearchFilters, parseRelationshipQuery, searchResourcesAdvanced, shouldFilterBaseResources } from './search';
+
+function selectChain(result: unknown, terminal: 'limit' | 'orderBy' | 'offset') {
+  const chain: Record<string, any> = {};
+  chain.from = vi.fn(() => chain);
+  chain.where = vi.fn(() => chain);
+  chain.orderBy = vi.fn(() => terminal === 'orderBy' ? Promise.resolve(result) : chain);
+  chain.limit = vi.fn(() => terminal === 'limit' ? Promise.resolve(result) : chain);
+  chain.offset = vi.fn(() => Promise.resolve(result));
+  return chain;
+}
+
+function collectConditionTokens(value: unknown, seen = new WeakSet<object>(), depth = 0): string[] {
+  if (depth > 8 || value === null || value === undefined) return [];
+  if (typeof value === 'string' || typeof value === 'number') return [String(value)];
+  if (typeof value !== 'object') return [];
+  if (seen.has(value)) return [];
+  seen.add(value);
+  if (Array.isArray(value)) return value.flatMap((item) => collectConditionTokens(item, seen, depth + 1));
+  const record = value as Record<string, unknown>;
+  return Object.entries(record)
+    .filter(([key]) => key !== 'table')
+    .flatMap(([key, item]) => [key, ...collectConditionTokens(item, seen, depth + 1)]);
+}
 
 describe('Search Service', () => {
   describe('parseRelationshipQuery', () => {
@@ -99,6 +127,55 @@ describe('Search Service', () => {
       expect(result.relationshipType).toBe('alternative_to');
       // baseQuery will have the extra space
       expect(result.baseQuery.trim()).toBe('Jira');
+    });
+  });
+
+  describe('Search Filters', () => {
+    it('normalizes valid structured filters without changing relationship-query intent', () => {
+      expect(normalizeSearchFilters({ categoryId: 3, pricing: 'open_source', tag: '  Collaboration  ' })).toEqual({
+        categoryId: 3,
+        pricing: 'open_source',
+        tag: 'collaboration',
+      });
+      expect(parseRelationshipQuery('Jira alternatives').relationshipType).toBe('alternative_to');
+    });
+
+    it('drops invalid category values and blank tag filters', () => {
+      expect(normalizeSearchFilters({ categoryId: 0, tag: '   ' })).toEqual({});
+    });
+
+    it('keeps the named base resource unfiltered for relationship queries before narrowing final related results', () => {
+      expect(shouldFilterBaseResources('Jira alternatives')).toBe(false);
+      expect(shouldFilterBaseResources('Slack integrations')).toBe(false);
+      expect(shouldFilterBaseResources('Figma')).toBe(true);
+    });
+
+    it('executes a filtered relationship query by resolving the base resource before returning the narrowed related node', async () => {
+      const baseLookup = selectChain([{ id: 10, title: 'Jira' }], 'limit');
+      const relationshipLookup = selectChain([{ sourceId: 20, targetId: 10, type: 'alternative_to', status: 'approved' }], 'orderBy');
+      const relatedLookup = selectChain([{ id: 20, title: 'Linear', categoryId: 3, pricing: 'freemium' }], 'offset');
+      mockGetDb.mockResolvedValue({
+        select: vi.fn()
+          .mockReturnValueOnce(baseLookup)
+          .mockReturnValueOnce(relationshipLookup)
+          .mockReturnValueOnce(relatedLookup),
+      });
+
+      const result = await searchResourcesAdvanced('Jira alternatives', 20, 0, { categoryId: 3, pricing: 'freemium', tag: 'planning' });
+
+      expect(baseLookup.where).toHaveBeenCalledTimes(1);
+      expect(relationshipLookup.where).toHaveBeenCalledTimes(1);
+      expect(relatedLookup.where).toHaveBeenCalledTimes(1);
+      const baseCondition = collectConditionTokens(baseLookup.where.mock.calls[0][0]);
+      const finalCondition = collectConditionTokens(relatedLookup.where.mock.calls[0][0]);
+      const hasToken = (tokens: string[], fragment: string) => tokens.some((token) => token.toLowerCase().includes(fragment));
+      expect(hasToken(baseCondition, 'category')).toBe(false);
+      expect(hasToken(baseCondition, 'pricing')).toBe(false);
+      expect(hasToken(baseCondition, 'planning')).toBe(false);
+      expect(hasToken(finalCondition, 'category')).toBe(true);
+      expect(hasToken(finalCondition, 'pricing')).toBe(true);
+      expect(hasToken(finalCondition, 'planning')).toBe(true);
+      expect(result).toEqual([{ id: 20, title: 'Linear', categoryId: 3, pricing: 'freemium' }]);
     });
   });
 });

@@ -1071,10 +1071,15 @@ export const appRouter = router({
           query: z.string().min(1),
           limit: z.number().min(1).max(100).default(20),
           offset: z.number().min(0).default(0),
+          filters: z.object({
+            categoryId: z.number().int().positive().optional(),
+            pricing: z.enum(["free", "freemium", "paid", "open_source", "enterprise"]).optional(),
+            tag: z.string().trim().min(1).max(64).optional(),
+          }).optional(),
         })
       )
       .query(async ({ input }) => {
-        return searchService.advancedSearch(input.query, input.limit, input.offset);
+        return searchService.advancedSearch(input.query, input.limit, input.offset, input.filters);
       }),
 
     getSuggestions: publicProcedure

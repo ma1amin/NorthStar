@@ -5,8 +5,42 @@
  */
 
 import { getDb } from "./db";
-import { resources, relationships } from "../drizzle/schema";
-import { eq, and, like, desc, inArray } from "drizzle-orm";
+import { resources, relationships, resourceTags, tags } from "../drizzle/schema";
+import { eq, and, like, desc, inArray, or, sql } from "drizzle-orm";
+
+export type SearchFilters = {
+  categoryId?: number;
+  pricing?: "free" | "freemium" | "paid" | "open_source" | "enterprise";
+  tag?: string;
+};
+
+export function normalizeSearchFilters(filters?: SearchFilters): SearchFilters {
+  const categoryId = filters?.categoryId && Number.isInteger(filters.categoryId) && filters.categoryId > 0
+    ? filters.categoryId
+    : undefined;
+  const tag = filters?.tag?.trim().toLowerCase();
+  return {
+    ...(categoryId ? { categoryId } : {}),
+    ...(filters?.pricing ? { pricing: filters.pricing } : {}),
+    ...(tag ? { tag } : {}),
+  };
+}
+
+function buildApprovedResourceConditions(filters?: SearchFilters) {
+  const normalized = normalizeSearchFilters(filters);
+  const conditions = [eq(resources.status, "approved")];
+  if (normalized.categoryId) conditions.push(eq(resources.categoryId, normalized.categoryId));
+  if (normalized.pricing) conditions.push(eq(resources.pricing, normalized.pricing));
+  if (normalized.tag) {
+    conditions.push(sql`exists (
+      select 1 from ${resourceTags}
+      inner join ${tags} on ${tags.id} = ${resourceTags.tagId}
+      where ${resourceTags.resourceId} = ${resources.id}
+        and lower(${tags.name}) = ${normalized.tag}
+    )`);
+  }
+  return conditions;
+}
 
 /**
  * Parse search query for relationship-aware results
@@ -57,6 +91,10 @@ export function parseRelationshipQuery(query: string): {
   return { baseQuery: query };
 }
 
+export function shouldFilterBaseResources(query: string) {
+  return !parseRelationshipQuery(query).relationshipType;
+}
+
 /**
  * Search for resources with optional relationship awareness
  * Supports:
@@ -68,11 +106,7 @@ export async function searchResourcesAdvanced(
   query: string,
   limit: number = 50,
   offset: number = 0,
-  filters?: {
-    categoryId?: number;
-    pricing?: string;
-    tags?: string[];
-  }
+  filters?: SearchFilters
 ) {
   const db = await getDb();
   if (!db) return [];
@@ -83,17 +117,25 @@ export async function searchResourcesAdvanced(
   const relationshipType = parsed.relationshipType as any;
 
   // Step 1: Find base resource by title/description
+  const approvedConditions = buildApprovedResourceConditions(filters);
+  const baseLookupConditions = shouldFilterBaseResources(query)
+    ? approvedConditions
+    : [eq(resources.status, "approved")];
   const baseResources = await db
     .select()
     .from(resources)
     .where(
       and(
-        eq(resources.status, "approved"),
-        like(resources.title, `%${baseQuery}%`)
+        ...baseLookupConditions,
+        or(
+          like(resources.title, `%${baseQuery}%`),
+          like(resources.description, `%${baseQuery}%`),
+          like(resources.builtBy, `%${baseQuery}%`)
+        )
       )
     )
     .orderBy(desc(resources.upvotes))
-    .limit(10);
+    .limit(Math.min(Math.max(limit + offset, 10), 100));
 
   if (baseResources.length === 0) {
     return [];
@@ -105,7 +147,7 @@ export async function searchResourcesAdvanced(
   }
 
   // Step 2: If relationship type specified, find related resources
-  const relatedResourceIds: number[] = [];
+  const relatedResourceIds = new Set<number>();
 
   for (const baseResource of baseResources) {
     // Get relationships where this resource is the target
@@ -123,11 +165,11 @@ export async function searchResourcesAdvanced(
         )
         .orderBy(desc(relationships.upvotes));
 
-      relatedResourceIds.push(...rels.map((r) => r.sourceId));
+      rels.forEach((relationship) => relatedResourceIds.add(relationship.sourceId));
     }
   }
 
-  if (relatedResourceIds.length === 0) {
+  if (relatedResourceIds.size === 0) {
     return [];
   }
 
@@ -136,7 +178,7 @@ export async function searchResourcesAdvanced(
     .select()
     .from(resources)
     .where(
-      and(eq(resources.status, "approved"), inArray(resources.id, relatedResourceIds))
+      and(...approvedConditions, inArray(resources.id, Array.from(relatedResourceIds)))
     )
     .orderBy(desc(resources.upvotes))
     .limit(limit)
@@ -350,8 +392,8 @@ export async function calculateRelationshipStrength(
  * Search service object for tRPC integration
  */
 export const searchService = {
-  advancedSearch: async (query: string, limit: number = 50, offset: number = 0) => {
-    return searchResourcesAdvanced(query, limit, offset);
+  advancedSearch: async (query: string, limit: number = 50, offset: number = 0, filters?: SearchFilters) => {
+    return searchResourcesAdvanced(query, limit, offset, filters);
   },
   getSuggestions: getSearchSuggestions,
   getTrending: getTrendingSearches,

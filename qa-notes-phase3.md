@@ -41,3 +41,9 @@ The refreshed mobile Search page maintains a focused relationship-discovery hier
 The mobile Home page preserves its relationship-first headline, discovery controls, contributor pathway, and resource-node preview within a compact header. The mobile Admin access-denied panel is centered, legible, and consistent with the protected-route visual language, with no horizontal overflow in the captured state.
 
 The final mobile Browse capture confirms a readable directory hierarchy, accessible on-demand Filters control, compact sort/view controls, and correctly styled data-backed resource cards. The desktop Home capture confirms the relationship-first hero, graph node preview, navigation controls, and typography render as intended. Across Home, Browse, Search, Resource Detail, Submit, Profile, Collections, and Admin, the reviewed desktop/mobile states showed no browser-default or unstyled control regressions.
+
+The updated Search route successfully returned the Figma resource for a live `figma` query after the new filter contract was introduced. The settled result state showed a single relationship-aware result card and the new Filters control without a layout regression.
+
+Opening the Search filter panel exposed category, pricing, and tag controls populated from live data. Selecting the Design category changed the control state to Design, updated the action label to “Filters active,” and initiated a refreshed result query, confirming the end-to-end filter contract is connected.
+
+After the query settled, the browser confirmed category value `2` (Design), an active filter state, and the Figma result remaining visible. This verifies filter state propagates through the active Search procedure rather than only changing local UI state.
