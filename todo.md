@@ -137,7 +137,7 @@
 - [x] Complete profiles, profile editing, collections, bookmarks, resource and relationship voting, reputation, and moderation workflows.
 - [x] Implement and verify public-page SEO, route metadata, Open Graph, structured data, rendering strategy, accessibility, and data-integrity safeguards.
 - [x] Run TypeScript checks, unit and integration tests, responsive/accessibility QA, final review, and save a verified checkpoint.
-- [ ] Deliver a verified completion report with the checkpoint reference.
+- [x] Deliver a verified completion report with the checkpoint reference in `COMPLETION.md` (verified checkpoint `d3aebd72`).
 
 ### Verification Notes
 - [x] Do not mark previously overstated items as complete without inspecting and testing their actual implementation; supporting evidence is recorded in `VERIFICATION.md`.
@@ -210,7 +210,7 @@
 - [x] Re-verify accessibility and responsive behavior
 - [x] Re-run all tests after implementation
 - [x] Save a verified checkpoint
-- [ ] Deliver final verified status
+- [x] Deliver final verified status in `COMPLETION.md` with checkpoint `d3aebd72`.
 
 ## End of Historical TODO Items
 - [x] Reconcile duplicate historical items with implementation evidence before marking complete.
@@ -223,7 +223,7 @@
 - [x] Phase 3: Community and moderation workflows
 - [x] Phase 4: SEO, rendering, accessibility, and data integrity
 - [x] Phase 5: Testing, QA, final review, and checkpoint
-- [ ] Phase 6: Delivery report
+- [x] Phase 6: Delivery report prepared in `COMPLETION.md`.
 
 ## Scope Guardrails
 - [x] Correct earlier production-ready overstatements: NorthStar is not claimed as published or production-ready; the correction and evidence are recorded in `VERIFICATION.md`.
@@ -234,7 +234,7 @@
 
 ## Checkpoint History
 - [x] Historical checkpoint 136c4363 recorded before the verified completion sequence.
-- [ ] Save a new verified checkpoint after all current work passes tests.
+- [x] Save a new verified checkpoint after all current work passes tests (`d3aebd72`).
 
 ## End-to-End Acceptance Criteria
 - [x] A user can browse, filter, paginate, and open a real resource.
@@ -247,11 +247,11 @@
 - [x] Public pages expose verified SEO metadata and structured data.
 - [x] The visual system renders correctly without browser-default styling regressions.
 - [x] TypeScript, unit, integration, responsive, and accessibility checks pass.
-- [ ] A final checkpoint is saved and referenced in the delivery report.
+- [x] A final checkpoint is saved and referenced in the delivery report (`d3aebd72`).
 
 ## Completion Summary
-- [ ] Platform completion sequence 1–5 verified.
-- [ ] NorthStar final delivery completed.
+- [x] Platform completion sequence 1–5 verified.
+- [x] NorthStar final delivery completed with the verified delivery record in `COMPLETION.md`.
 
 ## Newly Identified Node View Gaps
 - [x] Add toast or inline error handling and recovery UX for failed resource vote mutations.
