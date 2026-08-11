@@ -2,9 +2,11 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "wouter";
 import {
   Compass,
+  GitBranch,
   FolderOpen,
   Flag,
   FilePenLine,
+  Sparkles,
   ListChecks,
   LogOut,
   Menu,
@@ -45,6 +47,7 @@ const primaryNavigation = [
   { href: "/browse", label: "Explore", icon: Compass },
   { href: "/search", label: "Search", icon: Search },
   { href: "/collections", label: "Collections", icon: FolderOpen },
+  { href: "/graph", label: "Graph", icon: GitBranch },
 ];
 
 export function AppLayout({ children }: AppLayoutProps) {
@@ -124,6 +127,7 @@ export function AppLayout({ children }: AppLayoutProps) {
                   {(user.role === "admin" || user.role === "moderator") && <DropdownMenuItem onClick={() => navigate("/admin/reports")}><Flag className="mr-2 h-4 w-4" />Report triage</DropdownMenuItem>}
                   {(user.role === "admin" || user.role === "moderator") && <DropdownMenuItem onClick={() => navigate("/admin/bulk")}><ListChecks className="mr-2 h-4 w-4" />Bulk rejection</DropdownMenuItem>}
                   {user.role === "admin" && <DropdownMenuItem onClick={() => navigate("/admin/edit-suggestions")}><FilePenLine className="mr-2 h-4 w-4" />Edit suggestions</DropdownMenuItem>}
+                  {user.role === "admin" && <DropdownMenuItem onClick={() => navigate("/admin/ai-drafts")}><Sparkles className="mr-2 h-4 w-4" />AI review drafts</DropdownMenuItem>}
                   {user.role === "admin" && <DropdownMenuItem onClick={() => navigate("/admin/users")}><Users className="mr-2 h-4 w-4" />User management</DropdownMenuItem>}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={() => logout()} className="text-red-600 focus:text-red-700"><LogOut className="mr-2 h-4 w-4" />Log out</DropdownMenuItem>

@@ -2,6 +2,7 @@ import { NOT_ADMIN_ERR_MSG, UNAUTHED_ERR_MSG } from '@shared/const';
 import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import type { TrpcContext } from "./context";
+import { consumeRateLimit } from "./rateLimit";
 
 const t = initTRPC.context<TrpcContext>().create({
   transformer: superjson,
@@ -43,3 +44,20 @@ export const adminProcedure = t.procedure.use(
     });
   }),
 );
+
+const contributionRateLimit = t.middleware(async ({ ctx, next }) => {
+  consumeRateLimit(ctx, "contribution", 20, 60_000);
+  return next();
+});
+const metadataRateLimit = t.middleware(async ({ ctx, next }) => {
+  consumeRateLimit(ctx, "metadata", 30, 60_000);
+  return next();
+});
+const aiDraftRateLimit = t.middleware(async ({ ctx, next }) => {
+  consumeRateLimit(ctx, "ai-draft", 8, 60_000);
+  return next();
+});
+
+export const contributionProcedure = protectedProcedure.use(contributionRateLimit);
+export const metadataProcedure = publicProcedure.use(metadataRateLimit);
+export const aiDraftProcedure = adminProcedure.use(aiDraftRateLimit);

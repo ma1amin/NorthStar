@@ -10,6 +10,8 @@ const mocks = vi.hoisted(() => ({
   getAuditLogs: vi.fn(),
   recordSearchAnalytics: vi.fn(),
   getResourceById: vi.fn(),
+  getGraphNeighborhood: vi.fn(),
+  draftResourceReview: vi.fn(),
   createResourceReport: vi.fn(),
   reviewResourceReport: vi.fn(),
   createResourceEditSuggestion: vi.fn(),
@@ -21,6 +23,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("./search", () => ({ searchService: { advancedSearch: mocks.advancedSearch, getSuggestions: vi.fn(), getTrending: vi.fn() } }));
+vi.mock("./aiReview", () => ({ draftResourceReview: mocks.draftResourceReview }));
 vi.mock("./db", () => ({
   getDb: mocks.getDb, listApprovedResources: mocks.listApprovedResources,
   checkDuplicateByUrl: mocks.checkDuplicateByUrl, checkPendingSubmissionByUrl: mocks.checkPendingSubmissionByUrl,
@@ -28,6 +31,7 @@ vi.mock("./db", () => ({
   getAuditLogs: mocks.getAuditLogs,
   recordSearchAnalytics: mocks.recordSearchAnalytics,
   getResourceById: mocks.getResourceById,
+  getGraphNeighborhood: mocks.getGraphNeighborhood,
   createResourceReport: mocks.createResourceReport,
   reviewResourceReport: mocks.reviewResourceReport,
   createResourceEditSuggestion: mocks.createResourceEditSuggestion,
@@ -55,6 +59,12 @@ describe("core tRPC workflows", () => {
   it("serves filtered Browse results through the public router", async () => {
     mocks.listApprovedResources.mockResolvedValue({ items: [{ id: 1, slug: "figma" }], total: 1 });
     await expect(appRouter.createCaller(context()).resources.listFiltered({ limit: 12, offset: 0, categoryId: 2, sort: "popular" })).resolves.toEqual({ items: [{ id: 1, slug: "figma" }], total: 1 });
+  });
+
+  it("serves a bounded approved graph neighborhood through the public graph contract", async () => {
+    mocks.getGraphNeighborhood.mockResolvedValue({ center: { id: 1, slug: "figma", title: "Figma" }, nodes: [{ id: 2, slug: "miro", title: "Miro" }], edges: [{ id: 9, sourceId: 1, targetId: 2, type: "alternative_to" }] });
+    await expect(appRouter.createCaller(context()).graph.neighborhood({ resourceId: 1, maxEdges: 40 })).resolves.toMatchObject({ center: { slug: "figma" }, nodes: [{ slug: "miro" }], edges: [{ id: 9 }] });
+    expect(mocks.getGraphNeighborhood).toHaveBeenCalledWith(1, undefined, 40);
   });
 
   it("returns duplicate submission feedback before persistence", async () => {
@@ -86,6 +96,14 @@ describe("core tRPC workflows", () => {
     await expect(appRouter.createCaller(context("moderator")).moderation.reviewEditSuggestion({ suggestionId: 41, status: "approved" })).rejects.toMatchObject({ code: "FORBIDDEN" });
     await expect(appRouter.createCaller(context("admin")).moderation.reviewEditSuggestion({ suggestionId: 41, status: "approved", reviewNote: "Verified against source." })).resolves.toEqual({ success: true });
     expect(mocks.reviewResourceEditSuggestion).toHaveBeenCalledWith({ suggestionId: 41, status: "approved", reviewNote: "Verified against source.", reviewerId: 7 });
+  });
+
+  it("limits AI review drafts to administrators and keeps generated context separate from resource updates", async () => {
+    mocks.getResourceById.mockResolvedValue({ id: 1, title: "Resource", url: "https://example.com", pricing: "free" });
+    mocks.draftResourceReview.mockResolvedValue({ draft: { summary: "Metadata needs human verification.", suggestedTags: [], suggestedRelationshipNotes: [], risks: ["Sparse description"], moderationRecommendation: "needs_manual_review", confidence: 0.42, provenance: "Generated from supplied metadata only." }, model: "gpt-5-mini", usage: { total_tokens: 101 } });
+    await expect(appRouter.createCaller(context("moderator")).moderation.draftResourceReview({ resourceId: 1 })).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await expect(appRouter.createCaller(context("admin")).moderation.draftResourceReview({ resourceId: 1 })).resolves.toMatchObject({ model: "gpt-5-mini", draft: { moderationRecommendation: "needs_manual_review" } });
+    expect(mocks.createAuditLog).toHaveBeenCalledWith(7, "generate_ai_review_draft", "resource", 1, expect.objectContaining({ model: "gpt-5-mini" }));
   });
 
   it("refuses to audit a report review when no open report was updated", async () => {

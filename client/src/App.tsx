@@ -17,6 +17,8 @@ import AdminUsers from "./pages/AdminUsers";
 import AdminReports from "./pages/AdminReports";
 import AdminBulk from "./pages/AdminBulk";
 import AdminEditSuggestions from "./pages/AdminEditSuggestions";
+import GraphExplorer from "./pages/GraphExplorer";
+import AdminAIDrafts from "./pages/AdminAIDrafts";
 import NotFound from "./pages/NotFound";
 
 function Router() {
@@ -28,6 +30,8 @@ function Router() {
         <Route path={"/browse"} component={Browse} />
         <Route path={"/browse/:categorySlug"} component={Browse} />
         <Route path={"/resource/:slug"} component={ResourceDetail} />
+        <Route path={"/graph"} component={GraphExplorer} />
+        <Route path={"/graph/:slug"} component={GraphExplorer} />
         <Route path={"/search"} component={Search} />
 
         {/* User pages */}
@@ -43,6 +47,7 @@ function Router() {
         <Route path={"/admin/reports"} component={AdminReports} />
         <Route path={"/admin/bulk"} component={AdminBulk} />
         <Route path={"/admin/edit-suggestions"} component={AdminEditSuggestions} />
+        <Route path={"/admin/ai-drafts"} component={AdminAIDrafts} />
 
         {/* 404 */}
         <Route path={"/404"} component={NotFound} />

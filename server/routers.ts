@@ -1,7 +1,7 @@
 import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
-import { publicProcedure, protectedProcedure, adminProcedure, router } from "./_core/trpc";
+import { publicProcedure, protectedProcedure, adminProcedure, contributionProcedure, metadataProcedure, aiDraftProcedure, router } from "./_core/trpc";
 import { z } from "zod";
 
 const relationshipTypeValues = [
@@ -26,6 +26,7 @@ import {
   searchResources,
   getRelationshipsBySource,
   getRelationshipsByTarget,
+  getGraphNeighborhood,
   getUserVote,
   getUserBookmarks,
   isBookmarked,
@@ -69,9 +70,21 @@ import { submissions } from "../drizzle/schema";
 import { searchService } from "./search";
 import { assertSafePublicUrl, fetchResourceMetadata } from "./urlMetadata";
 import { canViewCollection, collectionSlug, normalizeProfileUpdate } from "./community";
+import { draftResourceReview } from "./aiReview";
+import { getSearchCapabilities } from "./searchCapabilities";
 
 export const appRouter = router({
   system: systemRouter,
+
+  graph: router({
+    neighborhood: publicProcedure
+      .input(z.object({ resourceId: z.number().int().positive(), relationshipTypes: z.array(z.enum(relationshipTypeValues)).max(10).optional(), maxEdges: z.number().int().min(1).max(80).default(40) }))
+      .query(async ({ input }) => {
+        const graph = await getGraphNeighborhood(input.resourceId, input.relationshipTypes, input.maxEdges);
+        if (!graph) throw new TRPCError({ code: "NOT_FOUND", message: "Approved resource not found" });
+        return graph;
+      }),
+  }),
 
   auth: router({
     me: publicProcedure.query((opts) => opts.ctx.user),
@@ -137,7 +150,7 @@ export const appRouter = router({
         return resource;
       }),
 
-    report: protectedProcedure
+    report: contributionProcedure
       .input(z.object({ resourceId: z.number().int().positive(), reason: z.enum(["spam", "duplicate", "inaccurate", "malicious", "other"]), details: z.string().trim().max(2000).optional() }))
       .mutation(async ({ input, ctx }) => {
         const resource = await getResourceById(input.resourceId);
@@ -148,7 +161,7 @@ export const appRouter = router({
         return { success: true };
       }),
 
-    suggestEdit: protectedProcedure
+    suggestEdit: contributionProcedure
       .input(z.object({
         resourceId: z.number().int().positive(),
         changes: z.object({
@@ -210,7 +223,7 @@ export const appRouter = router({
       .query(({ input, ctx }) => getUserSubmissions(ctx.user.id, input.limit, input.offset)),
 
     // Fetch safe public metadata for submission preview
-    previewMetadata: publicProcedure
+    previewMetadata: metadataProcedure
       .input(z.object({ url: z.string().url() }))
       .query(async ({ input }) => {
         assertSafePublicUrl(input.url);
@@ -976,6 +989,22 @@ export const appRouter = router({
 
   // Moderation Router
   moderation: router({
+    draftResourceReview: aiDraftProcedure
+      .input(z.object({ resourceId: z.number().int().positive() }))
+      .mutation(async ({ input, ctx }) => {
+        if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN", message: "Only administrators can request AI review drafts" });
+        const resource = await getResourceById(input.resourceId);
+        if (!resource) throw new TRPCError({ code: "NOT_FOUND", message: "Resource not found" });
+        try {
+          const result = await draftResourceReview(resource);
+          await createAuditLog(ctx.user.id, "generate_ai_review_draft", "resource", resource.id, { model: result.model, usage: result.usage });
+          return result;
+        } catch (error) {
+          console.error("[Moderation] AI review draft failed", error);
+          throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Unable to generate an AI review draft" });
+        }
+      }),
+
     getOpenReports: adminProcedure
       .input(z.object({ limit: z.number().min(1).max(100).default(50), offset: z.number().min(0).default(0) }))
       .query(({ input }) => getOpenResourceReports(input.limit, input.offset)),
@@ -1188,6 +1217,7 @@ export const appRouter = router({
 
   // Search Router
   search: router({
+    capabilities: publicProcedure.query(() => getSearchCapabilities()),
     advancedSearch: publicProcedure
       .input(
         z.object({

@@ -348,6 +348,24 @@ export async function getRelationshipsByTarget(targetId: number, type?: string) 
   }));
 }
 
+/**
+ * Portable graph-query boundary. The first implementation reads a single
+ * approved relational hop; future Neo4j, ArangoDB, or Neptune adapters can
+ * implement this same result shape without changing public routes.
+ */
+export async function getGraphNeighborhood(resourceId: number, relationshipTypes?: string[], maxEdges: number = 80) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const [center] = await db.select({ id: resources.id, title: resources.title, slug: resources.slug, description: resources.description, pricing: resources.pricing }).from(resources).where(and(eq(resources.id, resourceId), eq(resources.status, "approved"))).limit(1);
+  if (!center) return undefined;
+  const conditions = [eq(relationships.status, "approved"), or(eq(relationships.sourceId, resourceId), eq(relationships.targetId, resourceId))];
+  if (relationshipTypes?.length) conditions.push(inArray(relationships.type, relationshipTypes as any));
+  const edges = await db.select().from(relationships).where(and(...conditions)).orderBy(desc(relationships.upvotes)).limit(Math.min(Math.max(maxEdges, 1), 80));
+  const nodeIds = Array.from(new Set(edges.flatMap((edge) => [edge.sourceId, edge.targetId]).filter((id) => id !== resourceId)));
+  const nodes = nodeIds.length ? await db.select({ id: resources.id, title: resources.title, slug: resources.slug, description: resources.description, pricing: resources.pricing }).from(resources).where(and(eq(resources.status, "approved"), inArray(resources.id, nodeIds))) : [];
+  return { center, nodes, edges };
+}
+
 // Votes
 export async function getUserVote(userId: number, resourceId?: number, relationshipId?: number) {
   const db = await getDb();

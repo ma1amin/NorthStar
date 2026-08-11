@@ -314,10 +314,10 @@
 - [x] Add a reproducible sanitized seed dataset without exporting live database data, credentials, user information, or audit history.
 - [x] Add Maintained By, Funded By, and Used By relationship types end-to-end with migration, moderation, Node View, search, and tests.
 - [x] Add contributor edit suggestions, explicit duplicate reports, and evidence-backed relationship suggestions under human moderation.
-- [ ] Establish a graph-query abstraction and an accessible bounded graph explorer with list fallback.
-- [ ] Formalize search-provider and semantic-search readiness without claiming an unconfigured external search provider.
-- [ ] Add moderator-only AI draft suggestions that never auto-publish and include confidence/provenance review context.
-- [ ] Audit and close route-sensitive API protection and rate-limit gaps.
+- [x] Establish a graph-query abstraction and an accessible bounded graph explorer with list fallback.
+- [x] Formalize search-provider and semantic-search readiness without claiming an unconfigured external search provider.
+- [x] Add moderator-only AI draft suggestions that never auto-publish and include confidence/provenance review context.
+- [x] Audit and close route-sensitive API protection and rate-limit gaps.
 - [ ] Establish English/Arabic localization foundations and RTL-safe core-shell, onboarding, profile, and administration surfaces.
 - [ ] Redesign the NorthStar public interface, OAuth onboarding, profile workspace, and moderation command center using original, accessible visual effects inspired only by transferable reference principles.
 - [ ] Add unit, integration, end-to-end, responsive, accessibility, reduced-motion, seed, migration, production-build, and repository-safety verification coverage.

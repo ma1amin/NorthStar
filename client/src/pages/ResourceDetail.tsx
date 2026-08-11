@@ -399,6 +399,7 @@ export default function ResourceDetail() {
                 {isBookmarked ? <BookmarkCheck className="mr-2 h-4 w-4" /> : <Bookmark className="mr-2 h-4 w-4" />}
                 {isBookmarked ? "Saved" : "Save"}
               </Button>
+              <Link href={`/graph/${resource.slug}`}><Button variant="outline"><GitBranch className="mr-2 h-4 w-4" /> Open graph</Button></Link>
               <SuggestResourceEditDialog resource={resource} isAuthenticated={isAuthenticated} />
               <ReportResourceDialog resourceId={resource.id} isAuthenticated={isAuthenticated} />
               <Button variant="outline" onClick={handleShare}>
