@@ -551,6 +551,19 @@ export async function getAuditLogs(limit: number = 50, offset: number = 0) {
   return db.select().from(auditLogs).orderBy(desc(auditLogs.createdAt)).limit(limit).offset(offset);
 }
 
+export async function listUsersForAdmin(limit: number = 50, offset: number = 0) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select({ id: users.id, name: users.name, email: users.email, role: users.role, reputation: users.reputation, createdAt: users.createdAt, lastSignedIn: users.lastSignedIn }).from(users).orderBy(desc(users.createdAt)).limit(limit).offset(offset);
+}
+
+export async function setUserRole(userId: number, role: "user" | "moderator" | "admin") {
+  const db = await getDb();
+  if (!db) return false;
+  await db.update(users).set({ role }).where(eq(users.id, userId));
+  return true;
+}
+
 /**
  * Records aggregate discovery quality signals without persisting a user, IP address,
  * session identifier, or unredacted email/URL-like query text.

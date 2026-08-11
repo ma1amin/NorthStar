@@ -28,6 +28,8 @@ import {
   getUserSubmissions,
   getPendingRelationships,
   getAuditLogs,
+  listUsersForAdmin,
+  setUserRole,
   recordSearchAnalytics,
   createAuditLog,
   updateUserReputation,
@@ -943,6 +945,24 @@ export const appRouter = router({
 
   // Moderation Router
   moderation: router({
+    listUsers: adminProcedure
+      .input(z.object({ limit: z.number().min(1).max(100).default(50), offset: z.number().min(0).default(0) }))
+      .query(({ input, ctx }) => {
+        if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN", message: "Only administrators can manage user roles" });
+        return listUsersForAdmin(input.limit, input.offset);
+      }),
+
+    setUserRole: adminProcedure
+      .input(z.object({ userId: z.number().int().positive(), role: z.enum(["user", "moderator", "admin"]) }))
+      .mutation(async ({ input, ctx }) => {
+        if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN", message: "Only administrators can manage user roles" });
+        if (input.userId === ctx.user.id) throw new TRPCError({ code: "BAD_REQUEST", message: "You cannot change your own role" });
+        const updated = await setUserRole(input.userId, input.role);
+        if (!updated) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        await createAuditLog(ctx.user.id, "set_role", "user", input.userId, { role: input.role });
+        return { success: true };
+      }),
+
     getAuditLogs: adminProcedure
       .input(z.object({ limit: z.number().min(1).max(100).default(50), offset: z.number().min(0).default(0) }))
       .query(({ input }) => getAuditLogs(input.limit, input.offset)),

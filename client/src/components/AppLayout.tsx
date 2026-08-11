@@ -9,6 +9,7 @@ import {
   Plus,
   Search,
   UserRound,
+  Users,
   X,
 } from "lucide-react";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -117,6 +118,7 @@ export function AppLayout({ children }: AppLayoutProps) {
                   <DropdownMenuItem onClick={() => navigate("/profile")}><UserRound className="mr-2 h-4 w-4" />Profile</DropdownMenuItem>
                   <DropdownMenuItem onClick={() => navigate("/collections")}><FolderOpen className="mr-2 h-4 w-4" />Collections</DropdownMenuItem>
                   {(user.role === "admin" || user.role === "moderator") && <DropdownMenuItem onClick={() => navigate("/admin")}><Network className="mr-2 h-4 w-4" />Moderation</DropdownMenuItem>}
+                  {user.role === "admin" && <DropdownMenuItem onClick={() => navigate("/admin/users")}><Users className="mr-2 h-4 w-4" />User management</DropdownMenuItem>}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={() => logout()} className="text-red-600 focus:text-red-700"><LogOut className="mr-2 h-4 w-4" />Log out</DropdownMenuItem>
                 </DropdownMenuContent>

@@ -51,6 +51,8 @@ describe("core tRPC workflows", () => {
     await expect(appRouter.createCaller(context()).moderation.getPendingSubmissions({ limit: 20, offset: 0 })).rejects.toMatchObject({ code: "FORBIDDEN" });
     await expect(appRouter.createCaller(context()).resources.update({ id: 42, title: "Edited resource" })).rejects.toMatchObject({ code: "FORBIDDEN" });
     await expect(appRouter.createCaller(context("moderator")).resources.update({ id: 42, title: "Edited resource" })).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await expect(appRouter.createCaller(context("moderator")).moderation.listUsers({ limit: 20, offset: 0 })).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await expect(appRouter.createCaller(context()).moderation.setUserRole({ userId: 8, role: "moderator" })).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 
   it("serves moderation history only to an admin caller", async () => {

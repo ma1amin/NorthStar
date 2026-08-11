@@ -104,7 +104,7 @@
 - [x] Implement submission queue view
 - [x] Add approval/rejection workflow
 - [x] Create resource editing interface with an admin-only metadata and publishing-status form plus audit logging.
-- [ ] Add user management tools
+- [x] Add administrator user-management tools with role changes, self-role protection, and moderation audit logging.
 - [x] Implement relationship moderation
 - [x] Create moderation logs
 - [ ] Add bulk operations support
@@ -200,7 +200,7 @@
 - [x] Implement submission queue view
 - [x] Add approval/rejection workflow
 - [x] Create resource editing interface with an admin-only metadata and publishing-status form plus audit logging.
-- [ ] Add user management tools
+- [x] Add administrator user-management tools with role changes, self-role protection, and moderation audit logging.
 - [x] Implement relationship moderation
 - [x] Create moderation logs
 - [ ] Add bulk operations support
