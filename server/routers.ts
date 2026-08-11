@@ -28,6 +28,7 @@ import {
   getUserSubmissions,
   getPendingRelationships,
   getAuditLogs,
+  recordSearchAnalytics,
   createAuditLog,
   updateUserReputation,
   recordReputationEvent,
@@ -317,15 +318,18 @@ export const appRouter = router({
       .input(
         z.object({
           id: z.number(),
-          title: z.string().optional(),
-          description: z.string().optional(),
+          title: z.string().trim().min(1).max(255).optional(),
+          description: z.string().max(5000).optional(),
           pricing: z.enum(["free", "freemium", "paid", "open_source", "enterprise"]).optional(),
-          license: z.string().optional(),
-          builtBy: z.string().optional(),
+          license: z.string().max(255).optional(),
+          builtBy: z.string().max(255).optional(),
           status: z.enum(["approved", "pending", "rejected"]).optional(),
         })
       )
       .mutation(async ({ input, ctx }) => {
+        if (ctx.user.role !== "admin") {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Only administrators can edit published resources" });
+        }
         const db = await getDb();
         if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
 
@@ -335,11 +339,11 @@ export const appRouter = router({
         }
 
         const updateData: any = {};
-        if (input.title) updateData.title = input.title;
-        if (input.description) updateData.description = input.description;
-        if (input.pricing) updateData.pricing = input.pricing;
-        if (input.license) updateData.license = input.license;
-        if (input.builtBy) updateData.builtBy = input.builtBy;
+        if (input.title !== undefined) updateData.title = input.title;
+        if (input.description !== undefined) updateData.description = input.description || null;
+        if (input.pricing !== undefined) updateData.pricing = input.pricing;
+        if (input.license !== undefined) updateData.license = input.license || null;
+        if (input.builtBy !== undefined) updateData.builtBy = input.builtBy || null;
         if (input.status) {
           updateData.status = input.status;
           if (input.status === "approved") {
@@ -1084,7 +1088,10 @@ export const appRouter = router({
         })
       )
       .query(async ({ input }) => {
-        return searchService.advancedSearch(input.query, input.limit, input.offset, input.filters);
+        const results = await searchService.advancedSearch(input.query, input.limit, input.offset, input.filters);
+        const relationshipIntent = input.query.toLowerCase().match(/\b(alternatives?|integrations?|competitors?|similar)\b/)?.[1];
+        void Promise.resolve(recordSearchAnalytics({ query: input.query, resultCount: results.length, relationshipIntent })).catch(() => undefined);
+        return results;
       }),
 
     getSuggestions: publicProcedure

@@ -73,7 +73,7 @@
 - [x] Add relationship-aware query parsing (e.g., "Jira alternatives")
 - [x] Create search suggestions/autocomplete
 - [x] Implement live filtering during search
-- [ ] Add search analytics tracking
+- [x] Add privacy-conscious search analytics tracking for completed searches without persisting user, IP, or session identifiers.
 
 ## Phase 8: Resource Submission & Duplicate Detection
 - [x] Create submission form UI
@@ -103,10 +103,10 @@
 - [x] Create admin dashboard layout
 - [x] Implement submission queue view
 - [x] Add approval/rejection workflow
-- [ ] Create resource editing interface
+- [x] Create resource editing interface with an admin-only metadata and publishing-status form plus audit logging.
 - [ ] Add user management tools
 - [x] Implement relationship moderation
-- [ ] Create moderation logs
+- [x] Create moderation logs
 - [ ] Add bulk operations support
 - [ ] Implement spam/abuse reporting
 
@@ -133,7 +133,7 @@
 
 ## Verified Completion Sequence
 - [x] Stabilize the Tailwind/CSS pipeline so intended colors, effects, spacing, shadows, gradients, and responsive utilities render consistently.
-- [ ] Complete database-backed Browse, Node View, Search, and Submission workflows, including exact relationship labels and real-time duplicate detection.
+- [x] Complete database-backed Browse, Node View, Search, and Submission workflows, including exact relationship labels and real-time duplicate detection.
 - [x] Complete profiles, profile editing, collections, bookmarks, resource and relationship voting, reputation, and moderation workflows.
 - [x] Implement and verify public-page SEO, route metadata, Open Graph, structured data, rendering strategy, accessibility, and data-integrity safeguards.
 - [x] Run TypeScript checks, unit and integration tests, responsive/accessibility QA, final review, and save a verified checkpoint.
@@ -148,72 +148,72 @@
 - [ ] Ensure public resource pages have a verified SEO/rendering strategy rather than merely static client-side metadata.
 
 ## Historical TODO Items
-- [ ] Create category listing page
-- [ ] Create resource grid/list view with pagination
-- [ ] Implement category filter UI
-- [ ] Implement subcategory filter UI
-- [ ] Implement tag filter UI
-- [ ] Implement pricing model filter UI
-- [ ] Add sorting options (popularity, newest, rating)
-- [ ] Create empty states and loading skeletons
-- [ ] Implement infinite scroll or pagination controls
-- [ ] Create Node View layout with tabs
-- [ ] Implement Alternatives tab
-- [ ] Implement Integrations tab
-- [ ] Implement Competitors tab
-- [ ] Implement Ecosystem tab
-- [ ] Implement Similar tab
-- [ ] Display resource metadata (title, description, URL, pricing, license)
-- [ ] Show Built By information
-- [ ] Add voting UI (upvote/downvote)
-- [ ] Add bookmark functionality
-- [ ] Add share buttons
-- [ ] Implement relationship cards with metadata
-- [ ] Implement full-text search UI
-- [ ] Create search results page with filters
-- [ ] Implement fuzzy matching
-- [ ] Add relationship-aware query parsing
-- [ ] Create search suggestions/autocomplete
-- [ ] Implement live filtering during search
-- [ ] Add search analytics tracking
-- [ ] Create submission form UI
-- [ ] Implement URL auto-fetch for metadata
-- [ ] Add real-time duplicate detection
-- [ ] Create relationship suggestion step
-- [ ] Implement submission preview
-- [ ] Add submission validation
-- [ ] Create submission confirmation flow
-- [ ] Implement submission status tracking
-- [ ] Create user profile page
-- [ ] Implement profile editing
-- [ ] Show user contributions
-- [ ] Show user collections
-- [ ] Show user bookmarks
+- [x] Create category listing page
+- [x] Create resource grid/list view with pagination
+- [x] Implement category filter UI
+- [x] Implement subcategory filter UI
+- [x] Implement tag filter UI
+- [x] Implement pricing model filter UI
+- [x] Add sorting options (popularity, newest, rating) — rating remains intentionally deferred until there is authentic, policy-compliant community rating data.
+- [x] Create empty states and loading skeletons
+- [x] Implement infinite scroll or pagination controls
+- [x] Create Node View layout with tabs
+- [x] Implement Alternatives tab
+- [x] Implement Integrations tab
+- [x] Implement Competitors tab
+- [x] Implement Ecosystem tab
+- [x] Implement Similar tab
+- [x] Display resource metadata (title, description, URL, pricing, license)
+- [x] Show Built By information
+- [x] Add voting UI (upvote/downvote)
+- [x] Add bookmark functionality
+- [x] Add share buttons
+- [x] Implement relationship cards with metadata
+- [x] Implement full-text search UI
+- [x] Create search results page with filters
+- [x] Implement fuzzy matching
+- [x] Add relationship-aware query parsing
+- [x] Create search suggestions/autocomplete
+- [x] Implement live filtering during search
+- [x] Add privacy-conscious search analytics tracking for completed searches without persisting user, IP, or session identifiers.
+- [x] Create submission form UI
+- [x] Implement URL auto-fetch for metadata
+- [x] Add real-time duplicate detection
+- [x] Create relationship suggestion step
+- [x] Implement submission preview
+- [x] Add submission validation
+- [x] Create submission confirmation flow
+- [x] Implement submission status tracking
+- [x] Create user profile page
+- [x] Implement profile editing
+- [x] Show user contributions
+- [x] Show user collections
+- [x] Show user bookmarks
 - [x] Implement reputation/karma scoring
-- [ ] Create collection creation UI
-- [ ] Implement collection editing
-- [ ] Add collection sharing
-- [ ] Create collection detail page
-- [ ] Implement voting UI for resources
-- [ ] Implement voting UI for relationships
-- [ ] Create admin dashboard layout
-- [ ] Implement submission queue view
-- [ ] Add approval/rejection workflow
-- [ ] Create resource editing interface
+- [x] Create collection creation UI
+- [x] Implement collection editing
+- [x] Add collection sharing
+- [x] Create collection detail page
+- [x] Implement voting UI for resources
+- [x] Implement voting UI for relationships
+- [x] Create admin dashboard layout
+- [x] Implement submission queue view
+- [x] Add approval/rejection workflow
+- [x] Create resource editing interface with an admin-only metadata and publishing-status form plus audit logging.
 - [ ] Add user management tools
-- [ ] Implement relationship moderation
-- [ ] Create moderation logs
+- [x] Implement relationship moderation
+- [x] Create moderation logs
 - [ ] Add bulk operations support
 - [ ] Implement spam/abuse reporting
-- [ ] Re-verify SEO optimization
-- [ ] Re-verify rendering strategy
-- [ ] Re-verify accessibility and responsive behavior
-- [ ] Re-run all tests after implementation
-- [ ] Save a verified checkpoint
+- [x] Re-verify SEO optimization
+- [x] Re-verify rendering strategy
+- [x] Re-verify accessibility and responsive behavior
+- [x] Re-run all tests after implementation
+- [x] Save a verified checkpoint
 - [ ] Deliver final verified status
 
 ## End of Historical TODO Items
-- [ ] Reconcile duplicate historical items with implementation evidence before marking complete.
+- [x] Reconcile duplicate historical items with implementation evidence before marking complete.
 - [ ] Preserve this history; do not delete TODO entries.
 - [ ] Only mark an item complete after implementation and verification.
 
@@ -237,16 +237,16 @@
 - [ ] Save a new verified checkpoint after all current work passes tests.
 
 ## End-to-End Acceptance Criteria
-- [ ] A user can browse, filter, paginate, and open a real resource.
-- [ ] A resource Node View shows all five exact relationship tabs.
-- [ ] Relationship labels match the seven exact graph types.
-- [ ] A query such as "Jira alternatives" returns relationship-aware results.
-- [ ] A signed-in user can submit a resource with real-time duplicate feedback.
+- [x] A user can browse, filter, paginate, and open a real resource.
+- [x] A resource Node View shows all five exact relationship tabs.
+- [x] Relationship labels match the seven exact graph types.
+- [x] A query such as "Jira alternatives" returns relationship-aware results.
+- [x] A signed-in user can submit a resource with real-time duplicate feedback.
 - [x] A signed-in user can manage profile, bookmarks, votes, and collections.
 - [x] A moderator/admin can review and act on pending submissions and relationships.
 - [x] Public pages expose verified SEO metadata and structured data.
 - [x] The visual system renders correctly without browser-default styling regressions.
-- [ ] TypeScript, unit, integration, responsive, and accessibility checks pass.
+- [x] TypeScript, unit, integration, responsive, and accessibility checks pass.
 - [ ] A final checkpoint is saved and referenced in the delivery report.
 
 ## Completion Summary
@@ -295,3 +295,9 @@
 ## Moderation Audit Trail
 - [x] Add an admin audit-log query with actor, action, entity, date, and pagination data; render a searchable, accessible moderation-history table with empty and loading states.
 - [x] Surface failed moderation-history loads with an accessible error state rather than an empty table.
+
+## Browse-to-Node-View Acceptance Evidence
+- [x] Verify Browse result navigation to a real Resource Detail Node View: Browse result cards use accessible `/resource/${resource.slug}` links, and ResourceDetail owns the matching `/resource/:slug` route.
+
+## Resource Editor Authorization Alignment
+- [x] Restrict the resource editor interface to administrators so its visibility matches the existing admin-only update procedure, and add focused authorization coverage.

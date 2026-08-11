@@ -469,6 +469,29 @@ export type AuditLog = typeof auditLogs.$inferSelect;
 export type InsertAuditLog = typeof auditLogs.$inferInsert;
 
 /**
+ * Anonymous search events used to understand resource-discovery quality.
+ * No user identifier, IP address, or session identifier is persisted.
+ */
+export const searchAnalytics = mysqlTable(
+  "search_analytics",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    query: varchar("query", { length: 255 }).notNull(),
+    normalizedQuery: varchar("normalizedQuery", { length: 255 }).notNull(),
+    resultCount: int("resultCount").notNull(),
+    relationshipIntent: varchar("relationshipIntent", { length: 64 }),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  (table) => ({
+    normalizedQueryIdx: index("search_analytics_normalized_query_idx").on(table.normalizedQuery),
+    createdAtIdx: index("search_analytics_created_at_idx").on(table.createdAt),
+  })
+);
+
+export type SearchAnalyticsEvent = typeof searchAnalytics.$inferSelect;
+export type InsertSearchAnalyticsEvent = typeof searchAnalytics.$inferInsert;
+
+/**
  * Immutable reputation events used to explain and safely aggregate user karma.
  */
 export const reputationEvents = mysqlTable(

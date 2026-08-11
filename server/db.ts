@@ -15,6 +15,7 @@ import {
   tags,
   resourceTags,
   auditLogs,
+  searchAnalytics,
   reputationEvents,
 } from "../drizzle/schema";
 import { ENV } from "./_core/env";
@@ -548,6 +549,24 @@ export async function getAuditLogs(limit: number = 50, offset: number = 0) {
   const db = await getDb();
   if (!db) return [];
   return db.select().from(auditLogs).orderBy(desc(auditLogs.createdAt)).limit(limit).offset(offset);
+}
+
+/**
+ * Records aggregate discovery quality signals without persisting a user, IP address,
+ * session identifier, or unredacted email/URL-like query text.
+ */
+export async function recordSearchAnalytics(input: { query: string; resultCount: number; relationshipIntent?: string }) {
+  const normalizedQuery = input.query.trim().toLowerCase().replace(/\s+/g, " ").slice(0, 255);
+  if (!normalizedQuery || /@|:\/\//.test(normalizedQuery) || /\d{12,}/.test(normalizedQuery)) return;
+
+  const db = await getDb();
+  if (!db) return;
+  await db.insert(searchAnalytics).values({
+    query: normalizedQuery,
+    normalizedQuery,
+    resultCount: Math.max(0, input.resultCount),
+    relationshipIntent: input.relationshipIntent,
+  });
 }
 
 // Reputation

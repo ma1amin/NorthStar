@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
   checkPendingSubmissionByUrl: vi.fn(),
   getUserReputationEvents: vi.fn(),
   getAuditLogs: vi.fn(),
+  recordSearchAnalytics: vi.fn(),
 }));
 
 vi.mock("./search", () => ({ searchService: { advancedSearch: mocks.advancedSearch, getSuggestions: vi.fn(), getTrending: vi.fn() } }));
@@ -16,11 +17,12 @@ vi.mock("./db", () => ({
   checkDuplicateByUrl: mocks.checkDuplicateByUrl, checkPendingSubmissionByUrl: mocks.checkPendingSubmissionByUrl,
   getUserReputationEvents: mocks.getUserReputationEvents,
   getAuditLogs: mocks.getAuditLogs,
+  recordSearchAnalytics: mocks.recordSearchAnalytics,
 }));
 
 import { appRouter } from "./routers";
 
-function context(role: "user" | "admin" = "user"): TrpcContext {
+function context(role: "user" | "moderator" | "admin" = "user"): TrpcContext {
   return { user: { id: 7, openId: "integration-user", name: "Integration User", email: "integration@example.com", loginMethod: "manus", role, reputation: 12, createdAt: new Date(), updatedAt: new Date(), lastSignedIn: new Date() } as TrpcContext["user"], req: { protocol: "https", headers: {} } as TrpcContext["req"], res: { clearCookie: vi.fn() } as TrpcContext["res"] };
 }
 
@@ -30,6 +32,7 @@ describe("core tRPC workflows", () => {
     const result = await appRouter.createCaller(context()).search.advancedSearch({ query: "Jira alternatives", filters: { categoryId: 3, pricing: "freemium", tag: "planning" } });
     expect(mocks.advancedSearch).toHaveBeenCalledWith("Jira alternatives", 20, 0, { categoryId: 3, pricing: "freemium", tag: "planning" });
     expect(result).toEqual([{ id: 2, title: "Linear" }]);
+    expect(mocks.recordSearchAnalytics).toHaveBeenCalledWith({ query: "Jira alternatives", resultCount: 1, relationshipIntent: "alternatives" });
   });
 
   it("serves filtered Browse results through the public router", async () => {
@@ -46,6 +49,8 @@ describe("core tRPC workflows", () => {
     mocks.getUserReputationEvents.mockResolvedValue([{ eventType: "resource_approved", points: 10 }]);
     await expect(appRouter.createCaller(context()).user.getReputationSummary()).resolves.toMatchObject({ score: 12, events: [{ points: 10 }] });
     await expect(appRouter.createCaller(context()).moderation.getPendingSubmissions({ limit: 20, offset: 0 })).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await expect(appRouter.createCaller(context()).resources.update({ id: 42, title: "Edited resource" })).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await expect(appRouter.createCaller(context("moderator")).resources.update({ id: 42, title: "Edited resource" })).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 
   it("serves moderation history only to an admin caller", async () => {
