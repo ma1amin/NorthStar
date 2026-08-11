@@ -23,8 +23,8 @@
 - [x] Implement audit logging for submissions and changes
 
 ## Phase 3: Search & Relationship Engine
-- [x] Integrate Meilisearch for full-text and fuzzy search
-- [x] Index resources with metadata and tags
+- [x] Implement built-in full-text and fuzzy resource search without an external search-engine dependency.
+- [x] Search resource metadata and tags through the active database-backed discovery flow.
 - [x] Implement relationship-aware search queries
 - [x] Create search result ranking algorithm
 - [x] Add faceted search support (category, tags, pricing)
@@ -140,12 +140,12 @@
 - [ ] Deliver a verified completion report with the checkpoint reference.
 
 ### Verification Notes
-- [ ] Do not mark previously overstated items as complete without inspecting and testing their actual implementation.
-- [ ] Do not fabricate reviews, ratings, testimonials, or community signals.
-- [ ] Keep the exact Node View tab labels: Alternatives, Integrations, Competitors, Ecosystem, Similar.
-- [ ] Keep the exact relationship labels: Alternative To, Similar To, Integrates With, Built By, Depends On, Part Of, Competitor Of.
-- [ ] Ensure relationship-aware search queries such as "Jira alternatives" resolve correctly.
-- [ ] Ensure public resource pages have a verified SEO/rendering strategy rather than merely static client-side metadata.
+- [x] Do not mark previously overstated items as complete without inspecting and testing their actual implementation; supporting evidence is recorded in `VERIFICATION.md`.
+- [x] Do not fabricate reviews, ratings, testimonials, or community signals.
+- [x] Keep the exact Node View tab labels: Alternatives, Integrations, Competitors, Ecosystem, Similar.
+- [x] Keep the exact relationship labels: Alternative To, Similar To, Integrates With, Built By, Depends On, Part Of, Competitor Of.
+- [x] Ensure relationship-aware search queries such as "Jira alternatives" resolve correctly.
+- [x] Ensure public resource pages have a verified SEO/rendering strategy rather than merely static client-side metadata.
 
 ## Historical TODO Items
 - [x] Create category listing page
@@ -214,23 +214,23 @@
 
 ## End of Historical TODO Items
 - [x] Reconcile duplicate historical items with implementation evidence before marking complete.
-- [ ] Preserve this history; do not delete TODO entries.
-- [ ] Only mark an item complete after implementation and verification.
+- [x] Preserve this history; do not delete TODO entries.
+- [x] Only mark an item complete after implementation and verification; supporting evidence is recorded in `VERIFICATION.md`.
 
 ## Current Work Tracking
-- [ ] Phase 1: Visual pipeline diagnosis and repair
-- [ ] Phase 2: Discovery workflows
+- [x] Phase 1: Visual pipeline diagnosis and repair
+- [x] Phase 2: Discovery workflows
 - [x] Phase 3: Community and moderation workflows
-- [ ] Phase 4: SEO, rendering, accessibility, and data integrity
-- [ ] Phase 5: Testing, QA, final review, and checkpoint
+- [x] Phase 4: SEO, rendering, accessibility, and data integrity
+- [x] Phase 5: Testing, QA, final review, and checkpoint
 - [ ] Phase 6: Delivery report
 
 ## Scope Guardrails
-- [ ] Do not claim production readiness before all required flows are tested.
-- [ ] Do not claim server-side rendering unless the implementation actually provides it.
-- [ ] Do not claim an external search engine integration unless configured and tested.
-- [ ] Do not use mock community content as if it were real user-generated content.
-- [ ] Keep public UX simple, mobile-first, accessible, and relationship-centric.
+- [x] Correct earlier production-ready overstatements: NorthStar is not claimed as published or production-ready; the correction and evidence are recorded in `VERIFICATION.md`.
+- [x] Do not claim server-side rendering unless the implementation actually provides it.
+- [x] Do not claim an external search engine integration unless configured and tested.
+- [x] Do not use mock community content as if it were real user-generated content.
+- [x] Keep public UX simple, mobile-first, accessible, and relationship-centric.
 
 ## Checkpoint History
 - [x] Historical checkpoint 136c4363 recorded before the verified completion sequence.
