@@ -42,6 +42,7 @@ export default function Browse() {
   const [sort, setSort] = useState<"popular" | "newest">("popular");
   const [page, setPage] = useState(1);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
 
   const { data: categories = [], isLoading: categoriesLoading } = trpc.categories.list.useQuery();
 
@@ -125,15 +126,21 @@ export default function Browse() {
       </section>
 
       <div className="container py-8 md:py-10">
+        <div className="mb-4 flex items-center justify-between gap-3 lg:hidden">
+          <p className="text-sm font-medium text-slate-500">Refine the resource graph with focused filters.</p>
+          <Button variant="outline" onClick={() => setMobileFiltersOpen((open) => !open)} className="shrink-0 border-slate-300 bg-white text-slate-700">
+            <SlidersHorizontal className="mr-2 h-4 w-4" />{mobileFiltersOpen ? "Hide filters" : hasFilters ? "Filters active" : "Filters"}
+          </Button>
+        </div>
         <div className="grid gap-8 lg:grid-cols-[260px_minmax(0,1fr)]">
-          <aside className="h-fit rounded-2xl border border-slate-200 bg-white p-5 shadow-sm lg:sticky lg:top-24">
+          <aside className={`${mobileFiltersOpen ? "block" : "hidden"} h-fit rounded-2xl border border-slate-200 bg-white p-5 shadow-sm lg:sticky lg:top-24 lg:block`}>
             <div className="mb-5 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <SlidersHorizontal className="h-4 w-4 text-sky-600" />
                 <h2 className="font-semibold text-slate-900">Filters</h2>
               </div>
               {hasFilters && (
-                <button onClick={resetFilters} className="text-xs font-medium text-sky-600 hover:text-sky-700">
+                <button onClick={() => { resetFilters(); setMobileFiltersOpen(false); }} className="text-xs font-medium text-sky-600 hover:text-sky-700">
                   Clear all
                 </button>
               )}

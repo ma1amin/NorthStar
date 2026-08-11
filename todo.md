@@ -261,3 +261,9 @@
 - [x] Add a real UI flow to add a resource into one or more collections from the Resource Detail page or another resource surface, with loading/error/success states.
 - [x] Implement a fuller reputation/karma system with explicit scoring rules tied to community actions/contributions and expose the resulting score consistently in the UI.
 - [x] Re-verify Phase 3 and the composite completion items only after collection membership management and reputation are fully implemented.
+
+## Lobe UI-Inspired UX Enhancement
+- [x] Research transferable Lobe UI interaction, navigation, feedback, and responsive-layout patterns without copying its brand identity.
+- [x] Introduce a denser, more purposeful application shell with richer contextual navigation and mobile ergonomics.
+- [x] Upgrade resource discovery, Node View, and collection surfaces with refined information hierarchy, command-oriented actions, and polished state feedback.
+- [x] Verify the enhanced interface for responsiveness, keyboard accessibility, and visual consistency.

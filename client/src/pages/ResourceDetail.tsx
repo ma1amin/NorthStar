@@ -6,8 +6,10 @@ import {
   BookmarkCheck,
   Check,
   ExternalLink,
+  GitBranch,
   Link as LinkIcon,
   Loader2,
+  Network,
   Share2,
   ThumbsDown,
   ThumbsUp,
@@ -319,6 +321,8 @@ export default function ResourceDetail() {
     ecosystem: mergeRelationships([...partOf, ...dependsOn], [...partOfIncoming, ...dependsOnIncoming]),
     similar: mergeRelationships(similar, similarIncoming),
   };
+  const connectionCount = Object.values(tabData).reduce((count, relationships) => count + relationships.length, 0);
+  const activeRelationshipTypeCount = Object.values(tabData).filter((relationships) => relationships.length > 0).length;
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -340,6 +344,11 @@ export default function ResourceDetail() {
                 <p className="mt-3 max-w-2xl text-lg leading-8 text-slate-600">
                   {resource.description || "A resource in the NorthStar intelligence graph."}
                 </p>
+                <div className="mt-5 flex flex-wrap gap-2 text-xs font-semibold">
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-sky-50 px-3 py-1.5 text-sky-700"><Network className="h-3.5 w-3.5" /> Resource node</span>
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1.5 text-slate-600"><GitBranch className="h-3.5 w-3.5" /> {connectionCount} graph connection{connectionCount === 1 ? "" : "s"}</span>
+                  {activeRelationshipTypeCount > 0 && <span className="rounded-full bg-violet-50 px-3 py-1.5 text-violet-700">{activeRelationshipTypeCount} relationship type{activeRelationshipTypeCount === 1 ? "" : "s"}</span>}
+                </div>
               </div>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -403,7 +412,7 @@ export default function ResourceDetail() {
                 <h2 className="mt-2 text-2xl font-bold text-slate-950">Explore connected resources</h2>
               </div>
               <Tabs defaultValue="alternatives">
-                <TabsList className="mb-6 flex h-auto w-full flex-wrap justify-start gap-1 rounded-xl bg-white p-1 shadow-sm">
+                <TabsList className="mb-6 flex h-auto w-full flex-nowrap justify-start gap-1 overflow-x-auto rounded-xl bg-white p-1 shadow-sm sm:flex-wrap">
                   {RELATIONSHIP_TABS.map((tab) => (
                     <TabsTrigger key={tab.value} value={tab.value} className="flex-1 px-3 py-2 text-xs sm:text-sm">
                       {tab.label}
@@ -434,7 +443,7 @@ export default function ResourceDetail() {
             </section>
           </main>
 
-          <aside className="space-y-5">
+          <aside className="self-start space-y-5 lg:sticky lg:top-24">
             <Card className="border-slate-200 bg-white p-6">
               <h2 className="font-semibold text-slate-950">Community feedback</h2>
               <p className="mt-2 text-sm leading-6 text-slate-500">Vote on whether this resource is useful to the community.</p>
