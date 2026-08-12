@@ -19,7 +19,6 @@ import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/_core/hooks/useAuth";
-import { getLoginUrl } from "@/const";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { applyClientSeo } from "@/lib/seo";
@@ -49,7 +48,7 @@ const RELATIONSHIP_LABELS: Record<string, string> = {
 
 function RelationshipCard({ relationship }: { relationship: any }) {
   const target = relationship.target;
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, startLogin } = useAuth();
   const utils = trpc.useUtils();
   const [userVote, setUserVote] = useState<"upvote" | "downvote" | null>(null);
   const { data: vote } = trpc.votes.getRelationshipVote.useQuery(
@@ -72,14 +71,14 @@ function RelationshipCard({ relationship }: { relationship: any }) {
 
   const handleVote = (type: "upvote" | "downvote") => {
     if (!isAuthenticated) {
-      window.location.href = getLoginUrl();
+      startLogin();
       return;
     }
     voteMutation.mutate({ relationshipId: relationship.id, type });
   };
 
   return (
-    <Card className="group border-slate-200 p-5 transition-all hover:-translate-y-0.5 hover:border-sky-200 hover:shadow-lg">
+    <Card className="ns-hover-lift group border-slate-200/90 bg-white/90 p-5">
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
           <p className="text-xs font-semibold uppercase tracking-[0.12em] text-sky-600">
@@ -112,7 +111,7 @@ function RelationshipCard({ relationship }: { relationship: any }) {
 export default function ResourceDetail() {
   const [, params] = useRoute("/resource/:slug");
   const slug = params?.slug ?? "";
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, startLogin } = useAuth();
   const utils = trpc.useUtils();
   const [userVote, setUserVote] = useState<"upvote" | "downvote" | null>(null);
   const [isBookmarked, setIsBookmarked] = useState(false);
@@ -260,7 +259,7 @@ export default function ResourceDetail() {
   });
 
   const handleProtectedAction = () => {
-    window.location.href = getLoginUrl();
+    startLogin();
   };
 
   const handleVote = (type: "upvote" | "downvote") => {
@@ -368,15 +367,15 @@ export default function ResourceDetail() {
   const activeRelationshipTypeCount = Object.values(tabData).filter((relationships) => relationships.length > 0).length;
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <section className="border-b border-slate-200 bg-white">
+    <div className="min-h-screen bg-transparent">
+      <section className="ns-noise border-b border-slate-200/80 bg-white/80">
         <div className="container py-6 md:py-10">
           <Link href="/browse" className="inline-flex items-center gap-2 text-sm font-medium text-sky-600 hover:text-sky-700">
             <ArrowLeft className="h-4 w-4" /> Back to browse
           </Link>
           <div className="mt-8 flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
             <div className="flex items-start gap-5">
-              <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-500 to-blue-600 text-xl font-bold text-white shadow-lg">
+              <div className="ns-glow-ring flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-500 to-blue-600 text-xl font-bold text-white shadow-lg">
                 {resource.title.slice(0, 2).toUpperCase()}
               </div>
               <div>
@@ -425,7 +424,7 @@ export default function ResourceDetail() {
       <div className="container py-8 md:py-10">
         <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_300px]">
           <main>
-            <Card className="border-slate-200 bg-white p-6 md:p-8">
+            <Card className="ns-surface-strong border-slate-200/90 p-6 md:p-8">
               <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">Pricing</p>
@@ -458,7 +457,7 @@ export default function ResourceDetail() {
                 <h2 className="mt-2 text-2xl font-bold text-slate-950">Explore connected resources</h2>
               </div>
               <Tabs defaultValue="alternatives">
-                <TabsList className="mb-6 flex h-auto w-full flex-nowrap justify-start gap-1 overflow-x-auto rounded-xl bg-white p-1 shadow-sm sm:flex-wrap">
+                <TabsList className="ns-surface mb-6 flex h-auto w-full flex-nowrap justify-start gap-1 overflow-x-auto rounded-2xl bg-white/75 p-1 shadow-sm sm:flex-wrap">
                   {RELATIONSHIP_TABS.map((tab) => (
                     <TabsTrigger key={tab.value} value={tab.value} className="flex-1 px-3 py-2 text-xs sm:text-sm">
                       {tab.label}
@@ -476,7 +475,7 @@ export default function ResourceDetail() {
                           ))}
                         </div>
                       ) : (
-                        <Card className="border-dashed border-slate-300 bg-white p-10 text-center">
+                        <Card className="ns-surface border-dashed border-slate-300 p-10 text-center">
                           <LinkIcon className="mx-auto mb-4 h-8 w-8 text-slate-300" />
                           <h3 className="font-semibold text-slate-900">No verified connections yet</h3>
                           <p className="mt-2 text-sm text-slate-500">Community relationships will appear here after moderation.</p>
@@ -490,7 +489,7 @@ export default function ResourceDetail() {
           </main>
 
           <aside className="self-start space-y-5 lg:sticky lg:top-24">
-            <Card className="border-slate-200 bg-white p-6">
+            <Card className="ns-surface border-slate-200/90 p-6">
               <h2 className="font-semibold text-slate-950">Community feedback</h2>
               <p className="mt-2 text-sm leading-6 text-slate-500">Vote on whether this resource is useful to the community.</p>
               <div className="mt-5 flex gap-2">
@@ -514,7 +513,7 @@ export default function ResourceDetail() {
               {!isAuthenticated && <p className="mt-3 text-xs text-slate-500">Sign in to vote or save this resource.</p>}
             </Card>
 
-            <Card className="border-slate-200 bg-white p-6">
+            <Card className="ns-surface border-slate-200/90 p-6">
               <h2 className="font-semibold text-slate-950">Organize this resource</h2>
               <p className="mt-2 text-sm leading-6 text-slate-500">Add this node to a curated stack so you can revisit it with related tools.</p>
               {isAuthenticated ? (
@@ -531,7 +530,7 @@ export default function ResourceDetail() {
               ) : <p className="mt-4 text-xs text-slate-500">Sign in to organize resources into collections.</p>}
             </Card>
 
-            <Card className="border-slate-200 bg-white p-6">
+            <Card className="ns-surface border-slate-200/90 p-6">
               <h2 className="font-semibold text-slate-950">Resource details</h2>
               <dl className="mt-5 space-y-4 text-sm">
                 <div className="flex items-start justify-between gap-4">

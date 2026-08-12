@@ -17,7 +17,6 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { trpc } from "@/lib/trpc";
-import { getLoginUrl } from "@/const";
 
 interface FormData {
   title: string;
@@ -54,7 +53,7 @@ const RELATIONSHIP_TYPES = [
 ] as const;
 
 export default function Submit() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, startLogin } = useAuth();
   const [, setLocation] = useLocation();
   const [formData, setFormData] = useState<FormData>({
     title: "",
@@ -192,7 +191,7 @@ export default function Submit() {
     event.preventDefault();
     setSubmitError("");
     if (!isAuthenticated) {
-      window.location.href = getLoginUrl();
+      startLogin();
       return;
     }
     if (validateSubmission()) setShowPreview(true);
@@ -202,7 +201,7 @@ export default function Submit() {
     event.preventDefault();
     setSubmitError("");
     if (!isAuthenticated) {
-      window.location.href = getLoginUrl();
+      startLogin();
       return;
     }
     if (!validateSubmission() || !categoryId) return;
@@ -224,14 +223,14 @@ export default function Submit() {
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-[70vh] bg-slate-50 py-16">
+      <div className="ns-noise min-h-[70vh] bg-transparent py-16">
         <div className="container max-w-2xl">
-          <Card className="border-slate-200 bg-white p-10 text-center shadow-sm">
+          <Card className="ns-surface mx-auto border-slate-200 p-10 text-center shadow-sm">
             <AlertCircle className="mx-auto mb-4 h-12 w-12 text-sky-500" />
             <h1 className="text-3xl font-bold text-slate-950">Sign in to contribute</h1>
             <p className="mx-auto mt-3 max-w-md text-slate-600">Contributions are reviewed by the community and moderators before publication.</p>
             <div className="mt-7 flex flex-wrap justify-center gap-3">
-              <Button onClick={() => { window.location.href = getLoginUrl(); }} className="bg-sky-600 text-white hover:bg-sky-700">Sign in to contribute</Button>
+              <Button onClick={() => { startLogin(); }} className="bg-sky-600 text-white hover:bg-sky-700">Sign in to contribute</Button>
               <Button variant="outline" onClick={() => setLocation("/browse")} className="border-slate-300 bg-white text-slate-700 hover:bg-slate-50">Browse resources</Button>
             </div>
           </Card>
@@ -242,9 +241,9 @@ export default function Submit() {
 
   if (submitSuccess) {
     return (
-      <div className="min-h-[70vh] bg-slate-50 py-16">
+      <div className="ns-noise min-h-[70vh] bg-transparent py-16">
         <div className="container max-w-2xl">
-          <Card className="border-emerald-200 bg-white p-10 text-center shadow-sm">
+          <Card className="ns-surface ns-hover-lift mx-auto border-emerald-200 bg-white p-10 text-center shadow-sm">
             <CheckCircle className="mx-auto mb-4 h-12 w-12 text-emerald-500" />
             <h1 className="text-3xl font-bold text-slate-950">Submission received</h1>
             <p className="mx-auto mt-3 max-w-md text-slate-600">Thank you. A moderator will review the resource before it appears in the public directory.</p>
@@ -259,8 +258,8 @@ export default function Submit() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <section className="border-b border-slate-200 bg-white">
+    <div className="min-h-screen bg-transparent">
+      <section className="ns-noise border-b border-slate-200/80 bg-white/80">
         <div className="container py-10 md:py-14">
           <p className="text-sm font-semibold uppercase tracking-[0.18em] text-sky-600">Community contribution</p>
           <h1 className="mt-3 text-4xl font-bold tracking-tight text-slate-950 md:text-5xl">Submit a resource</h1>
@@ -270,13 +269,13 @@ export default function Submit() {
 
       <div className="container max-w-4xl py-8 md:py-10">
         {submitError && (
-          <Card className="mb-6 border-red-200 bg-red-50 p-4 text-red-900">
+          <Card className="animate-fade-in-up mb-6 border-red-200 bg-red-50 p-4 text-red-900 shadow-sm">
             <div className="flex items-start gap-3"><AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-red-600" /><p>{submitError}</p></div>
           </Card>
         )}
 
         <form onSubmit={showPreview ? handleSubmit : handlePreview} className="space-y-6">
-          <Card className="border-slate-200 bg-white p-6 shadow-sm md:p-8">
+          <Card className="ns-surface border-slate-200/90 bg-white p-6 shadow-sm md:p-8">
             <div className="mb-6 flex items-center gap-3"><Sparkles className="h-5 w-5 text-sky-600" /><div><h2 className="text-xl font-semibold text-slate-950">Start with a URL</h2><p className="text-sm text-slate-500">We use the public page to prefill what we can.</p></div></div>
             <div className="space-y-5">
               <div>
@@ -297,7 +296,7 @@ export default function Submit() {
             </Card>
           )}
 
-          <Card className="border-slate-200 bg-white p-6 shadow-sm md:p-8">
+          <Card className="ns-surface border-slate-200/90 bg-white p-6 shadow-sm md:p-8">
             <h2 className="text-xl font-semibold text-slate-950">Classify the resource</h2>
             <div className="mt-5 grid gap-5 md:grid-cols-2">
               <div><label className="mb-2 block text-sm font-semibold text-slate-700">Category *</label><Select value={formData.categoryId || undefined} onValueChange={(value) => { updateField("categoryId", value); updateField("subcategoryId", ""); }}><SelectTrigger><SelectValue placeholder="Select a category" /></SelectTrigger><SelectContent>{categories.map((category) => <SelectItem key={category.id} value={String(category.id)}>{category.name}</SelectItem>)}</SelectContent></Select></div>
@@ -310,7 +309,7 @@ export default function Submit() {
             </div>
           </Card>
 
-          <Card className="border-slate-200 bg-white p-6 shadow-sm md:p-8">
+          <Card className="ns-surface border-slate-200/90 bg-white p-6 shadow-sm md:p-8">
             <h2 className="text-xl font-semibold text-slate-950">Suggest graph connections</h2>
             <p className="mt-2 text-sm leading-6 text-slate-500">These suggestions go to moderation with your submission. They are not published automatically.</p>
             <div className="mt-5 grid gap-3 md:grid-cols-[1fr_190px_auto]">

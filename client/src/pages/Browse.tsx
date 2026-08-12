@@ -113,9 +113,9 @@ export default function Browse() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <section className="border-b border-slate-200 bg-white">
-        <div className="container py-10 md:py-14">
+    <div className="min-h-screen bg-transparent">
+      <section className="ns-noise border-b border-slate-200/80 bg-white/80">
+        <div className="container py-12 md:py-16">
           <div className="max-w-3xl">
             <p className="mb-3 text-sm font-semibold uppercase tracking-[0.18em] text-sky-600">
               Resource directory
@@ -131,14 +131,14 @@ export default function Browse() {
       </section>
 
       <div className="container py-8 md:py-10">
-        <div className="mb-4 flex items-center justify-between gap-3 lg:hidden">
+        <div className="ns-surface mb-4 flex items-center justify-between gap-3 rounded-2xl p-3 lg:hidden">
           <p className="text-sm font-medium text-slate-500">Refine the resource graph with focused filters.</p>
           <Button variant="outline" onClick={() => setMobileFiltersOpen((open) => !open)} className="shrink-0 border-slate-300 bg-white text-slate-700">
             <SlidersHorizontal className="mr-2 h-4 w-4" />{mobileFiltersOpen ? "Hide filters" : hasFilters ? "Filters active" : "Filters"}
           </Button>
         </div>
         <div className="grid gap-8 lg:grid-cols-[260px_minmax(0,1fr)]">
-          <aside className={`${mobileFiltersOpen ? "block" : "hidden"} h-fit rounded-2xl border border-slate-200 bg-white p-5 shadow-sm lg:sticky lg:top-24 lg:block`}>
+          <aside className={`${mobileFiltersOpen ? "block animate-fade-in-up" : "hidden"} ns-surface h-fit rounded-2xl p-5 lg:sticky lg:top-24 lg:block`}>
             <div className="mb-5 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <SlidersHorizontal className="h-4 w-4 text-sky-600" />
@@ -172,7 +172,7 @@ export default function Browse() {
             <div className="space-y-1">
               <button
                 onClick={() => chooseCategory()}
-                className={`w-full rounded-lg px-3 py-2 text-left text-sm transition-colors ${
+                className={`w-full rounded-xl px-3 py-2.5 text-left text-sm transition-all duration-200 ${
                   selectedCategoryId === undefined ? "bg-sky-50 font-semibold text-sky-700" : "text-slate-600 hover:bg-slate-50"
                 }`}
               >
@@ -187,7 +187,7 @@ export default function Browse() {
                   <button
                     key={category.id}
                     onClick={() => chooseCategory(category.id, category.slug)}
-                    className={`w-full rounded-lg px-3 py-2 text-left text-sm transition-colors ${
+                    className={`w-full rounded-xl px-3 py-2.5 text-left text-sm transition-all duration-200 ${
                       selectedCategoryId === category.id ? "bg-sky-50 font-semibold text-sky-700" : "text-slate-600 hover:bg-slate-50"
                     }`}
                   >

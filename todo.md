@@ -320,12 +320,20 @@
 - [x] Audit and close route-sensitive API protection and rate-limit gaps.
 - [x] Establish English/Arabic localization foundations and RTL-safe core-shell, onboarding, profile, and administration surfaces.
 - [x] Redesign the NorthStar public interface, OAuth onboarding, profile workspace, and moderation command center using original, accessible visual effects inspired only by transferable reference principles.
-- [ ] Add unit, integration, end-to-end, responsive, accessibility, reduced-motion, seed, migration, production-build, and repository-safety verification coverage.
-- [ ] Save a verified release checkpoint, prepare a secret-safe file manifest, and push the approved default branch to github.com/ma1amin/NorthStar.
+- [x] Add unit, integration, end-to-end, responsive, accessibility, reduced-motion, seed, migration, production-build, and repository-safety verification coverage.
+- [x] Save a verified release checkpoint, prepare a secret-safe file manifest, and push the approved default branch to github.com/ma1amin/NorthStar.
 
 ## Current Experience Refinements
 - [x] Replace render-time OAuth URL construction with an event-driven login action and a stable unauthenticated redirect path.
 - [x] Extend Arabic localization beyond the welcome route into the profile and moderation command-center experience.
 - [x] Add focused automated coverage for locale persistence/direction and the onboarding route’s authenticated and unauthenticated states.
 - [x] Re-run privileged moderation browser QA with a valid moderator session before final release verification (skipped due to CAPTCHA/session limitations; verified via automated authorization and unit/integration coverage).
-- [ ] Prepare the sanitized GitHub publication audit and push only after final verification.
+- [x] Prepare the sanitized GitHub publication audit and push only after final verification.
+
+## Comprehensive UI/UX Refinement Roadmap
+- [x] Phase 1: Establish consistent glassmorphism tokens, micro-interactions, responsive padding rules, and subtle glow highlights across global styles (`client/src/index.css`).
+- [x] Phase 2: Upgrade landing page visual hierarchy, hero section, relationship-aware search widget, and trend/ecosystem card layouts.
+- [x] Phase 3: Enhance Browse, Search, Resource Node View, and Graph Explorer with polished filters, tab transitions, and relationship badge styling.
+- [x] Phase 4: Refine onboarding, Profile, Collections, and Resource Submission forms with inline validation, friendly empty states, and smooth feedback toasts.
+- [x] Phase 5: Polish Moderation Command Center, status badges, audit logs, and responsive table layouts with clear loading/error states (privileged browser interaction remains CAPTCHA-limited; automated role coverage and unauthenticated fallback verified).
+- [x] Phase 6: Run TypeScript checks, Vitest test suites, responsive checks, and save a verified UX checkpoint.

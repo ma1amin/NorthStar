@@ -21,3 +21,21 @@ Automated verification after the refinement changes: `pnpm check` passed and `pn
 ## Privileged Browser QA and CAPTCHA Limitation — 2026-08-12
 
 Privileged moderation browser QA for `/admin` could not be completed because the preview session encountered a CAPTCHA and lacked an authenticated administrator session. In accordance with honest release practices, this limitation is documented explicitly rather than fabricating visual inspection. Authorization security, role checks, and command-center procedures remain fully covered by automated Vitest integration tests (13 test files, 73 tests passing) and TypeScript checks (`pnpm check` clean).
+
+## UI/UX Refinement Browser Verification — 2026-08-12
+
+Preview URL: https://3000-ist3xnc5ujjxf46o35jkj-7ddd2839.sg1.manus.computer
+
+The refreshed Home route visually verified the new NorthStar shell, elevated translucent header, stronger landing-page typography, gradient/glow badge, relationship-aware search widget, resource-node preview, discovery path cards, and mobile-aware navigation controls. The public landing experience now presents a clearer visual hierarchy and more intentional relationship-centric styling.
+
+The refreshed Browse route rendered the new resource-directory header and filter workspace. The desktop view shows a sticky filter column, visible search/pricing/tag controls, grid/list controls, and resource results with a clear information hierarchy. During the first data load, the skeleton cards and “Showing 0 of 0 resources” state were visible without layout shift; the loaded page then exposed the approved resource cards and category filters. No blocking runtime error was observed in the refreshed public routes.
+
+The refreshed Search route visually verified a centered relationship-intent hero, compact search shell, prompt chips, and two-column empty-state cards for live trends and common graph queries. The Graph Explorer entry route visually verified a search-first knowledge-graph header with accessible copy and a clean bounded surface ready for node selection. Both routes retained the shared navigation, sign-in, language switcher, and footer escape paths.
+
+The refreshed Collections route visually verified the curated-knowledge header, count/status chips, prominent New collection CTA, and a stable loading state. The unauthenticated Submit route visually verified the elevated sign-in guard, human-review explanation, clear primary CTA, and Browse escape route. Both surfaces preserved the shared shell and responsive spacing.
+
+The unauthenticated Profile guard rendered with the refined elevated card and clear sign-in/Browse actions. Switching the shell language to Arabic updated the primary navigation, sign-in controls, guard heading, supporting copy, and CTA direction; the RTL layout remained visually coherent in the preview. Footer utility labels remain English in this route and are documented as a low-priority localization follow-up rather than a blocker.
+
+The Welcome route was verified in Arabic with RTL navigation, localized onboarding headline/body/CTA, and three balanced onboarding cards for profile, discovery, and contribution. The `/admin` route’s unauthenticated fallback content was available in the extracted page, but the browser preview again blocked the route behind CAPTCHA before a screenshot could be captured. Privileged moderation interaction remains unverified; automated authorization and full Vitest coverage remain the source of truth for access control.
+
+The Figma Node View verified the refreshed relationship-first layout: compact resource identity header, graph connection badges, action strip, metadata summary, relationship tabs, empty-state card, community feedback, and collection organization panels. The Figma Graph Explorer detail route exposed the bounded map, focus node, adjacent Notion node, and accessible Integrates With list with verified strength and direction context. The map briefly showed a loading state during navigation and then resolved to semantic graph content without a blocking error.

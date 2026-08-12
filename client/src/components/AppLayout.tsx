@@ -81,10 +81,10 @@ export function AppLayout({ children }: AppLayoutProps) {
   };
 
   return (
-    <div className="flex min-h-screen flex-col bg-[#f8fafc] text-slate-950">
+    <div className="ns-noise flex min-h-screen flex-col bg-[#f8fafc] text-slate-950">
       <a href="#main-content" className="sr-only z-[60] rounded-b-lg bg-slate-950 px-4 py-2 text-sm font-semibold text-white focus:not-sr-only focus:absolute focus:left-4 focus:top-0">Skip to main content</a>
-      <header className="sticky top-0 z-50 border-b border-slate-200/80 bg-white/85 backdrop-blur-xl">
-        <div className="container flex h-16 items-center justify-between gap-3">
+      <header className="ns-surface sticky top-0 z-50 border-x-0 border-t-0 bg-white/78">
+        <div className="container flex h-[4.35rem] items-center justify-between gap-3">
           <Link href="/" className="group flex shrink-0 items-center gap-2.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500">
             <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-sky-500 via-blue-600 to-violet-600 shadow-[0_6px_18px_rgba(37,99,235,0.28)] transition-transform duration-200 group-hover:scale-105">
               <Network className="h-5 w-5 text-white" strokeWidth={2.4} />
@@ -95,11 +95,11 @@ export function AppLayout({ children }: AppLayoutProps) {
             </div>
           </Link>
 
-          <nav aria-label="Primary" className="hidden items-center rounded-xl border border-slate-200 bg-slate-50/80 p-1 md:flex">
+          <nav aria-label="Primary" className="hidden items-center rounded-2xl border border-slate-200/80 bg-white/70 p-1 shadow-[0_6px_20px_rgba(15,23,42,0.04)] md:flex">
             {primaryNavigation.map((item) => {
               const Icon = item.icon;
               return (
-                <Link key={item.href} href={item.href} className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition-all ${isNavigatorRouteActive(location, item.href) ? "bg-white text-slate-950 shadow-sm ring-1 ring-slate-200" : "text-slate-500 hover:text-slate-950"}`}>
+                <Link key={item.href} href={item.href} className={`inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold transition-all duration-200 ${isNavigatorRouteActive(location, item.href) ? "bg-slate-950 text-white shadow-[0_5px_14px_rgba(15,23,42,0.16)]" : "text-slate-500 hover:bg-slate-50 hover:text-slate-950"}`}>
                   <Icon className="h-3.5 w-3.5" />{item.label}
                 </Link>
               );
@@ -107,7 +107,7 @@ export function AppLayout({ children }: AppLayoutProps) {
           </nav>
 
           <div className="flex items-center gap-1.5 sm:gap-2">
-            <Button variant="outline" onClick={() => setCommandOpen(true)} className="hidden h-9 border-slate-200 bg-white px-2.5 text-slate-600 shadow-none hover:bg-slate-50 sm:inline-flex">
+            <Button variant="outline" onClick={() => setCommandOpen(true)} className="hidden h-9 rounded-xl border-slate-200/80 bg-white/75 px-2.5 text-slate-600 shadow-sm hover:border-sky-200 hover:bg-white sm:inline-flex">
               <Search className="mr-2 h-4 w-4" /><span className="hidden lg:inline">Search resources</span><span className="lg:hidden">Search</span><kbd className="ml-2 hidden rounded border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[10px] font-medium text-slate-400 xl:inline-flex">⌘ K</kbd>
             </Button>
             <Button variant="ghost" size="icon" className="h-9 w-9 sm:hidden" aria-label="Open command search" onClick={() => setCommandOpen(true)}><Search className="h-4 w-4" /></Button>
@@ -136,11 +136,11 @@ export function AppLayout({ children }: AppLayoutProps) {
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : <Link href="/welcome"><Button size="sm" className="h-9 rounded-xl bg-slate-900 px-3.5 text-white shadow-sm hover:bg-slate-800">{t("signIn")}</Button></Link>}
-            <Button variant="ghost" size="icon" className="h-9 w-9 md:hidden" aria-expanded={mobileMenuOpen} aria-label={mobileMenuOpen ? "Close navigation" : "Open navigation"} onClick={() => setMobileMenuOpen((open) => !open)}>{mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}</Button>
+            <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl md:hidden" aria-expanded={mobileMenuOpen} aria-label={mobileMenuOpen ? "Close navigation" : "Open navigation"} onClick={() => setMobileMenuOpen((open) => !open)}>{mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}</Button>
           </div>
         </div>
 
-        {mobileMenuOpen && <div className="border-t border-slate-200 bg-white md:hidden"><nav aria-label="Mobile navigation" className="container grid gap-1 py-3">{primaryNavigation.map((item) => { const Icon = item.icon; return <Link key={item.href} href={item.href} onClick={() => setMobileMenuOpen(false)} className={`flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold ${isNavigatorRouteActive(location, item.href) ? "bg-sky-50 text-sky-800" : "text-slate-600 hover:bg-slate-50"}`}><Icon className="h-4 w-4" />{item.label}</Link>; })}{isAuthenticated && <Link href="/submit" onClick={() => setMobileMenuOpen(false)} className="mt-1 flex items-center gap-3 rounded-xl bg-slate-900 px-3 py-3 text-sm font-semibold text-white"><Plus className="h-4 w-4" />Submit a resource</Link>}</nav></div>}
+        {mobileMenuOpen && <div className="border-t border-slate-200/80 bg-white/95 shadow-[0_16px_30px_rgba(15,23,42,0.08)] md:hidden"><nav aria-label="Mobile navigation" className="container grid gap-1 py-3">{primaryNavigation.map((item) => { const Icon = item.icon; return <Link key={item.href} href={item.href} onClick={() => setMobileMenuOpen(false)} className={`flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold ${isNavigatorRouteActive(location, item.href) ? "bg-sky-50 text-sky-800" : "text-slate-600 hover:bg-slate-50"}`}><Icon className="h-4 w-4" />{item.label}</Link>; })}{isAuthenticated && <Link href="/submit" onClick={() => setMobileMenuOpen(false)} className="mt-1 flex items-center gap-3 rounded-xl bg-slate-900 px-3 py-3 text-sm font-semibold text-white"><Plus className="h-4 w-4" />Submit a resource</Link>}</nav></div>}
       </header>
 
       <CommandDialog open={commandOpen} onOpenChange={(open) => { setCommandOpen(open); if (!open) setCommandQuery(""); }} title="NorthStar command search" description="Navigate NorthStar and start resource discovery." className="max-w-lg rounded-2xl border-slate-200">
@@ -158,9 +158,9 @@ export function AppLayout({ children }: AppLayoutProps) {
         </CommandList>
       </CommandDialog>
 
-      <main id="main-content" className="flex-1" tabIndex={-1}>{children}</main>
+      <main id="main-content" className="relative flex-1" tabIndex={-1}>{children}</main>
 
-      <footer className="mt-16 border-t border-slate-200 bg-white">
+      <footer className="mt-16 border-t border-slate-200/80 bg-white/75">
         <div className="container py-10"><div className="flex flex-col gap-8 md:flex-row md:items-start md:justify-between"><div className="max-w-sm"><div className="flex items-center gap-2"><div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-900 text-white"><Network className="h-4 w-4" /></div><span className="font-['Sora'] font-bold text-slate-950">NorthStar</span></div><p className="mt-3 text-sm leading-6 text-slate-500">An open resource intelligence platform for discovering tools, understanding context, and navigating the relationships between them.</p></div><div className="grid grid-cols-2 gap-x-10 gap-y-3 text-sm"><Link href="/browse" className="font-medium text-slate-600 hover:text-sky-700">Explore resources</Link><Link href="/search" className="font-medium text-slate-600 hover:text-sky-700">Relationship search</Link><Link href="/collections" className="font-medium text-slate-600 hover:text-sky-700">Collections</Link><Link href="/submit" className="font-medium text-slate-600 hover:text-sky-700">Submit a resource</Link></div></div><div className="mt-8 flex flex-col gap-2 border-t border-slate-100 pt-5 text-xs text-slate-400 sm:flex-row sm:items-center sm:justify-between"><span>© 2026 NorthStar. Open resource intelligence.</span><span>Designed for discovery, context, and community verification.</span></div></div>
       </footer>
     </div>

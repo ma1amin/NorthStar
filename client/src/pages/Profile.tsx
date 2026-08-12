@@ -86,9 +86,9 @@ export default function Profile() {
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-slate-50 py-12">
+      <div className="ns-noise min-h-screen bg-transparent py-12">
         <div className="container max-w-2xl">
-          <Card className="p-8 text-center shadow-sm">
+          <Card className="ns-surface mx-auto p-8 text-center shadow-sm">
             <AlertCircle className="mx-auto mb-4 h-12 w-12 text-red-500" />
             <h1 className="mb-2 text-2xl font-bold text-slate-950">{t("signInRequired")}</h1>
             <p className="mb-6 text-slate-600">{t("signInToViewProfile")}</p>
@@ -103,14 +103,14 @@ export default function Profile() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 py-8 md:py-12">
+    <div className="min-h-screen bg-transparent py-10 md:py-14">
       <div className="container max-w-5xl">
-        <Card className="overflow-hidden border-slate-200 bg-white shadow-sm">
-          <div className="h-28 bg-gradient-to-r from-sky-600 via-cyan-500 to-violet-500" />
+        <Card className="ns-surface-strong overflow-hidden border-slate-200/90 shadow-sm">
+          <div className="ns-noise relative h-28 overflow-hidden bg-gradient-to-r from-sky-600 via-cyan-500 to-violet-500"><div className="ns-grid-backdrop absolute inset-0 opacity-50" /></div>
           <div className="px-5 pb-7 md:px-8">
             <div className="-mt-10 flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
               <div className="flex items-end gap-4">
-                <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-2xl border-4 border-white bg-slate-900 shadow-lg">
+                <div className="ns-glow-ring flex h-20 w-20 items-center justify-center overflow-hidden rounded-2xl border-4 border-white bg-slate-900 shadow-lg">
                   {user?.avatar ? <img src={user.avatar} alt="" className="h-full w-full object-cover" /> : <User className="h-9 w-9 text-white" />}
                 </div>
                 <div className="pb-1">
@@ -129,7 +129,7 @@ export default function Profile() {
           </div>
         </Card>
 
-        <Card className="mt-5 border-sky-100 bg-[linear-gradient(135deg,rgba(240,249,255,0.9),#fff)] p-5 shadow-sm md:p-6">
+        <Card className="ns-surface mt-5 border-sky-100 bg-[linear-gradient(135deg,rgba(240,249,255,0.9),#fff)] p-5 shadow-sm md:p-6">
           <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between"><div><p className="text-sm font-semibold uppercase tracking-[0.14em] text-sky-700">{t("yourNorthStarPath")}</p><h2 className="mt-2 text-xl font-semibold text-slate-950">{t("pathHeading")}</h2><p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">{t("pathDescription")}</p></div><Badge className="w-fit bg-sky-100 text-sky-800 hover:bg-sky-100">{[Boolean(user?.name && user.name !== "NorthStar member"), Boolean(user?.bio), Boolean(contributions?.length)].filter(Boolean).length}/3 {t("started")}</Badge></div><div className="mt-5 grid gap-3 md:grid-cols-3"><button type="button" onClick={startEditing} className="rounded-xl border border-sky-100 bg-white p-4 text-left transition hover:-translate-y-0.5 hover:border-sky-300 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"><User className="h-5 w-5 text-sky-600" /><p className="mt-3 font-semibold text-slate-950">{user?.bio ? t("profileContextAdded") : t("addProfileContext")}</p><p className="mt-1 text-sm leading-5 text-slate-600">{user?.bio ? t("keepIdentityCurrent") : t("shareWhatExplore")}</p></button><button type="button" onClick={() => setLocation("/browse")} className="rounded-xl border border-violet-100 bg-white p-4 text-left transition hover:-translate-y-0.5 hover:border-violet-300 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500"><Bookmark className="h-5 w-5 text-violet-600" /><p className="mt-3 font-semibold text-slate-950">{t("buildPersonalMap")}</p><p className="mt-1 text-sm leading-5 text-slate-600">{t("saveResources")}</p></button><button type="button" onClick={() => setLocation("/submit")} className="rounded-xl border border-emerald-100 bg-white p-4 text-left transition hover:-translate-y-0.5 hover:border-emerald-300 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"><Heart className="h-5 w-5 text-emerald-600" /><p className="mt-3 font-semibold text-slate-950">{contributions?.length ? t("keepContributing") : t("makeFirstContribution")}</p><p className="mt-1 text-sm leading-5 text-slate-600">{t("everySubmissionHuman")}</p></button></div>
         </Card>
 
