@@ -337,3 +337,8 @@
 - [x] Phase 4: Refine onboarding, Profile, Collections, and Resource Submission forms with inline validation, friendly empty states, and smooth feedback toasts.
 - [x] Phase 5: Polish Moderation Command Center, status badges, audit logs, and responsive table layouts with clear loading/error states (privileged browser interaction remains CAPTCHA-limited; automated role coverage and unauthenticated fallback verified).
 - [x] Phase 6: Run TypeScript checks, Vitest test suites, responsive checks, and save a verified UX checkpoint.
+
+## Documentation-to-Implementation Audit
+- [x] Inventory the uploaded NorthStar documentation corpus and normalize its requirements against the current implementation.
+- [x] Produce a source-cited requirement traceability matrix identifying implemented, partial, deferred, and unverified capabilities.
+- [x] Publish a prioritized remediation roadmap that separates release blockers, product enhancements, and future architecture/infrastructure decisions.
