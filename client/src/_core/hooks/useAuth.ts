@@ -1,7 +1,7 @@
-import { getLoginUrl } from "@/const";
 import { trpc } from "@/lib/trpc";
 import { TRPCClientError } from "@trpc/client";
 import { useCallback, useEffect, useMemo } from "react";
+import { getLoginUrl } from "@/const";
 
 type UseAuthOptions = {
   redirectOnUnauthenticated?: boolean;
@@ -9,8 +9,10 @@ type UseAuthOptions = {
 };
 
 export function useAuth(options?: UseAuthOptions) {
-  const { redirectOnUnauthenticated = false, redirectPath = getLoginUrl() } =
-    options ?? {};
+  const {
+    redirectOnUnauthenticated = false,
+    redirectPath = "/welcome",
+  } = options ?? {};
   const utils = trpc.useUtils();
 
   const meQuery = trpc.auth.me.useQuery(undefined, {
@@ -23,6 +25,11 @@ export function useAuth(options?: UseAuthOptions) {
       utils.auth.me.setData(undefined, null);
     },
   });
+
+  const startLogin = useCallback(() => {
+    if (typeof window === "undefined") return;
+    window.location.assign(getLoginUrl());
+  }, []);
 
   const logout = useCallback(async () => {
     try {
@@ -42,10 +49,13 @@ export function useAuth(options?: UseAuthOptions) {
   }, [logoutMutation, utils]);
 
   const state = useMemo(() => {
-    localStorage.setItem(
-      "manus-runtime-user-info",
-      JSON.stringify(meQuery.data)
-    );
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(
+        "manus-runtime-user-info",
+        JSON.stringify(meQuery.data)
+      );
+    }
+
     return {
       user: meQuery.data ?? null,
       loading: meQuery.isLoading || logoutMutation.isPending,
@@ -67,7 +77,7 @@ export function useAuth(options?: UseAuthOptions) {
     if (typeof window === "undefined") return;
     if (window.location.pathname === redirectPath) return;
 
-    window.location.href = redirectPath
+    window.location.assign(redirectPath);
   }, [
     redirectOnUnauthenticated,
     redirectPath,
@@ -79,6 +89,7 @@ export function useAuth(options?: UseAuthOptions) {
   return {
     ...state,
     refresh: () => meQuery.refetch(),
+    startLogin,
     logout,
   };
 }

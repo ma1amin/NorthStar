@@ -8,6 +8,7 @@ import {
   FilePenLine,
   Sparkles,
   ListChecks,
+  Languages,
   LogOut,
   Menu,
   Network,
@@ -18,7 +19,7 @@ import {
   X,
 } from "lucide-react";
 import { useAuth } from "@/_core/hooks/useAuth";
-import { getLoginUrl } from "@/const";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { isNavigatorRouteActive } from "@/lib/navigation";
 import { Button } from "@/components/ui/button";
 import {
@@ -43,20 +44,20 @@ interface AppLayoutProps {
   children: React.ReactNode;
 }
 
-const primaryNavigation = [
-  { href: "/browse", label: "Explore", icon: Compass },
-  { href: "/search", label: "Search", icon: Search },
-  { href: "/collections", label: "Collections", icon: FolderOpen },
-  { href: "/graph", label: "Graph", icon: GitBranch },
-];
-
 export function AppLayout({ children }: AppLayoutProps) {
-  const { user, isAuthenticated, logout } = useAuth();
+  const { user, isAuthenticated, startLogin, logout } = useAuth();
+  const { locale, toggleLocale, t } = useLanguage();
   const [location, setLocation] = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [commandOpen, setCommandOpen] = useState(false);
   const [commandQuery, setCommandQuery] = useState("");
   const ignoreShortcutCharacter = useRef(false);
+  const primaryNavigation = [
+    { href: "/browse", label: t("explore"), icon: Compass },
+    { href: "/search", label: t("search"), icon: Search },
+    { href: "/collections", label: t("collections"), icon: FolderOpen },
+    { href: "/graph", label: t("graph"), icon: GitBranch },
+  ];
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -110,6 +111,7 @@ export function AppLayout({ children }: AppLayoutProps) {
               <Search className="mr-2 h-4 w-4" /><span className="hidden lg:inline">Search resources</span><span className="lg:hidden">Search</span><kbd className="ml-2 hidden rounded border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[10px] font-medium text-slate-400 xl:inline-flex">⌘ K</kbd>
             </Button>
             <Button variant="ghost" size="icon" className="h-9 w-9 sm:hidden" aria-label="Open command search" onClick={() => setCommandOpen(true)}><Search className="h-4 w-4" /></Button>
+            <Button variant="ghost" size="sm" className="h-9 gap-1.5 px-2 text-xs font-semibold text-slate-600 hover:bg-slate-100" onClick={toggleLocale} aria-label={locale === "en" ? "Switch to Arabic" : "Switch to English"}><Languages className="h-4 w-4" />{locale === "en" ? "ع" : "EN"}</Button>
             {isAuthenticated && user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -133,7 +135,7 @@ export function AppLayout({ children }: AppLayoutProps) {
                   <DropdownMenuItem onClick={() => logout()} className="text-red-600 focus:text-red-700"><LogOut className="mr-2 h-4 w-4" />Log out</DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-            ) : <a href={getLoginUrl()}><Button size="sm" className="h-9 rounded-xl bg-slate-900 px-3.5 text-white shadow-sm hover:bg-slate-800">Sign in</Button></a>}
+            ) : <Link href="/welcome"><Button size="sm" className="h-9 rounded-xl bg-slate-900 px-3.5 text-white shadow-sm hover:bg-slate-800">{t("signIn")}</Button></Link>}
             <Button variant="ghost" size="icon" className="h-9 w-9 md:hidden" aria-expanded={mobileMenuOpen} aria-label={mobileMenuOpen ? "Close navigation" : "Open navigation"} onClick={() => setMobileMenuOpen((open) => !open)}>{mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}</Button>
           </div>
         </div>
@@ -142,7 +144,7 @@ export function AppLayout({ children }: AppLayoutProps) {
       </header>
 
       <CommandDialog open={commandOpen} onOpenChange={(open) => { setCommandOpen(open); if (!open) setCommandQuery(""); }} title="NorthStar command search" description="Navigate NorthStar and start resource discovery." className="max-w-lg rounded-2xl border-slate-200">
-        <CommandInput value={commandQuery} onValueChange={(value) => { if (ignoreShortcutCharacter.current && value.toLowerCase() === "k") return; setCommandQuery(value); }} onKeyDown={(event) => { if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") { event.preventDefault(); setCommandQuery(""); } }} placeholder="Search pages and actions…" />
+            <CommandInput value={commandQuery} onValueChange={(value) => { if (ignoreShortcutCharacter.current && value.toLowerCase() === "k") return; setCommandQuery(value); }} onKeyDown={(event) => { if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") { event.preventDefault(); setCommandQuery(""); } }} placeholder={t("commandSearch")} />
         <CommandList className="max-h-[360px] p-1.5">
           <CommandEmpty>No matching actions.</CommandEmpty>
           <CommandGroup heading="Navigate">
@@ -150,7 +152,7 @@ export function AppLayout({ children }: AppLayoutProps) {
           </CommandGroup>
           <CommandSeparator />
           <CommandGroup heading="Contribute">
-            <CommandItem value="Submit a resource" onSelect={() => { if (isAuthenticated) navigate("/submit"); else window.location.href = getLoginUrl(); }}><Plus className="h-4 w-4 text-violet-600" /><span>Submit a resource</span></CommandItem>
+            <CommandItem value="Submit a resource" onSelect={() => { if (isAuthenticated) navigate("/submit"); else startLogin(); }}><Plus className="h-4 w-4 text-violet-600" /><span>Submit a resource</span></CommandItem>
             {isAuthenticated && <CommandItem value="My profile" onSelect={() => navigate("/profile")}><UserRound className="h-4 w-4 text-violet-600" /><span>My profile</span></CommandItem>}
           </CommandGroup>
         </CommandList>

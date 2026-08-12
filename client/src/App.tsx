@@ -3,6 +3,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
+import { LanguageProvider } from "./contexts/LanguageContext";
 import { AppLayout } from "./components/AppLayout";
 import Home from "./pages/Home";
 import Browse from "./pages/Browse";
@@ -19,6 +20,7 @@ import AdminBulk from "./pages/AdminBulk";
 import AdminEditSuggestions from "./pages/AdminEditSuggestions";
 import GraphExplorer from "./pages/GraphExplorer";
 import AdminAIDrafts from "./pages/AdminAIDrafts";
+import Welcome from "./pages/Welcome";
 import NotFound from "./pages/NotFound";
 
 function Router() {
@@ -27,6 +29,7 @@ function Router() {
       <Switch>
         {/* Public pages */}
         <Route path={"/"} component={Home} />
+        <Route path={"/welcome"} component={Welcome} />
         <Route path={"/browse"} component={Browse} />
         <Route path={"/browse/:categorySlug"} component={Browse} />
         <Route path={"/resource/:slug"} component={ResourceDetail} />
@@ -61,10 +64,10 @@ function App() {
   return (
     <ErrorBoundary>
       <ThemeProvider defaultTheme="light">
-        <TooltipProvider>
+        <LanguageProvider><TooltipProvider>
           <Toaster />
           <Router />
-        </TooltipProvider>
+        </TooltipProvider></LanguageProvider>
       </ThemeProvider>
     </ErrorBoundary>
   );

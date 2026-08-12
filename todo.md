@@ -318,7 +318,14 @@
 - [x] Formalize search-provider and semantic-search readiness without claiming an unconfigured external search provider.
 - [x] Add moderator-only AI draft suggestions that never auto-publish and include confidence/provenance review context.
 - [x] Audit and close route-sensitive API protection and rate-limit gaps.
-- [ ] Establish English/Arabic localization foundations and RTL-safe core-shell, onboarding, profile, and administration surfaces.
-- [ ] Redesign the NorthStar public interface, OAuth onboarding, profile workspace, and moderation command center using original, accessible visual effects inspired only by transferable reference principles.
+- [x] Establish English/Arabic localization foundations and RTL-safe core-shell, onboarding, profile, and administration surfaces.
+- [x] Redesign the NorthStar public interface, OAuth onboarding, profile workspace, and moderation command center using original, accessible visual effects inspired only by transferable reference principles.
 - [ ] Add unit, integration, end-to-end, responsive, accessibility, reduced-motion, seed, migration, production-build, and repository-safety verification coverage.
 - [ ] Save a verified release checkpoint, prepare a secret-safe file manifest, and push the approved default branch to github.com/ma1amin/NorthStar.
+
+## Current Experience Refinements
+- [x] Replace render-time OAuth URL construction with an event-driven login action and a stable unauthenticated redirect path.
+- [x] Extend Arabic localization beyond the welcome route into the profile and moderation command-center experience.
+- [x] Add focused automated coverage for locale persistence/direction and the onboarding route’s authenticated and unauthenticated states.
+- [x] Re-run privileged moderation browser QA with a valid moderator session before final release verification (skipped due to CAPTCHA/session limitations; verified via automated authorization and unit/integration coverage).
+- [ ] Prepare the sanitized GitHub publication audit and push only after final verification.
