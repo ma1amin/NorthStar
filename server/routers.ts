@@ -62,6 +62,16 @@ import {
   checkDuplicateByTitle,
   getOrCreateTag,
   getUserById,
+  getApprovedResourceSources,
+  getPublicResourceHistory,
+  getLatestResourceFreshness,
+  createResourceSource,
+  reviewResourceSource,
+  recordResourceHistory,
+  createFreshnessReview,
+  previewDuplicateResolution,
+  createDuplicateResolutionProposal,
+  confirmDuplicateResolution,
 } from "./db";
 import { getDb } from "./db";
 import { TRPCError } from "@trpc/server";
@@ -148,6 +158,36 @@ export const appRouter = router({
           throw new TRPCError({ code: "NOT_FOUND", message: "Resource not found" });
         }
         return resource;
+      }),
+
+    getTrustContext: publicProcedure
+      .input(z.object({ resourceId: z.number().int().positive() }))
+      .query(async ({ input }) => {
+        const resource = await getResourceById(input.resourceId);
+        if (!resource) throw new TRPCError({ code: "NOT_FOUND", message: "Resource not found" });
+        const [sources, history, freshness] = await Promise.all([
+          getApprovedResourceSources(input.resourceId),
+          getPublicResourceHistory(input.resourceId),
+          getLatestResourceFreshness(input.resourceId),
+        ]);
+        return { sources, history, freshness };
+      }),
+
+    submitSource: contributionProcedure
+      .input(z.object({
+        resourceId: z.number().int().positive(),
+        url: z.string().url().max(2048),
+        sourceType: z.enum(["official", "documentation", "repository", "community", "archive", "other"]),
+        attribution: z.string().trim().max(500).optional(),
+        licenseNote: z.string().trim().max(500).optional(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const resource = await getResourceById(input.resourceId);
+        if (!resource) throw new TRPCError({ code: "NOT_FOUND", message: "Resource not found" });
+        const sourceId = await createResourceSource({ ...input, addedBy: ctx.user.id });
+        if (!sourceId) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Unable to store source" });
+        await createAuditLog(ctx.user.id, "submit_source", "resource_source", sourceId, { resourceId: input.resourceId, sourceType: input.sourceType });
+        return { success: true, sourceId };
       }),
 
     report: contributionProcedure
@@ -1016,6 +1056,64 @@ export const appRouter = router({
         if (!reviewed) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
         await createAuditLog(ctx.user.id, input.status === "resolved" ? "resolve_report" : "dismiss_report", "resource_report", input.reportId, { reviewNote: input.reviewNote });
         return { success: true };
+      }),
+
+    reviewSource: adminProcedure
+      .input(z.object({ sourceId: z.number().int().positive(), status: z.enum(["approved", "rejected", "superseded"]) }))
+      .mutation(async ({ input, ctx }) => {
+        const source = await reviewResourceSource({ ...input, reviewerId: ctx.user.id });
+        if (!source) throw new TRPCError({ code: "CONFLICT", message: "This source is no longer pending" });
+        await recordResourceHistory({
+          resourceId: source.resourceId,
+          eventType: "source_verified",
+          summary: input.status === "approved" ? `Verified ${source.sourceType} evidence` : `Reviewed ${source.sourceType} evidence`,
+          changes: { sourceId: source.id, verificationStatus: input.status },
+          isPublic: input.status === "approved",
+          recordedBy: ctx.user.id,
+        });
+        await createAuditLog(ctx.user.id, `review_source_${input.status}`, "resource_source", input.sourceId, { resourceId: source.resourceId });
+        return { success: true, resourceId: source.resourceId };
+      }),
+
+    recordFreshness: adminProcedure
+      .input(z.object({ resourceId: z.number().int().positive(), status: z.enum(["current", "needs_review", "stale"]), note: z.string().trim().max(2000).optional() }))
+      .mutation(async ({ input, ctx }) => {
+        const resource = await getResourceById(input.resourceId);
+        if (!resource) throw new TRPCError({ code: "NOT_FOUND", message: "Resource not found" });
+        const reviewId = await createFreshnessReview({ ...input, checkedBy: ctx.user.id });
+        if (!reviewId) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Unable to record freshness review" });
+        await recordResourceHistory({ resourceId: input.resourceId, eventType: "freshness_checked", summary: `Freshness marked ${input.status.replace("_", " ")}`, changes: { reviewId, status: input.status }, recordedBy: ctx.user.id });
+        await createAuditLog(ctx.user.id, "record_freshness", "resource", input.resourceId, { reviewId, status: input.status });
+        return { success: true, reviewId };
+      }),
+
+    previewDuplicateResolution: adminProcedure
+      .input(z.object({ duplicateResourceId: z.number().int().positive(), canonicalResourceId: z.number().int().positive() }).refine((input) => input.duplicateResourceId !== input.canonicalResourceId, "Choose two different resources"))
+      .query(async ({ input }) => {
+        const preview = await previewDuplicateResolution(input);
+        if (!preview) throw new TRPCError({ code: "BAD_REQUEST", message: "This pair cannot be resolved as a duplicate" });
+        return preview;
+      }),
+
+    proposeDuplicateResolution: adminProcedure
+      .input(z.object({ duplicateResourceId: z.number().int().positive(), canonicalResourceId: z.number().int().positive(), rationale: z.string().trim().min(20).max(2000) }).refine((input) => input.duplicateResourceId !== input.canonicalResourceId, "Choose two different resources"))
+      .mutation(async ({ input, ctx }) => {
+        const result = await createDuplicateResolutionProposal({ ...input, createdBy: ctx.user.id });
+        if (!result.created || !result.id || !result.preview) throw new TRPCError({ code: "CONFLICT", message: "A resolution is already present or this pair is not eligible" });
+        await recordResourceHistory({ resourceId: input.duplicateResourceId, eventType: "duplicate_resolution_proposed", summary: "Duplicate resolution proposed for moderator confirmation", changes: { resolutionId: result.id, canonicalResourceId: input.canonicalResourceId }, isPublic: false, recordedBy: ctx.user.id });
+        await createAuditLog(ctx.user.id, "propose_duplicate_resolution", "resource_duplicate_resolution", result.id, { duplicateResourceId: input.duplicateResourceId, canonicalResourceId: input.canonicalResourceId });
+        return { success: true, resolutionId: result.id, preview: result.preview };
+      }),
+
+    confirmDuplicateResolution: adminProcedure
+      .input(z.object({ resolutionId: z.number().int().positive(), reviewNote: z.string().trim().max(2000).optional() }))
+      .mutation(async ({ input, ctx }) => {
+        if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN", message: "Only administrators can confirm duplicate aliases" });
+        const result = await confirmDuplicateResolution({ ...input, reviewerId: ctx.user.id });
+        if (!result) throw new TRPCError({ code: "CONFLICT", message: "This resolution is no longer confirmable" });
+        await recordResourceHistory({ resourceId: result.resolution.duplicateResourceId, eventType: "duplicate_resolution_confirmed", summary: `Resolved as an alias of ${result.preview.canonical.title}`, changes: { resolutionId: input.resolutionId, canonicalResourceId: result.resolution.canonicalResourceId }, recordedBy: ctx.user.id });
+        await createAuditLog(ctx.user.id, "confirm_duplicate_resolution", "resource_duplicate_resolution", input.resolutionId, { duplicateResourceId: result.resolution.duplicateResourceId, canonicalResourceId: result.resolution.canonicalResourceId, reviewNote: input.reviewNote });
+        return { success: true, canonicalResourceId: result.resolution.canonicalResourceId, duplicateResourceId: result.resolution.duplicateResourceId };
       }),
 
     getPendingEditSuggestions: adminProcedure

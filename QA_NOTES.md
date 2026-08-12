@@ -39,3 +39,17 @@ The unauthenticated Profile guard rendered with the refined elevated card and cl
 The Welcome route was verified in Arabic with RTL navigation, localized onboarding headline/body/CTA, and three balanced onboarding cards for profile, discovery, and contribution. The `/admin` route’s unauthenticated fallback content was available in the extracted page, but the browser preview again blocked the route behind CAPTCHA before a screenshot could be captured. Privileged moderation interaction remains unverified; automated authorization and full Vitest coverage remain the source of truth for access control.
 
 The Figma Node View verified the refreshed relationship-first layout: compact resource identity header, graph connection badges, action strip, metadata summary, relationship tabs, empty-state card, community feedback, and collection organization panels. The Figma Graph Explorer detail route exposed the bounded map, focus node, adjacent Notion node, and accessible Integrates With list with verified strength and direction context. The map briefly showed a loading state during navigation and then resolved to semantic graph content without a blocking error.
+
+## Priority Remediation Localization Verification — 2026-08-12
+
+Arabic RTL verification on `/submit` confirmed the protected contribution guard uses localized heading, explanatory copy, sign-in action, and Browse recovery action without disrupting the event-driven sign-in flow. Arabic RTL verification on `/browse` confirmed the localized directory header, filter labels, pricing choices, sort controls, result summary, and responsive filter rail render without visible overflow.
+
+The global footer remains English by project instruction. Remaining low-priority localization follow-up includes the command-palette trigger, a sample tag placeholder, and display data supplied by resource records rather than interface copy.
+
+## Resource Trust Context and Data-Quality Foundation — 2026-08-12
+
+The Figma Resource Detail route was browser-verified in Arabic RTL mode after the data-quality release. The new trust-context card renders without exposing private moderation records and shows localized empty states when no approved evidence, public history, or freshness review exists.
+
+TypeScript validation and the full Vitest suite passed after the provenance, history, freshness, and duplicate-alias contracts were added: 13 files and 77 tests passed. The non-destructive database migration was verified against the live schema: the four new data-quality tables, the `resources.canonicalResourceId` alias column, and the four shortened duplicate-resolution foreign-key constraints are present.
+
+Privileged moderator interaction remains unverified in the browser because the preview environment’s CAPTCHA restriction persists. Router-level authorization and audit coverage is the current verification evidence for source review, freshness recording, and duplicate alias confirmation.

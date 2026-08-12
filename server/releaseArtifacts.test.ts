@@ -6,7 +6,7 @@ const root = resolve(import.meta.dirname, "..");
 
 describe("open-source release artifacts", () => {
   it("ships the required project and community documentation", () => {
-    for (const filename of ["README.md", "LICENSE", "CONTRIBUTING.md", "CODE_OF_CONDUCT.md", "SECURITY.md", "GOVERNANCE.md", "ARCHITECTURE.md", "API.md", "DATA_HANDLING.md", "ENVIRONMENT.md", "SPECIFICATION_GAP_AUDIT.md"]) {
+    for (const filename of ["README.md", "LICENSE", "CONTRIBUTING.md", "CODE_OF_CONDUCT.md", "SECURITY.md", "GOVERNANCE.md", "ARCHITECTURE.md", "API.md", "DATA_HANDLING.md", "ENVIRONMENT.md", "SPECIFICATION_GAP_AUDIT.md", "PROJECT_POLICY.md"]) {
       expect(readFileSync(resolve(root, filename), "utf8").trim().length, filename).toBeGreaterThan(80);
     }
   });

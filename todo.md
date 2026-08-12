@@ -342,3 +342,10 @@
 - [x] Inventory the uploaded NorthStar documentation corpus and normalize its requirements against the current implementation.
 - [x] Produce a source-cited requirement traceability matrix identifying implemented, partial, deferred, and unverified capabilities.
 - [x] Publish a prioritized remediation roadmap that separates release blockers, product enhancements, and future architecture/infrastructure decisions.
+
+## Priority Remediation Release
+- [x] Reconcile current legal, governance, attribution, moderation-appeal, data-retention, and authentication-promise documentation with the owner-approved product posture.
+- [x] Complete English/Arabic locale coverage and RTL-safe layouts for critical discovery, contribution, collection, and report flows.
+- [x] Add resource provenance, public change-history, and freshness-review data foundations with safe moderator workflows.
+- [x] Design and implement a previewable, auditable duplicate-resolution workflow without destructive silent deletion.
+- [x] Add migration, policy, locale, provenance, freshness, duplicate-resolution, and responsive QA coverage; save a verified remediation checkpoint.

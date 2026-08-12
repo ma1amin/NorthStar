@@ -24,6 +24,7 @@ import { toast } from "sonner";
 import { applyClientSeo } from "@/lib/seo";
 import { ReportResourceDialog } from "@/components/ReportResourceDialog";
 import { SuggestResourceEditDialog } from "@/components/SuggestResourceEditDialog";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const RELATIONSHIP_TABS = [
   { value: "alternatives", label: "Alternatives", type: "alternative_to" as const },
@@ -49,6 +50,7 @@ const RELATIONSHIP_LABELS: Record<string, string> = {
 function RelationshipCard({ relationship }: { relationship: any }) {
   const target = relationship.target;
   const { isAuthenticated, startLogin } = useAuth();
+  const { t } = useLanguage();
   const utils = trpc.useUtils();
   const [userVote, setUserVote] = useState<"upvote" | "downvote" | null>(null);
   const { data: vote } = trpc.votes.getRelationshipVote.useQuery(
@@ -57,10 +59,10 @@ function RelationshipCard({ relationship }: { relationship: any }) {
   );
   const voteMutation = trpc.votes.voteRelationship.useMutation({
     onSuccess: async () => {
-      toast.success("Relationship vote saved");
+      toast.success(t("relationshipVoteSaved"));
       await utils.votes.getRelationshipVote.invalidate({ relationshipId: relationship.id });
     },
-    onError: () => toast.error("We couldn’t save your relationship vote. Please try again."),
+    onError: () => toast.error(t("relationshipVoteError")),
   });
 
   useEffect(() => {
@@ -82,26 +84,26 @@ function RelationshipCard({ relationship }: { relationship: any }) {
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
           <p className="text-xs font-semibold uppercase tracking-[0.12em] text-sky-600">
-            {RELATIONSHIP_LABELS[relationship.type] ?? relationship.type}
+            {relationship.type === "alternative_to" ? t("alternativeTo") : relationship.type === "similar_to" ? t("similarTo") : relationship.type === "integrates_with" ? t("integratesWith") : relationship.type === "built_by" ? t("builtBy") : relationship.type === "maintained_by" ? t("maintainedBy") : relationship.type === "funded_by" ? t("fundedBy") : relationship.type === "used_by" ? t("usedBy") : relationship.type === "depends_on" ? t("dependsOn") : relationship.type === "part_of" ? t("partOf") : relationship.type === "competitor_of" ? t("competitorOf") : relationship.type}
           </p>
           <Link href={`/resource/${target.slug}`} className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500">
             <h3 className="mt-2 text-lg font-semibold text-slate-950 group-hover:text-sky-700">{target.title}</h3>
-            <p className="mt-2 line-clamp-2 text-sm leading-6 text-slate-600">{target.description || "Explore this connected resource."}</p>
+            <p className="mt-2 line-clamp-2 text-sm leading-6 text-slate-600">{target.description || t("connectedResource")}</p>
           </Link>
         </div>
         <span className="shrink-0 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">
-          {Math.round(Number(relationship.strength) * 100)}% strength
+          {Math.round(Number(relationship.strength) * 100)}% {t("strength")}
         </span>
       </div>
       <div className="mt-4 flex items-center gap-3 border-t border-slate-100 pt-3 text-xs text-slate-500">
         <span className="capitalize">{target.pricing?.replace("_", " ")}</span>
-        {relationship.verified && <span className="text-emerald-600">Verified relationship</span>}
+        {relationship.verified && <span className="text-emerald-600">{t("verifiedRelationship")}</span>}
       </div>
       <div className="mt-4 flex items-center justify-between gap-3">
-        <span className="text-xs text-slate-500">Is this connection useful?</span>
+        <span className="text-xs text-slate-500">{t("connectionUseful")}</span>
         <div className="flex gap-1.5">
-          <Button type="button" size="sm" variant={userVote === "upvote" ? "default" : "outline"} aria-label={`Upvote relationship to ${target.title}`} onClick={() => handleVote("upvote")} disabled={voteMutation.isPending}><ThumbsUp className="h-3.5 w-3.5" /></Button>
-          <Button type="button" size="sm" variant={userVote === "downvote" ? "default" : "outline"} aria-label={`Downvote relationship to ${target.title}`} onClick={() => handleVote("downvote")} disabled={voteMutation.isPending}><ThumbsDown className="h-3.5 w-3.5" /></Button>
+          <Button type="button" size="sm" variant={userVote === "upvote" ? "default" : "outline"} aria-label={`${t("upvote")} ${target.title}`} onClick={() => handleVote("upvote")} disabled={voteMutation.isPending}><ThumbsUp className="h-3.5 w-3.5" /></Button>
+          <Button type="button" size="sm" variant={userVote === "downvote" ? "default" : "outline"} aria-label={`${t("downvote")} ${target.title}`} onClick={() => handleVote("downvote")} disabled={voteMutation.isPending}><ThumbsDown className="h-3.5 w-3.5" /></Button>
         </div>
       </div>
     </Card>
@@ -112,6 +114,7 @@ export default function ResourceDetail() {
   const [, params] = useRoute("/resource/:slug");
   const slug = params?.slug ?? "";
   const { isAuthenticated, startLogin } = useAuth();
+  const { t } = useLanguage();
   const utils = trpc.useUtils();
   const [userVote, setUserVote] = useState<"upvote" | "downvote" | null>(null);
   const [isBookmarked, setIsBookmarked] = useState(false);
@@ -123,6 +126,10 @@ export default function ResourceDetail() {
     { enabled: Boolean(slug), retry: false }
   );
   const { data: categories = [] } = trpc.categories.list.useQuery();
+  const { data: trustContext } = trpc.resources.getTrustContext.useQuery(
+    { resourceId: resource?.id ?? 0 },
+    { enabled: Boolean(resource?.id) }
+  );
   const category = useMemo(
     () => categories.find((item) => item.id === resource?.categoryId),
     [categories, resource?.categoryId]
@@ -233,29 +240,29 @@ export default function ResourceDetail() {
 
   const voteMutation = trpc.votes.voteResource.useMutation({
     onSuccess: async () => {
-      toast.success("Your vote was saved");
+      toast.success(t("voteSaved"));
       await utils.votes.getResourceVote.invalidate({ resourceId: resource?.id ?? 0 });
       await utils.resources.getBySlug.invalidate({ slug });
     },
-    onError: () => toast.error("We couldn’t save your vote. Please try again."),
+    onError: () => toast.error(t("voteError")),
   });
   const bookmarkMutation = trpc.bookmarks.toggle.useMutation({
     onSuccess: async (result) => {
       setIsBookmarked(result.bookmarked);
-      toast.success(result.bookmarked ? "Resource saved" : "Resource removed from saved items");
+      toast.success(result.bookmarked ? t("resourceSaved") : t("resourceRemoved"));
       await utils.bookmarks.isBookmarked.invalidate({ resourceId: resource?.id ?? 0 });
     },
     onError: () => {
       setIsBookmarked(Boolean(bookmarked));
-      toast.error("We couldn’t update your saved items. Please try again.");
+      toast.error(t("savedItemsError"));
     },
   });
   const addToCollectionMutation = trpc.collections.addResource.useMutation({
     onSuccess: async () => {
-      toast.success("Resource added to collection");
+      toast.success(t("resourceAddedToCollection"));
       await utils.collections.getResources.invalidate({ collectionId: Number(selectedCollectionId) });
     },
-    onError: (error) => toast.error(error.message || "Could not add this resource to the collection."),
+    onError: (error) => toast.error(error.message || t("addToCollectionError")),
   });
 
   const handleProtectedAction = () => {
@@ -286,7 +293,7 @@ export default function ResourceDetail() {
       return;
     }
     if (!resource || !selectedCollectionId) {
-      toast.info("Choose a collection first");
+      toast.info(t("chooseCollectionFirst"));
       return;
     }
     addToCollectionMutation.mutate({ collectionId: Number(selectedCollectionId), resourceId: resource.id });
@@ -296,29 +303,29 @@ export default function ResourceDetail() {
     try {
       await navigator.clipboard.writeText(window.location.href);
       setCopied(true);
-      toast.success("Link copied to clipboard");
+      toast.success(t("linkCopied"));
       window.setTimeout(() => setCopied(false), 1800);
     } catch {
       setCopied(false);
-      toast.error("We couldn’t copy the link");
+      toast.error(t("copyLinkError"));
     }
   };
 
   const handleNativeShare = async () => {
     if (!navigator.share) {
-      toast.info("Native sharing is unavailable; the link was copied instead.");
+      toast.info(t("nativeShareUnavailable"));
       await handleShare();
       return;
     }
     try {
       await navigator.share({
         title: resource?.title,
-        text: resource?.description ?? "Explore this resource on NorthStar.",
+        text: resource?.description ?? t("resourceGraphDescription"),
         url: window.location.href,
       });
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") return;
-      toast.error("We couldn’t open the share dialog");
+      toast.error(t("shareDialogError"));
     }
   };
 
@@ -340,10 +347,10 @@ export default function ResourceDetail() {
   if (!resource) {
     return (
       <div className="container py-20 text-center">
-        <h1 className="text-3xl font-bold text-slate-950">Resource not found</h1>
-        <p className="mt-3 text-slate-600">This resource may have been removed or is still awaiting approval.</p>
+        <h1 className="text-3xl font-bold text-slate-950">{t("resourceNotFound")}</h1>
+        <p className="mt-3 text-slate-600">{t("resourceUnavailable")}</p>
         <Link href="/browse">
-          <Button className="mt-6 bg-sky-600 text-white hover:bg-sky-700">Browse resources</Button>
+          <Button className="mt-6 bg-sky-600 text-white hover:bg-sky-700">{t("browseResources")}</Button>
         </Link>
       </div>
     );
@@ -371,7 +378,7 @@ export default function ResourceDetail() {
       <section className="ns-noise border-b border-slate-200/80 bg-white/80">
         <div className="container py-6 md:py-10">
           <Link href="/browse" className="inline-flex items-center gap-2 text-sm font-medium text-sky-600 hover:text-sky-700">
-            <ArrowLeft className="h-4 w-4" /> Back to browse
+            <ArrowLeft className="h-4 w-4" /> {t("backToBrowse")}
           </Link>
           <div className="mt-8 flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
             <div className="flex items-start gap-5">
@@ -380,40 +387,40 @@ export default function ResourceDetail() {
               </div>
               <div>
                 <p className="text-sm font-semibold uppercase tracking-[0.14em] text-sky-600">
-                  {category?.name ?? "Resource"}
+                  {category?.name ?? t("resourceNode")}
                 </p>
                 <h1 className="mt-2 text-4xl font-bold tracking-tight text-slate-950 md:text-5xl">{resource.title}</h1>
                 <p className="mt-3 max-w-2xl text-lg leading-8 text-slate-600">
-                  {resource.description || "A resource in the NorthStar intelligence graph."}
+                  {resource.description || t("resourceGraphDescription")}
                 </p>
                 <div className="mt-5 flex flex-wrap gap-2 text-xs font-semibold">
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-sky-50 px-3 py-1.5 text-sky-700"><Network className="h-3.5 w-3.5" /> Resource node</span>
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1.5 text-slate-600"><GitBranch className="h-3.5 w-3.5" /> {connectionCount} graph connection{connectionCount === 1 ? "" : "s"}</span>
-                  {activeRelationshipTypeCount > 0 && <span className="rounded-full bg-violet-50 px-3 py-1.5 text-violet-700">{activeRelationshipTypeCount} relationship type{activeRelationshipTypeCount === 1 ? "" : "s"}</span>}
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-sky-50 px-3 py-1.5 text-sky-700"><Network className="h-3.5 w-3.5" /> {t("resourceNode")}</span>
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1.5 text-slate-600"><GitBranch className="h-3.5 w-3.5" /> {connectionCount} {t("connections")}</span>
+                  {activeRelationshipTypeCount > 0 && <span className="rounded-full bg-violet-50 px-3 py-1.5 text-violet-700">{activeRelationshipTypeCount} {t("relationshipTypes")}</span>}
                 </div>
               </div>
             </div>
             <div className="flex flex-wrap gap-2">
               <Button variant="outline" onClick={handleBookmark} disabled={bookmarkMutation.isPending}>
                 {isBookmarked ? <BookmarkCheck className="mr-2 h-4 w-4" /> : <Bookmark className="mr-2 h-4 w-4" />}
-                {isBookmarked ? "Saved" : "Save"}
+                {isBookmarked ? t("saved") : t("save")}
               </Button>
-              <Link href={`/graph/${resource.slug}`}><Button variant="outline"><GitBranch className="mr-2 h-4 w-4" /> Open graph</Button></Link>
+              <Link href={`/graph/${resource.slug}`}><Button variant="outline"><GitBranch className="mr-2 h-4 w-4" /> {t("openGraph")}</Button></Link>
               <SuggestResourceEditDialog resource={resource} isAuthenticated={isAuthenticated} />
               <ReportResourceDialog resourceId={resource.id} isAuthenticated={isAuthenticated} />
               <Button variant="outline" onClick={handleShare}>
                 {copied ? <Check className="mr-2 h-4 w-4 text-emerald-600" /> : <Share2 className="mr-2 h-4 w-4" />}
-                {copied ? "Copied" : "Copy link"}
+                {copied ? t("copied") : t("copyLink")}
               </Button>
               <Button variant="outline" onClick={handleNativeShare}>
-                <Share2 className="mr-2 h-4 w-4" /> Share
+                <Share2 className="mr-2 h-4 w-4" /> {t("share")}
               </Button>
-              <Button variant="outline" onClick={handleLinkedInShare} aria-label="Share on LinkedIn">
+              <Button variant="outline" onClick={handleLinkedInShare} aria-label={`${t("share")} LinkedIn`}>
                 in
               </Button>
               <a href={resource.url} target="_blank" rel="noopener noreferrer">
                 <Button className="bg-sky-600 text-white hover:bg-sky-700">
-                  <ExternalLink className="mr-2 h-4 w-4" /> Visit resource
+                  <ExternalLink className="mr-2 h-4 w-4" /> {t("visitResource")}
                 </Button>
               </a>
             </div>
@@ -427,40 +434,40 @@ export default function ResourceDetail() {
             <Card className="ns-surface-strong border-slate-200/90 p-6 md:p-8">
               <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">Pricing</p>
+                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">{t("pricing")}</p>
                   <p className="mt-2 font-semibold capitalize text-slate-900">{resource.pricing.replace("_", " ")}</p>
                 </div>
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">License</p>
-                  <p className="mt-2 font-semibold text-slate-900">{resource.license || "Not specified"}</p>
+                  <p className="mt-2 font-semibold text-slate-900">{resource.license || t("notSpecified")}</p>
                 </div>
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">Built By</p>
+                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">{t("builtBy")}</p>
                   {resource.builtByUrl ? (
                     <a className="mt-2 block font-semibold text-sky-600 hover:text-sky-700" href={resource.builtByUrl} target="_blank" rel="noopener noreferrer">
-                      {resource.builtBy || "Unknown"}
+                      {resource.builtBy || t("unknown")}
                     </a>
                   ) : (
-                    <p className="mt-2 font-semibold text-slate-900">{resource.builtBy || "Not specified"}</p>
+                    <p className="mt-2 font-semibold text-slate-900">{resource.builtBy || t("notSpecified")}</p>
                   )}
                 </div>
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">Community signal</p>
-                  <p className="mt-2 font-semibold text-slate-900">{resource.upvotes} upvotes</p>
+                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">{t("communitySignal")}</p>
+                  <p className="mt-2 font-semibold text-slate-900">{resource.upvotes} {t("upvotes")}</p>
                 </div>
               </div>
             </Card>
 
             <section className="mt-8">
               <div className="mb-5">
-                <p className="text-sm font-semibold uppercase tracking-[0.14em] text-sky-600">Knowledge graph</p>
-                <h2 className="mt-2 text-2xl font-bold text-slate-950">Explore connected resources</h2>
+                <p className="text-sm font-semibold uppercase tracking-[0.14em] text-sky-600">{t("knowledgeGraph")}</p>
+                <h2 className="mt-2 text-2xl font-bold text-slate-950">{t("exploreConnected")}</h2>
               </div>
               <Tabs defaultValue="alternatives">
                 <TabsList className="ns-surface mb-6 flex h-auto w-full flex-nowrap justify-start gap-1 overflow-x-auto rounded-2xl bg-white/75 p-1 shadow-sm sm:flex-wrap">
                   {RELATIONSHIP_TABS.map((tab) => (
                     <TabsTrigger key={tab.value} value={tab.value} className="flex-1 px-3 py-2 text-xs sm:text-sm">
-                      {tab.label}
+                      {tab.value === "alternatives" ? t("alternatives") : tab.value === "integrations" ? t("integrations") : tab.value === "competitors" ? t("competitors") : tab.value === "ecosystem" ? t("ecosystem") : t("similarTools")}
                     </TabsTrigger>
                   ))}
                 </TabsList>
@@ -477,8 +484,8 @@ export default function ResourceDetail() {
                       ) : (
                         <Card className="ns-surface border-dashed border-slate-300 p-10 text-center">
                           <LinkIcon className="mx-auto mb-4 h-8 w-8 text-slate-300" />
-                          <h3 className="font-semibold text-slate-900">No verified connections yet</h3>
-                          <p className="mt-2 text-sm text-slate-500">Community relationships will appear here after moderation.</p>
+                          <h3 className="font-semibold text-slate-900">{t("noVerifiedConnections")}</h3>
+                          <p className="mt-2 text-sm text-slate-500">{t("relationshipAfterModeration")}</p>
                         </Card>
                       )}
                     </TabsContent>
@@ -490,8 +497,8 @@ export default function ResourceDetail() {
 
           <aside className="self-start space-y-5 lg:sticky lg:top-24">
             <Card className="ns-surface border-slate-200/90 p-6">
-              <h2 className="font-semibold text-slate-950">Community feedback</h2>
-              <p className="mt-2 text-sm leading-6 text-slate-500">Vote on whether this resource is useful to the community.</p>
+              <h2 className="font-semibold text-slate-950">{t("communityFeedback")}</h2>
+              <p className="mt-2 text-sm leading-6 text-slate-500">{t("feedbackGuidance")}</p>
               <div className="mt-5 flex gap-2">
                 <Button
                   variant={userVote === "upvote" ? "default" : "outline"}
@@ -499,7 +506,7 @@ export default function ResourceDetail() {
                   disabled={voteMutation.isPending}
                   className="flex-1"
                 >
-                  <ThumbsUp className="mr-2 h-4 w-4" /> Upvote
+                  <ThumbsUp className="mr-2 h-4 w-4" /> {t("upvote")}
                 </Button>
                 <Button
                   variant={userVote === "downvote" ? "default" : "outline"}
@@ -507,38 +514,38 @@ export default function ResourceDetail() {
                   disabled={voteMutation.isPending}
                   className="flex-1"
                 >
-                  <ThumbsDown className="mr-2 h-4 w-4" /> Downvote
+                  <ThumbsDown className="mr-2 h-4 w-4" /> {t("downvote")}
                 </Button>
               </div>
-              {!isAuthenticated && <p className="mt-3 text-xs text-slate-500">Sign in to vote or save this resource.</p>}
+              {!isAuthenticated && <p className="mt-3 text-xs text-slate-500">{t("signInToVote")}</p>}
             </Card>
 
             <Card className="ns-surface border-slate-200/90 p-6">
-              <h2 className="font-semibold text-slate-950">Organize this resource</h2>
-              <p className="mt-2 text-sm leading-6 text-slate-500">Add this node to a curated stack so you can revisit it with related tools.</p>
+              <h2 className="font-semibold text-slate-950">{t("organizeResource")}</h2>
+              <p className="mt-2 text-sm leading-6 text-slate-500">{t("organizeGuidance")}</p>
               {isAuthenticated ? (
                 collections.length > 0 ? (
                   <div className="mt-4 space-y-3">
-                    <label htmlFor="collection-picker" className="sr-only">Choose a collection</label>
+                    <label htmlFor="collection-picker" className="sr-only">{t("chooseCollection")}</label>
                     <select id="collection-picker" value={selectedCollectionId} onChange={(event) => setSelectedCollectionId(event.target.value)} className="h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-200">
-                      <option value="">Choose a collection</option>
-                      {collections.map((collection: any) => <option key={collection.id} value={collection.id}>{collection.name}{collection.isPublic ? " · Public" : " · Private"}</option>)}
+                      <option value="">{t("chooseCollection")}</option>
+                      {collections.map((collection: any) => <option key={collection.id} value={collection.id}>{collection.name}{collection.isPublic ? ` · ${t("public")}` : ` · ${t("private")}`}</option>)}
                     </select>
-                    <Button type="button" className="w-full bg-sky-600 text-white hover:bg-sky-700" onClick={handleAddToCollection} disabled={addToCollectionMutation.isPending || !selectedCollectionId}>{addToCollectionMutation.isPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Adding…</> : "Add to collection"}</Button>
+                    <Button type="button" className="w-full bg-sky-600 text-white hover:bg-sky-700" onClick={handleAddToCollection} disabled={addToCollectionMutation.isPending || !selectedCollectionId}>{addToCollectionMutation.isPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> {t("adding")}</> : t("addToCollection")}</Button>
                   </div>
-                ) : <p className="mt-4 text-sm text-slate-500">No collections yet. <Link href="/collections" className="font-medium text-sky-700 hover:text-sky-900">Create one</Link> to organize this resource.</p>
-              ) : <p className="mt-4 text-xs text-slate-500">Sign in to organize resources into collections.</p>}
+                ) : <p className="mt-4 text-sm text-slate-500">{t("noCollectionsYet")}. <Link href="/collections" className="font-medium text-sky-700 hover:text-sky-900">{t("createOne")}</Link> {t("organizeResource").toLowerCase()}.</p>
+              ) : <p className="mt-4 text-xs text-slate-500">{t("organizeSignIn")}</p>}
             </Card>
 
             <Card className="ns-surface border-slate-200/90 p-6">
-              <h2 className="font-semibold text-slate-950">Resource details</h2>
+              <h2 className="font-semibold text-slate-950">{t("resourceDetails")}</h2>
               <dl className="mt-5 space-y-4 text-sm">
                 <div className="flex items-start justify-between gap-4">
-                  <dt className="text-slate-500">Category</dt>
-                  <dd className="text-right font-medium text-slate-900">{category?.name ?? "Not specified"}</dd>
+                  <dt className="text-slate-500">{t("category")}</dt>
+                  <dd className="text-right font-medium text-slate-900">{category?.name ?? t("notSpecified")}</dd>
                 </div>
                 <div className="flex items-start justify-between gap-4">
-                  <dt className="text-slate-500">Views</dt>
+                  <dt className="text-slate-500">{t("views")}</dt>
                   <dd className="text-right font-medium text-slate-900">{resource.views}</dd>
                 </div>
                 <div className="flex items-start justify-between gap-4">
@@ -546,6 +553,24 @@ export default function ResourceDetail() {
                   <dd className="max-w-[160px] truncate text-right font-medium text-sky-600">{resource.url}</dd>
                 </div>
               </dl>
+            </Card>
+
+            <Card className="ns-surface border-slate-200/90 p-6">
+              <h2 className="font-semibold text-slate-950">{t("trustContext")}</h2>
+              <div className="mt-5 space-y-5 text-sm">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">{t("freshness")}</p>
+                  {trustContext?.freshness ? <div className="mt-2"><span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${trustContext.freshness.status === "current" ? "bg-emerald-50 text-emerald-700" : trustContext.freshness.status === "stale" ? "bg-amber-50 text-amber-700" : "bg-slate-100 text-slate-700"}`}>{trustContext.freshness.status === "current" ? t("current") : trustContext.freshness.status === "stale" ? t("stale") : t("needsReview")}</span><p className="mt-2 text-xs text-slate-500">{t("lastChecked")} {new Date(trustContext.freshness.checkedAt).toLocaleDateString()}</p>{trustContext.freshness.note && <p className="mt-2 leading-5 text-slate-600">{trustContext.freshness.note}</p>}</div> : <p className="mt-2 text-slate-500">{t("needsReview")}</p>}
+                </div>
+                <div className="border-t border-slate-100 pt-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">{t("evidenceSources")}</p>
+                  {trustContext?.sources?.length ? <ul className="mt-2 space-y-2">{trustContext.sources.slice(0, 3).map((source) => <li key={source.id}><a href={source.url} target="_blank" rel="noreferrer" className="block truncate font-medium text-sky-700 hover:text-sky-900">{source.attribution || source.url}</a><p className="mt-0.5 text-xs capitalize text-slate-500">{source.sourceType}</p></li>)}</ul> : <p className="mt-2 text-slate-500">{t("noApprovedEvidence")}</p>}
+                </div>
+                <div className="border-t border-slate-100 pt-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">{t("publicHistory")}</p>
+                  {trustContext?.history?.length ? <ul className="mt-2 space-y-2">{trustContext.history.slice(0, 3).map((event) => <li key={event.id}><p className="leading-5 text-slate-700">{event.summary}</p><p className="mt-0.5 text-xs text-slate-500">{new Date(event.createdAt).toLocaleDateString()}</p></li>)}</ul> : <p className="mt-2 text-slate-500">{t("noPublicHistory")}</p>}
+                </div>
+              </div>
             </Card>
           </aside>
         </div>

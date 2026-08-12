@@ -13,3 +13,9 @@ Contributors may submit issues, documentation improvements, code, relationship e
 ## Moderation and Appeals
 
 Human moderation is the final authority for published resources, relationships, edit suggestions, reports, and AI-assisted drafts. Moderation actions are auditable. A contributor may request a review by providing new evidence, but appeals do not guarantee reversal and must not be used to pressure moderators.
+
+The project will publish an approved private escalation contact before accepting broad public moderation appeals. Until then, contributors should use the same approved contribution channel and clearly identify the decision, new evidence, and requested correction. Moderators must not disclose private reporter, contributor, or internal review data while handling an appeal.
+
+## Policy Authority
+
+The [PROJECT_POLICY.md](./PROJECT_POLICY.md) document defines the repository’s authoritative license, identity, retention, and release-truthfulness posture. It supersedes conflicting planning artefacts unless the owner approves a documented policy change.

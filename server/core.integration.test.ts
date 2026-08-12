@@ -20,6 +20,16 @@ const mocks = vi.hoisted(() => ({
   createAuditLog: vi.fn(),
   getDb: vi.fn(),
   getSubmissionById: vi.fn(),
+  getApprovedResourceSources: vi.fn(),
+  getPublicResourceHistory: vi.fn(),
+  getLatestResourceFreshness: vi.fn(),
+  createResourceSource: vi.fn(),
+  reviewResourceSource: vi.fn(),
+  recordResourceHistory: vi.fn(),
+  createFreshnessReview: vi.fn(),
+  previewDuplicateResolution: vi.fn(),
+  createDuplicateResolutionProposal: vi.fn(),
+  confirmDuplicateResolution: vi.fn(),
 }));
 
 vi.mock("./search", () => ({ searchService: { advancedSearch: mocks.advancedSearch, getSuggestions: vi.fn(), getTrending: vi.fn() } }));
@@ -39,6 +49,16 @@ vi.mock("./db", () => ({
   reviewResourceEditSuggestion: mocks.reviewResourceEditSuggestion,
   createAuditLog: mocks.createAuditLog,
   getSubmissionById: mocks.getSubmissionById,
+  getApprovedResourceSources: mocks.getApprovedResourceSources,
+  getPublicResourceHistory: mocks.getPublicResourceHistory,
+  getLatestResourceFreshness: mocks.getLatestResourceFreshness,
+  createResourceSource: mocks.createResourceSource,
+  reviewResourceSource: mocks.reviewResourceSource,
+  recordResourceHistory: mocks.recordResourceHistory,
+  createFreshnessReview: mocks.createFreshnessReview,
+  previewDuplicateResolution: mocks.previewDuplicateResolution,
+  createDuplicateResolutionProposal: mocks.createDuplicateResolutionProposal,
+  confirmDuplicateResolution: mocks.confirmDuplicateResolution,
 }));
 
 import { appRouter } from "./routers";
@@ -143,5 +163,47 @@ describe("core tRPC workflows", () => {
     mocks.getAuditLogs.mockResolvedValue([{ id: 8, action: "approve", entityType: "submission", entityId: 4, userId: 1, createdAt: new Date() }]);
     await expect(appRouter.createCaller(context("admin")).moderation.getAuditLogs({ limit: 20, offset: 0 })).resolves.toHaveLength(1);
     expect(mocks.getAuditLogs).toHaveBeenCalledWith(20, 0);
+  });
+
+  it("returns approved trust context through the public resource contract", async () => {
+    mocks.getResourceById.mockResolvedValue({ id: 1, title: "Trusted resource" });
+    mocks.getApprovedResourceSources.mockResolvedValue([{ id: 4, url: "https://docs.example.com", sourceType: "documentation" }]);
+    mocks.getPublicResourceHistory.mockResolvedValue([{ id: 2, summary: "Verified documentation evidence" }]);
+    mocks.getLatestResourceFreshness.mockResolvedValue({ id: 8, status: "current" });
+    await expect(appRouter.createCaller(context()).resources.getTrustContext({ resourceId: 1 })).resolves.toMatchObject({ sources: [{ id: 4 }], history: [{ summary: "Verified documentation evidence" }], freshness: { status: "current" } });
+    expect(mocks.getApprovedResourceSources).toHaveBeenCalledWith(1);
+    expect(mocks.getPublicResourceHistory).toHaveBeenCalledWith(1);
+  });
+
+  it("requires sign-in for source submission and stores a pending evidence record with an audit", async () => {
+    const anonymousContext = { user: null, req: { protocol: "https", headers: {} } as TrpcContext["req"], res: { clearCookie: vi.fn() } as TrpcContext["res"] };
+    await expect(appRouter.createCaller(anonymousContext).resources.submitSource({ resourceId: 1, url: "https://docs.example.com", sourceType: "documentation" })).rejects.toMatchObject({ code: "UNAUTHORIZED" });
+    mocks.getResourceById.mockResolvedValue({ id: 1, title: "Resource" });
+    mocks.createResourceSource.mockResolvedValue(51);
+    await expect(appRouter.createCaller(context()).resources.submitSource({ resourceId: 1, url: "https://docs.example.com", sourceType: "documentation", attribution: "Official docs" })).resolves.toEqual({ success: true, sourceId: 51 });
+    expect(mocks.createResourceSource).toHaveBeenCalledWith({ resourceId: 1, url: "https://docs.example.com", sourceType: "documentation", attribution: "Official docs", addedBy: 7 });
+    expect(mocks.createAuditLog).toHaveBeenCalledWith(7, "submit_source", "resource_source", 51, { resourceId: 1, sourceType: "documentation" });
+  });
+
+  it("allows moderators to verify evidence and record freshness with public history and audit traces", async () => {
+    mocks.reviewResourceSource.mockResolvedValue({ id: 5, resourceId: 1, sourceType: "official" });
+    mocks.getResourceById.mockResolvedValue({ id: 1, title: "Resource" });
+    mocks.createFreshnessReview.mockResolvedValue(9);
+    await expect(appRouter.createCaller(context("moderator")).moderation.reviewSource({ sourceId: 5, status: "approved" })).resolves.toEqual({ success: true, resourceId: 1 });
+    await expect(appRouter.createCaller(context("moderator")).moderation.recordFreshness({ resourceId: 1, status: "current", note: "Official site reachable." })).resolves.toEqual({ success: true, reviewId: 9 });
+    expect(mocks.recordResourceHistory).toHaveBeenCalledWith(expect.objectContaining({ resourceId: 1, eventType: "source_verified", isPublic: true }));
+    expect(mocks.createAuditLog).toHaveBeenCalledWith(7, "record_freshness", "resource", 1, { reviewId: 9, status: "current" });
+  });
+
+  it("permits preview and proposal to moderators but reserves duplicate alias confirmation for administrators", async () => {
+    const preview = { duplicate: { id: 3, title: "Duplicate" }, canonical: { id: 1, title: "Canonical" }, impact: { relationshipCount: 2, bookmarkCount: 1, collectionCount: 1 } };
+    mocks.previewDuplicateResolution.mockResolvedValue(preview);
+    mocks.createDuplicateResolutionProposal.mockResolvedValue({ created: true, id: 44, preview });
+    await expect(appRouter.createCaller(context("moderator")).moderation.previewDuplicateResolution({ duplicateResourceId: 3, canonicalResourceId: 1 })).resolves.toMatchObject({ canonical: { id: 1 } });
+    await expect(appRouter.createCaller(context("moderator")).moderation.proposeDuplicateResolution({ duplicateResourceId: 3, canonicalResourceId: 1, rationale: "The official URLs and metadata identify the same product." })).resolves.toMatchObject({ success: true, resolutionId: 44 });
+    await expect(appRouter.createCaller(context("moderator")).moderation.confirmDuplicateResolution({ resolutionId: 44 })).rejects.toMatchObject({ code: "FORBIDDEN" });
+    mocks.confirmDuplicateResolution.mockResolvedValue({ resolution: { id: 44, duplicateResourceId: 3, canonicalResourceId: 1 }, preview });
+    await expect(appRouter.createCaller(context("admin")).moderation.confirmDuplicateResolution({ resolutionId: 44, reviewNote: "Confirmed against official sources." })).resolves.toEqual({ success: true, canonicalResourceId: 1, duplicateResourceId: 3 });
+    expect(mocks.createAuditLog).toHaveBeenCalledWith(7, "confirm_duplicate_resolution", "resource_duplicate_resolution", 44, expect.objectContaining({ duplicateResourceId: 3, canonicalResourceId: 1 }));
   });
 });

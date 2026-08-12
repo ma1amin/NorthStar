@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { trpc } from "@/lib/trpc";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface FormData {
   title: string;
@@ -54,6 +55,7 @@ const RELATIONSHIP_TYPES = [
 
 export default function Submit() {
   const { isAuthenticated, startLogin } = useAuth();
+  const { t } = useLanguage();
   const [, setLocation] = useLocation();
   const [formData, setFormData] = useState<FormData>({
     title: "",
@@ -77,6 +79,9 @@ export default function Submit() {
   const [submitError, setSubmitError] = useState("");
   const [showPreview, setShowPreview] = useState(false);
   const [metadataApplied, setMetadataApplied] = useState(false);
+  const relationshipLabels: Record<SuggestedRelationship["type"], string> = {
+    alternative_to: t("alternativeTo"), similar_to: t("similarTo"), integrates_with: t("integratesWith"), built_by: t("builtBy"), maintained_by: t("maintainedBy"), funded_by: t("fundedBy"), used_by: t("usedBy"), depends_on: t("dependsOn"), part_of: t("partOf"), competitor_of: t("competitorOf"),
+  };
 
   const { data: categories = [] } = trpc.categories.list.useQuery();
   const categoryId = formData.categoryId ? Number(formData.categoryId) : undefined;
@@ -123,7 +128,7 @@ export default function Submit() {
       setSubmitSuccess(true);
       setSubmitError("");
     },
-    onError: (error) => setSubmitError(error.message || "Failed to submit resource"),
+    onError: (error) => setSubmitError(error.message || t("failedToSubmitResource")),
   });
 
   useEffect(() => {
@@ -177,11 +182,11 @@ export default function Submit() {
 
   const validateSubmission = () => {
     if (!formData.title.trim() || !isUrlValid || !categoryId) {
-      setSubmitError("Add a valid URL, title, and category before submitting.");
+      setSubmitError(t("validSubmissionRequired"));
       return false;
     }
     if (duplicateResources.length > 0) {
-      setSubmitError("Review the possible duplicates before submitting this resource.");
+      setSubmitError(t("reviewPossibleDuplicates"));
       return false;
     }
     return true;
@@ -227,11 +232,11 @@ export default function Submit() {
         <div className="container max-w-2xl">
           <Card className="ns-surface mx-auto border-slate-200 p-10 text-center shadow-sm">
             <AlertCircle className="mx-auto mb-4 h-12 w-12 text-sky-500" />
-            <h1 className="text-3xl font-bold text-slate-950">Sign in to contribute</h1>
-            <p className="mx-auto mt-3 max-w-md text-slate-600">Contributions are reviewed by the community and moderators before publication.</p>
+            <h1 className="text-3xl font-bold text-slate-950">{t("signInToContribute")}</h1>
+            <p className="mx-auto mt-3 max-w-md text-slate-600">{t("contributionReview")}</p>
             <div className="mt-7 flex flex-wrap justify-center gap-3">
-              <Button onClick={() => { startLogin(); }} className="bg-sky-600 text-white hover:bg-sky-700">Sign in to contribute</Button>
-              <Button variant="outline" onClick={() => setLocation("/browse")} className="border-slate-300 bg-white text-slate-700 hover:bg-slate-50">Browse resources</Button>
+              <Button onClick={() => { startLogin(); }} className="bg-sky-600 text-white hover:bg-sky-700">{t("signInToContribute")}</Button>
+              <Button variant="outline" onClick={() => setLocation("/browse")} className="border-slate-300 bg-white text-slate-700 hover:bg-slate-50">{t("browseResources")}</Button>
             </div>
           </Card>
         </div>
@@ -245,11 +250,11 @@ export default function Submit() {
         <div className="container max-w-2xl">
           <Card className="ns-surface ns-hover-lift mx-auto border-emerald-200 bg-white p-10 text-center shadow-sm">
             <CheckCircle className="mx-auto mb-4 h-12 w-12 text-emerald-500" />
-            <h1 className="text-3xl font-bold text-slate-950">Submission received</h1>
-            <p className="mx-auto mt-3 max-w-md text-slate-600">Thank you. A moderator will review the resource before it appears in the public directory.</p>
+            <h1 className="text-3xl font-bold text-slate-950">{t("submissionReceived")}</h1>
+            <p className="mx-auto mt-3 max-w-md text-slate-600">{t("submissionThanks")}</p>
             <div className="mt-7 flex justify-center gap-3">
-              <Button onClick={() => setLocation("/browse")} className="bg-sky-600 text-white hover:bg-sky-700">Browse resources</Button>
-              <Button variant="outline" onClick={() => window.location.reload()}>Submit another</Button>
+              <Button onClick={() => setLocation("/browse")} className="bg-sky-600 text-white hover:bg-sky-700">{t("browseResources")}</Button>
+              <Button variant="outline" onClick={() => window.location.reload()}>{t("submitAnother")}</Button>
             </div>
           </Card>
         </div>
@@ -261,9 +266,9 @@ export default function Submit() {
     <div className="min-h-screen bg-transparent">
       <section className="ns-noise border-b border-slate-200/80 bg-white/80">
         <div className="container py-10 md:py-14">
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-sky-600">Community contribution</p>
-          <h1 className="mt-3 text-4xl font-bold tracking-tight text-slate-950 md:text-5xl">Submit a resource</h1>
-          <p className="mt-4 max-w-2xl text-lg leading-8 text-slate-600">Help the community discover a useful tool. We’ll fetch metadata, check for duplicates, and route the contribution through moderation.</p>
+          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-sky-600">{t("communityContribution")}</p>
+          <h1 className="mt-3 text-4xl font-bold tracking-tight text-slate-950 md:text-5xl">{t("submit")}</h1>
+          <p className="mt-4 max-w-2xl text-lg leading-8 text-slate-600">{t("submitResourceIntro")}</p>
         </div>
       </section>
 
@@ -276,68 +281,68 @@ export default function Submit() {
 
         <form onSubmit={showPreview ? handleSubmit : handlePreview} className="space-y-6">
           <Card className="ns-surface border-slate-200/90 bg-white p-6 shadow-sm md:p-8">
-            <div className="mb-6 flex items-center gap-3"><Sparkles className="h-5 w-5 text-sky-600" /><div><h2 className="text-xl font-semibold text-slate-950">Start with a URL</h2><p className="text-sm text-slate-500">We use the public page to prefill what we can.</p></div></div>
+            <div className="mb-6 flex items-center gap-3"><Sparkles className="h-5 w-5 text-sky-600" /><div><h2 className="text-xl font-semibold text-slate-950">{t("startWithUrl")}</h2><p className="text-sm text-slate-500">{t("metadataPrefill")}</p></div></div>
             <div className="space-y-5">
               <div>
-                <label className="mb-2 block text-sm font-semibold text-slate-700" htmlFor="resource-url">Resource URL *</label>
+                <label className="mb-2 block text-sm font-semibold text-slate-700" htmlFor="resource-url">{t("resourceUrl")} *</label>
                 <div className="relative"><Input id="resource-url" type="url" value={formData.url} onChange={(event) => updateField("url", event.target.value)} placeholder="https://example.com" required className="pr-10" />{isDuplicateChecking && <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-sky-500" />}</div>
-                {metadataError && <p className="mt-2 text-sm text-amber-700">We couldn’t fetch metadata. You can still complete the fields manually.</p>}
-                {metadata && <p className="mt-2 text-sm text-emerald-700">Metadata preview loaded from {metadata.url}</p>}
+                {metadataError && <p className="mt-2 text-sm text-amber-700">{t("metadataUnavailable")}</p>}
+                {metadata && <p className="mt-2 text-sm text-emerald-700">{t("metadataLoaded")} {metadata.url}</p>}
               </div>
-              <div><label className="mb-2 block text-sm font-semibold text-slate-700" htmlFor="resource-title">Resource title *</label><Input id="resource-title" name="title" value={formData.title} onChange={(event) => updateField("title", event.target.value)} placeholder="e.g. Figma, GitHub, or a useful open-source library" required /></div>
-              <div><label className="mb-2 block text-sm font-semibold text-slate-700" htmlFor="resource-description">Description</label><Textarea id="resource-description" name="description" value={formData.description} onChange={(event) => updateField("description", event.target.value)} placeholder="What problem does it solve, and who should use it?" rows={5} /></div>
+              <div><label className="mb-2 block text-sm font-semibold text-slate-700" htmlFor="resource-title">{t("resourceTitle")} *</label><Input id="resource-title" name="title" value={formData.title} onChange={(event) => updateField("title", event.target.value)} placeholder="e.g. Figma, GitHub, or a useful open-source library" required /></div>
+              <div><label className="mb-2 block text-sm font-semibold text-slate-700" htmlFor="resource-description">{t("description")}</label><Textarea id="resource-description" name="description" value={formData.description} onChange={(event) => updateField("description", event.target.value)} placeholder={t("resourceDescriptionPlaceholder")} rows={5} /></div>
             </div>
           </Card>
 
           {duplicateResources.length > 0 && (
             <Card className="border-amber-200 bg-amber-50 p-6">
-              <div className="flex items-start gap-3"><AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" /><div><h2 className="font-semibold text-amber-950">Possible duplicates found</h2><p className="mt-1 text-sm text-amber-800">Review these existing resources before submitting.</p></div></div>
-              <div className="mt-4 space-y-3">{duplicateResources.map((resource) => <div key={resource.id} className="rounded-xl border border-amber-200 bg-white p-4"><div className="flex items-start justify-between gap-4"><div><p className="font-semibold text-slate-950">{resource.title}</p><p className="mt-1 line-clamp-2 text-sm text-slate-600">{resource.description || resource.url}</p></div>{resource.duplicateType === "pending_submission" || !resource.slug ? <span className="shrink-0 text-sm font-semibold text-amber-700">Pending review</span> : <a href={`/resource/${resource.slug}`} className="shrink-0 text-sm font-semibold text-sky-600 hover:text-sky-700">View <ExternalLink className="ml-1 inline h-3.5 w-3.5" /></a>}</div></div>)}</div>
+              <div className="flex items-start gap-3"><AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" /><div><h2 className="font-semibold text-amber-950">{t("possibleDuplicates")}</h2><p className="mt-1 text-sm text-amber-800">{t("duplicatesGuidance")}</p></div></div>
+              <div className="mt-4 space-y-3">{duplicateResources.map((resource) => <div key={resource.id} className="rounded-xl border border-amber-200 bg-white p-4"><div className="flex items-start justify-between gap-4"><div><p className="font-semibold text-slate-950">{resource.title}</p><p className="mt-1 line-clamp-2 text-sm text-slate-600">{resource.description || resource.url}</p></div>{resource.duplicateType === "pending_submission" || !resource.slug ? <span className="shrink-0 text-sm font-semibold text-amber-700">{t("pendingReview")}</span> : <a href={`/resource/${resource.slug}`} className="shrink-0 text-sm font-semibold text-sky-600 hover:text-sky-700">{t("view")} <ExternalLink className="ml-1 inline h-3.5 w-3.5" /></a>}</div></div>)}</div>
             </Card>
           )}
 
           <Card className="ns-surface border-slate-200/90 bg-white p-6 shadow-sm md:p-8">
-            <h2 className="text-xl font-semibold text-slate-950">Classify the resource</h2>
+            <h2 className="text-xl font-semibold text-slate-950">{t("classifyResource")}</h2>
             <div className="mt-5 grid gap-5 md:grid-cols-2">
-              <div><label className="mb-2 block text-sm font-semibold text-slate-700">Category *</label><Select value={formData.categoryId || undefined} onValueChange={(value) => { updateField("categoryId", value); updateField("subcategoryId", ""); }}><SelectTrigger><SelectValue placeholder="Select a category" /></SelectTrigger><SelectContent>{categories.map((category) => <SelectItem key={category.id} value={String(category.id)}>{category.name}</SelectItem>)}</SelectContent></Select></div>
-              <div><label className="mb-2 block text-sm font-semibold text-slate-700">Subcategory</label><Select value={formData.subcategoryId || undefined} onValueChange={(value) => updateField("subcategoryId", value)} disabled={!categoryId || subcategories.length === 0}><SelectTrigger><SelectValue placeholder={subcategories.length ? "Select a subcategory" : "No subcategories"} /></SelectTrigger><SelectContent>{subcategories.map((subcategory) => <SelectItem key={subcategory.id} value={String(subcategory.id)}>{subcategory.name}</SelectItem>)}</SelectContent></Select></div>
-              <div><label className="mb-2 block text-sm font-semibold text-slate-700">Pricing model</label><Select value={formData.pricing} onValueChange={(value) => updateField("pricing", value as FormData["pricing"])}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{["free", "freemium", "paid", "open_source", "enterprise"].map((value) => <SelectItem key={value} value={value}>{value.replace("_", " ")}</SelectItem>)}</SelectContent></Select></div>
+              <div><label className="mb-2 block text-sm font-semibold text-slate-700">{t("category")} *</label><Select value={formData.categoryId || undefined} onValueChange={(value) => { updateField("categoryId", value); updateField("subcategoryId", ""); }}><SelectTrigger><SelectValue placeholder={t("selectCategory")} /></SelectTrigger><SelectContent>{categories.map((category) => <SelectItem key={category.id} value={String(category.id)}>{category.name}</SelectItem>)}</SelectContent></Select></div>
+              <div><label className="mb-2 block text-sm font-semibold text-slate-700">{t("subcategory")}</label><Select value={formData.subcategoryId || undefined} onValueChange={(value) => updateField("subcategoryId", value)} disabled={!categoryId || subcategories.length === 0}><SelectTrigger><SelectValue placeholder={subcategories.length ? t("selectSubcategory") : t("noSubcategories")} /></SelectTrigger><SelectContent>{subcategories.map((subcategory) => <SelectItem key={subcategory.id} value={String(subcategory.id)}>{subcategory.name}</SelectItem>)}</SelectContent></Select></div>
+              <div><label className="mb-2 block text-sm font-semibold text-slate-700">{t("pricingModel")}</label><Select value={formData.pricing} onValueChange={(value) => updateField("pricing", value as FormData["pricing"])}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{["free", "freemium", "paid", "open_source", "enterprise"].map((value) => <SelectItem key={value} value={value}>{value.replace("_", " ")}</SelectItem>)}</SelectContent></Select></div>
               <div><label className="mb-2 block text-sm font-semibold text-slate-700" htmlFor="resource-license">License</label><Input id="resource-license" value={formData.license} onChange={(event) => updateField("license", event.target.value)} placeholder="MIT, Apache 2.0, Commercial" /></div>
-              <div><label className="mb-2 block text-sm font-semibold text-slate-700" htmlFor="resource-built-by">Built by</label><Input id="resource-built-by" value={formData.builtBy} onChange={(event) => updateField("builtBy", event.target.value)} placeholder="Organization or creator" /></div>
-              <div><label className="mb-2 block text-sm font-semibold text-slate-700" htmlFor="resource-built-by-url">Builder URL</label><Input id="resource-built-by-url" type="url" value={formData.builtByUrl} onChange={(event) => updateField("builtByUrl", event.target.value)} placeholder="https://company.example" /></div>
-              <div className="md:col-span-2"><label className="mb-2 block text-sm font-semibold text-slate-700" htmlFor="resource-tags">Tags</label><Input id="resource-tags" value={formData.tags} onChange={(event) => updateField("tags", event.target.value)} placeholder="design, collaboration, open source" /><p className="mt-2 text-xs text-slate-500">Separate tags with commas.</p></div>
+              <div><label className="mb-2 block text-sm font-semibold text-slate-700" htmlFor="resource-built-by">{t("builtBy")}</label><Input id="resource-built-by" value={formData.builtBy} onChange={(event) => updateField("builtBy", event.target.value)} placeholder="Organization or creator" /></div>
+              <div><label className="mb-2 block text-sm font-semibold text-slate-700" htmlFor="resource-built-by-url">{t("builderUrl")}</label><Input id="resource-built-by-url" type="url" value={formData.builtByUrl} onChange={(event) => updateField("builtByUrl", event.target.value)} placeholder="https://company.example" /></div>
+              <div className="md:col-span-2"><label className="mb-2 block text-sm font-semibold text-slate-700" htmlFor="resource-tags">{t("tags")}</label><Input id="resource-tags" value={formData.tags} onChange={(event) => updateField("tags", event.target.value)} placeholder="design, collaboration, open source" /><p className="mt-2 text-xs text-slate-500">{t("separateTags")}</p></div>
             </div>
           </Card>
 
           <Card className="ns-surface border-slate-200/90 bg-white p-6 shadow-sm md:p-8">
-            <h2 className="text-xl font-semibold text-slate-950">Suggest graph connections</h2>
-            <p className="mt-2 text-sm leading-6 text-slate-500">These suggestions go to moderation with your submission. They are not published automatically.</p>
+            <h2 className="text-xl font-semibold text-slate-950">{t("graphConnections")}</h2>
+            <p className="mt-2 text-sm leading-6 text-slate-500">{t("graphSuggestionGuidance")}</p>
             <div className="mt-5 grid gap-3 md:grid-cols-[1fr_190px_auto]">
-              <Input value={relationSearch} onChange={(event) => setRelationSearch(event.target.value)} placeholder="Search an existing resource" />
-              <Select value={relationType} onValueChange={(value) => setRelationType(value as SuggestedRelationship["type"])}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{RELATIONSHIP_TYPES.map((type) => <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>)}</SelectContent></Select>
-              <Button type="button" variant="outline" disabled={!relationSearch.trim() || !relationshipResults?.items?.[0]} onClick={() => relationshipResults?.items?.[0] && addSuggestedRelationship(relationshipResults.items[0].id)}><Plus className="mr-2 h-4 w-4" /> Add first match</Button>
+              <Input value={relationSearch} onChange={(event) => setRelationSearch(event.target.value)} placeholder={t("searchExistingResource")} />
+              <Select value={relationType} onValueChange={(value) => setRelationType(value as SuggestedRelationship["type"])}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{RELATIONSHIP_TYPES.map((type) => <SelectItem key={type.value} value={type.value}>{relationshipLabels[type.value]}</SelectItem>)}</SelectContent></Select>
+              <Button type="button" variant="outline" disabled={!relationSearch.trim() || !relationshipResults?.items?.[0]} onClick={() => relationshipResults?.items?.[0] && addSuggestedRelationship(relationshipResults.items[0].id)}><Plus className="mr-2 h-4 w-4" /> {t("addFirstMatch")}</Button>
             </div>
-            <div className="mt-3 grid gap-3 md:grid-cols-2"><Input type="url" value={relationshipEvidenceUrl} onChange={(event) => setRelationshipEvidenceUrl(event.target.value)} placeholder="Evidence URL (optional)" /><Input value={relationshipSourceContext} onChange={(event) => setRelationshipSourceContext(event.target.value)} maxLength={255} placeholder="Source context, e.g. project docs (optional)" /><Textarea value={relationshipRationale} onChange={(event) => setRelationshipRationale(event.target.value)} maxLength={2000} rows={3} className="md:col-span-2" placeholder="Why is this relationship meaningful? Add enough context for a moderator to verify it. (optional)" /></div>
-            {relationshipResults?.items && relationshipResults.items.length > 0 && <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3"><p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">Matches</p><div className="mt-2 flex flex-wrap gap-2">{relationshipResults.items.map((resource) => <button type="button" key={resource.id} onClick={() => addSuggestedRelationship(resource.id)} className="rounded-full bg-white px-3 py-1.5 text-sm font-medium text-slate-700 shadow-sm ring-1 ring-slate-200 hover:text-sky-700">{resource.title}</button>)}</div></div>}
-            {suggestedRelationships.length > 0 && <div className="mt-4 space-y-2">{suggestedRelationships.map((relationship, index) => { const target = relationshipResults?.items?.find((item) => item.id === relationship.targetId); return <div key={`${relationship.targetId}-${relationship.type}-${index}`} className="flex items-start justify-between gap-3 rounded-xl border border-sky-100 bg-sky-50 px-3 py-2 text-sm"><span className="text-slate-700"><span className="block">{target?.title ?? `Resource #${relationship.targetId}`} <strong className="text-sky-700">· {RELATIONSHIP_TYPES.find((type) => type.value === relationship.type)?.label}</strong></span>{relationship.evidenceUrl && <a href={relationship.evidenceUrl} target="_blank" rel="noreferrer" className="mt-1 block text-xs font-medium text-sky-700 hover:text-sky-900">Evidence supplied</a>}{relationship.rationale && <span className="mt-1 block text-xs text-slate-500">{relationship.rationale}</span>}</span><button type="button" onClick={() => setSuggestedRelationships((current) => current.filter((_, itemIndex) => itemIndex !== index))} aria-label="Remove suggested relationship" className="text-slate-400 hover:text-red-600"><X className="h-4 w-4" /></button></div>; })}</div>}
+            <div className="mt-3 grid gap-3 md:grid-cols-2"><Input type="url" value={relationshipEvidenceUrl} onChange={(event) => setRelationshipEvidenceUrl(event.target.value)} placeholder={t("evidenceUrlOptional")} /><Input value={relationshipSourceContext} onChange={(event) => setRelationshipSourceContext(event.target.value)} maxLength={255} placeholder={t("sourceContextOptional")} /><Textarea value={relationshipRationale} onChange={(event) => setRelationshipRationale(event.target.value)} maxLength={2000} rows={3} className="md:col-span-2" placeholder={t("relationshipRationalePlaceholder")} /></div>
+            {relationshipResults?.items && relationshipResults.items.length > 0 && <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3"><p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">{t("matches")}</p><div className="mt-2 flex flex-wrap gap-2">{relationshipResults.items.map((resource) => <button type="button" key={resource.id} onClick={() => addSuggestedRelationship(resource.id)} className="rounded-full bg-white px-3 py-1.5 text-sm font-medium text-slate-700 shadow-sm ring-1 ring-slate-200 hover:text-sky-700">{resource.title}</button>)}</div></div>}
+            {suggestedRelationships.length > 0 && <div className="mt-4 space-y-2">{suggestedRelationships.map((relationship, index) => { const target = relationshipResults?.items?.find((item) => item.id === relationship.targetId); return <div key={`${relationship.targetId}-${relationship.type}-${index}`} className="flex items-start justify-between gap-3 rounded-xl border border-sky-100 bg-sky-50 px-3 py-2 text-sm"><span className="text-slate-700"><span className="block">{target?.title ?? `Resource #${relationship.targetId}`} <strong className="text-sky-700">· {relationshipLabels[relationship.type]}</strong></span>{relationship.evidenceUrl && <a href={relationship.evidenceUrl} target="_blank" rel="noreferrer" className="mt-1 block text-xs font-medium text-sky-700 hover:text-sky-900">{t("evidenceSupplied")}</a>}{relationship.rationale && <span className="mt-1 block text-xs text-slate-500">{relationship.rationale}</span>}</span><button type="button" onClick={() => setSuggestedRelationships((current) => current.filter((_, itemIndex) => itemIndex !== index))} aria-label={t("removeSuggestedRelationship")} className="text-slate-400 hover:text-red-600"><X className="h-4 w-4" /></button></div>; })}</div>}
           </Card>
 
           {showPreview && (
             <Card className="border-sky-200 bg-sky-50 p-6 shadow-sm md:p-8">
-              <div className="flex items-start gap-3"><CheckCircle className="mt-0.5 h-5 w-5 shrink-0 text-sky-600" /><div><h2 className="text-xl font-semibold text-slate-950">Review before submitting</h2><p className="mt-1 text-sm leading-6 text-slate-600">This is the exact resource payload that will enter human moderation.</p></div></div>
+              <div className="flex items-start gap-3"><CheckCircle className="mt-0.5 h-5 w-5 shrink-0 text-sky-600" /><div><h2 className="text-xl font-semibold text-slate-950">{t("reviewBeforeSubmitting")}</h2><p className="mt-1 text-sm leading-6 text-slate-600">{t("moderationPayload")}</p></div></div>
               <dl className="mt-6 grid gap-4 text-sm md:grid-cols-2">
-                <div><dt className="font-semibold text-slate-500">Title</dt><dd className="mt-1 text-slate-950">{formData.title}</dd></div>
-                <div><dt className="font-semibold text-slate-500">URL</dt><dd className="mt-1 break-all text-sky-700">{formData.url}</dd></div>
-                <div><dt className="font-semibold text-slate-500">Category</dt><dd className="mt-1 text-slate-950">{selectedCategory?.name ?? "—"}{selectedSubcategory ? ` / ${selectedSubcategory.name}` : ""}</dd></div>
-                <div><dt className="font-semibold text-slate-500">Pricing</dt><dd className="mt-1 capitalize text-slate-950">{formData.pricing.replace("_", " ")}</dd></div>
-                <div className="md:col-span-2"><dt className="font-semibold text-slate-500">Description</dt><dd className="mt-1 whitespace-pre-wrap text-slate-700">{formData.description || "No description provided."}</dd></div>
-                <div><dt className="font-semibold text-slate-500">Tags</dt><dd className="mt-1 text-slate-700">{formData.tags || "No tags"}</dd></div>
-                <div><dt className="font-semibold text-slate-500">Suggested relationships</dt><dd className="mt-1 text-slate-700">{suggestedRelationships.length || "None"}</dd></div>
+                <div><dt className="font-semibold text-slate-500">{t("title")}</dt><dd className="mt-1 text-slate-950">{formData.title}</dd></div>
+                <div><dt className="font-semibold text-slate-500">{t("resourceUrl")}</dt><dd className="mt-1 break-all text-sky-700">{formData.url}</dd></div>
+                <div><dt className="font-semibold text-slate-500">{t("category")}</dt><dd className="mt-1 text-slate-950">{selectedCategory?.name ?? "—"}{selectedSubcategory ? ` / ${selectedSubcategory.name}` : ""}</dd></div>
+                <div><dt className="font-semibold text-slate-500">{t("pricingModel")}</dt><dd className="mt-1 capitalize text-slate-950">{formData.pricing.replace("_", " ")}</dd></div>
+                <div className="md:col-span-2"><dt className="font-semibold text-slate-500">{t("description")}</dt><dd className="mt-1 whitespace-pre-wrap text-slate-700">{formData.description || t("noDescriptionProvided")}</dd></div>
+                <div><dt className="font-semibold text-slate-500">{t("tags")}</dt><dd className="mt-1 text-slate-700">{formData.tags || t("noTags")}</dd></div>
+                <div><dt className="font-semibold text-slate-500">{t("suggestedRelationships")}</dt><dd className="mt-1 text-slate-700">{suggestedRelationships.length || t("none")}</dd></div>
               </dl>
             </Card>
           )}
 
-          <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end"><Button type="button" variant="outline" onClick={() => setLocation("/browse")}>Cancel</Button>{showPreview && <Button type="button" variant="outline" onClick={() => setShowPreview(false)}>Edit details</Button>}<Button type="submit" disabled={submitMutation.isPending || isDuplicateChecking || duplicateResources.length > 0} className="bg-sky-600 text-white hover:bg-sky-700">{submitMutation.isPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Sending to moderation...</> : showPreview ? "Submit for review" : "Review before submitting"}</Button></div>
+          <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end"><Button type="button" variant="outline" onClick={() => setLocation("/browse")}>{t("cancel")}</Button>{showPreview && <Button type="button" variant="outline" onClick={() => setShowPreview(false)}>{t("editDetails")}</Button>}<Button type="submit" disabled={submitMutation.isPending || isDuplicateChecking || duplicateResources.length > 0} className="bg-sky-600 text-white hover:bg-sky-700">{submitMutation.isPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> {t("sendingToModeration")}</> : showPreview ? t("submitForReview") : t("reviewBeforeSubmitting")}</Button></div>
         </form>
       </div>
     </div>

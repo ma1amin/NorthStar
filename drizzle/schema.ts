@@ -134,6 +134,7 @@ export const resources = mysqlTable(
     license: varchar("license", { length: 255 }),
     builtBy: varchar("builtBy", { length: 255 }),
     builtByUrl: varchar("builtByUrl", { length: 2048 }),
+    canonicalResourceId: int("canonicalResourceId"),
     submittedBy: int("submittedBy").notNull(),
     status: mysqlEnum("status", ["approved", "pending", "rejected"]).default("pending").notNull(),
     upvotes: int("upvotes").default(0).notNull(),
@@ -150,6 +151,7 @@ export const resources = mysqlTable(
     subcategoryIdIdx: index("subcategoryId_idx").on(table.subcategoryId),
     submittedByIdx: index("submittedBy_idx").on(table.submittedBy),
     statusIdx: index("status_idx").on(table.status),
+    canonicalResourceIdx: index("canonicalResource_idx").on(table.canonicalResourceId),
     categoryFk: foreignKey({
       columns: [table.categoryId],
       foreignColumns: [categories.id],
@@ -162,11 +164,132 @@ export const resources = mysqlTable(
       columns: [table.submittedBy],
       foreignColumns: [users.id],
     }).onDelete("restrict"),
+    canonicalResourceFk: foreignKey({
+      columns: [table.canonicalResourceId],
+      foreignColumns: [table.id],
+    }).onDelete("set null"),
   })
 );
 
 export type Resource = typeof resources.$inferSelect;
 export type InsertResource = typeof resources.$inferInsert;
+
+/**
+ * Attributed evidence for resource facts. Sources are first-class records so
+ * metadata provenance does not rely on opaque JSON blobs.
+ */
+export const resourceSources = mysqlTable(
+  "resource_sources",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    resourceId: int("resourceId").notNull(),
+    url: varchar("url", { length: 2048 }).notNull(),
+    sourceType: mysqlEnum("sourceType", ["official", "documentation", "repository", "community", "archive", "other"]).notNull(),
+    attribution: varchar("attribution", { length: 500 }),
+    licenseNote: varchar("licenseNote", { length: 500 }),
+    capturedAt: timestamp("capturedAt").defaultNow().notNull(),
+    verificationStatus: mysqlEnum("verificationStatus", ["pending", "approved", "rejected", "superseded"]).default("pending").notNull(),
+    addedBy: int("addedBy").notNull(),
+    verifiedBy: int("verifiedBy"),
+    verifiedAt: timestamp("verifiedAt"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  (table) => ({
+    resourceStatusIdx: index("resource_sources_resource_status_idx").on(table.resourceId, table.verificationStatus),
+    sourceUrlIdx: index("resource_sources_url_idx").on(table.url),
+    resourceFk: foreignKey({ columns: [table.resourceId], foreignColumns: [resources.id] }).onDelete("cascade"),
+    addedByFk: foreignKey({ columns: [table.addedBy], foreignColumns: [users.id] }).onDelete("restrict"),
+    verifiedByFk: foreignKey({ columns: [table.verifiedBy], foreignColumns: [users.id] }).onDelete("set null"),
+  })
+);
+
+export type ResourceSource = typeof resourceSources.$inferSelect;
+export type InsertResourceSource = typeof resourceSources.$inferInsert;
+
+/**
+ * Append-only resource accountability events. Public history only records
+ * accepted resource facts and intentionally excludes private reports/notes.
+ */
+export const resourceHistory = mysqlTable(
+  "resource_history",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    resourceId: int("resourceId").notNull(),
+    eventType: mysqlEnum("eventType", ["resource_created", "metadata_updated", "source_verified", "freshness_checked", "duplicate_resolution_proposed", "duplicate_resolution_confirmed"]).notNull(),
+    summary: varchar("summary", { length: 500 }).notNull(),
+    changes: json("changes"),
+    isPublic: boolean("isPublic").default(true).notNull(),
+    recordedBy: int("recordedBy").notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  (table) => ({
+    resourceCreatedIdx: index("resource_history_resource_created_idx").on(table.resourceId, table.createdAt),
+    publicIdx: index("resource_history_public_idx").on(table.resourceId, table.isPublic),
+    resourceFk: foreignKey({ columns: [table.resourceId], foreignColumns: [resources.id] }).onDelete("cascade"),
+    recordedByFk: foreignKey({ columns: [table.recordedBy], foreignColumns: [users.id] }).onDelete("restrict"),
+  })
+);
+
+export type ResourceHistoryEvent = typeof resourceHistory.$inferSelect;
+export type InsertResourceHistoryEvent = typeof resourceHistory.$inferInsert;
+
+/**
+ * Point-in-time freshness review records. A resource can be reviewed many
+ * times; the most recent review represents current moderation guidance.
+ */
+export const resourceFreshnessReviews = mysqlTable(
+  "resource_freshness_reviews",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    resourceId: int("resourceId").notNull(),
+    status: mysqlEnum("status", ["current", "needs_review", "stale"]).notNull(),
+    note: text("note"),
+    checkedBy: int("checkedBy").notNull(),
+    checkedAt: timestamp("checkedAt").defaultNow().notNull(),
+  },
+  (table) => ({
+    resourceCheckedIdx: index("resource_freshness_resource_checked_idx").on(table.resourceId, table.checkedAt),
+    statusCheckedIdx: index("resource_freshness_status_checked_idx").on(table.status, table.checkedAt),
+    resourceFk: foreignKey({ columns: [table.resourceId], foreignColumns: [resources.id] }).onDelete("cascade"),
+    checkedByFk: foreignKey({ columns: [table.checkedBy], foreignColumns: [users.id] }).onDelete("restrict"),
+  })
+);
+
+export type ResourceFreshnessReview = typeof resourceFreshnessReviews.$inferSelect;
+export type InsertResourceFreshnessReview = typeof resourceFreshnessReviews.$inferInsert;
+
+/**
+ * Moderator-owned duplicate-resolution records. Confirmation preserves the
+ * original node as an alias of a canonical resource; no resource is deleted.
+ */
+export const resourceDuplicateResolutions = mysqlTable(
+  "resource_duplicate_resolutions",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    duplicateResourceId: int("duplicateResourceId").notNull(),
+    canonicalResourceId: int("canonicalResourceId").notNull(),
+    status: mysqlEnum("status", ["proposed", "confirmed", "cancelled"]).default("proposed").notNull(),
+    rationale: text("rationale").notNull(),
+    createdBy: int("createdBy").notNull(),
+    reviewedBy: int("reviewedBy"),
+    reviewNote: text("reviewNote"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    reviewedAt: timestamp("reviewedAt"),
+  },
+  (table) => ({
+    duplicateStatusIdx: index("resource_duplicate_duplicate_status_idx").on(table.duplicateResourceId, table.status),
+    canonicalStatusIdx: index("resource_duplicate_canonical_status_idx").on(table.canonicalResourceId, table.status),
+    pairIdx: uniqueIndex("resource_duplicate_pair_idx").on(table.duplicateResourceId, table.canonicalResourceId),
+    duplicateFk: foreignKey({ name: "res_dup_dup_fk", columns: [table.duplicateResourceId], foreignColumns: [resources.id] }).onDelete("restrict"),
+    canonicalFk: foreignKey({ name: "res_dup_can_fk", columns: [table.canonicalResourceId], foreignColumns: [resources.id] }).onDelete("restrict"),
+    createdByFk: foreignKey({ name: "res_dup_creator_fk", columns: [table.createdBy], foreignColumns: [users.id] }).onDelete("restrict"),
+    reviewedByFk: foreignKey({ name: "res_dup_reviewer_fk", columns: [table.reviewedBy], foreignColumns: [users.id] }).onDelete("set null"),
+  })
+);
+
+export type ResourceDuplicateResolution = typeof resourceDuplicateResolutions.$inferSelect;
+export type InsertResourceDuplicateResolution = typeof resourceDuplicateResolutions.$inferInsert;
 
 /**
  * Resource-Tag association (many-to-many).

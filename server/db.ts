@@ -1,4 +1,4 @@
-import { eq, and, or, like, desc, asc, inArray, sql } from "drizzle-orm";
+import { eq, and, or, like, desc, asc, inArray, isNull, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import {
   InsertUser,
@@ -19,6 +19,10 @@ import {
   resourceReports,
   resourceEditSuggestions,
   reputationEvents,
+  resourceSources,
+  resourceHistory,
+  resourceFreshnessReviews,
+  resourceDuplicateResolutions,
 } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
@@ -133,7 +137,7 @@ export async function listApprovedResources(options: ResourceListOptions = {}) {
 
   const limit = Math.min(Math.max(options.limit ?? 20, 1), 100);
   const offset = Math.max(options.offset ?? 0, 0);
-  const conditions = [eq(resources.status, "approved")];
+  const conditions = [eq(resources.status, "approved"), isNull(resources.canonicalResourceId)];
 
   if (options.query?.trim()) {
     const query = `%${options.query.trim()}%`;
@@ -221,7 +225,10 @@ export async function getResourceBySlug(slug: string) {
   if (!db) return undefined;
 
   const result = await db.select().from(resources).where(eq(resources.slug, slug)).limit(1);
-  return result.length > 0 ? result[0] : undefined;
+  const resource = result[0];
+  if (!resource) return undefined;
+  if (resource.canonicalResourceId) return getResourceById(resource.canonicalResourceId);
+  return resource;
 }
 
 export async function getResourceById(id: number) {
@@ -232,6 +239,107 @@ export async function getResourceById(id: number) {
   return result.length > 0 ? result[0] : undefined;
 }
 
+// Resource trust, provenance, freshness, and history
+export async function getApprovedResourceSources(resourceId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select({ id: resourceSources.id, url: resourceSources.url, sourceType: resourceSources.sourceType, attribution: resourceSources.attribution, licenseNote: resourceSources.licenseNote, capturedAt: resourceSources.capturedAt, verifiedAt: resourceSources.verifiedAt })
+    .from(resourceSources)
+    .where(and(eq(resourceSources.resourceId, resourceId), eq(resourceSources.verificationStatus, "approved")))
+    .orderBy(desc(resourceSources.verifiedAt), desc(resourceSources.capturedAt));
+}
+
+export async function getPublicResourceHistory(resourceId: number, limit: number = 30) {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select({ id: resourceHistory.id, eventType: resourceHistory.eventType, summary: resourceHistory.summary, changes: resourceHistory.changes, createdAt: resourceHistory.createdAt })
+    .from(resourceHistory)
+    .where(and(eq(resourceHistory.resourceId, resourceId), eq(resourceHistory.isPublic, true)))
+    .orderBy(desc(resourceHistory.createdAt))
+    .limit(Math.min(Math.max(limit, 1), 100));
+}
+
+export async function getLatestResourceFreshness(resourceId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const rows = await db.select().from(resourceFreshnessReviews).where(eq(resourceFreshnessReviews.resourceId, resourceId)).orderBy(desc(resourceFreshnessReviews.checkedAt)).limit(1);
+  return rows[0];
+}
+
+export async function createResourceSource(input: { resourceId: number; url: string; sourceType: "official" | "documentation" | "repository" | "community" | "archive" | "other"; attribution?: string; licenseNote?: string; addedBy: number }) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.insert(resourceSources).values({ ...input, attribution: input.attribution || null, licenseNote: input.licenseNote || null });
+  return result[0].insertId;
+}
+
+export async function reviewResourceSource(input: { sourceId: number; reviewerId: number; status: "approved" | "rejected" | "superseded" }) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const rows = await db.select().from(resourceSources).where(and(eq(resourceSources.id, input.sourceId), eq(resourceSources.verificationStatus, "pending"))).limit(1);
+  const source = rows[0];
+  if (!source) return undefined;
+  const result = await db.update(resourceSources).set({ verificationStatus: input.status, verifiedBy: input.reviewerId, verifiedAt: new Date() }).where(and(eq(resourceSources.id, input.sourceId), eq(resourceSources.verificationStatus, "pending")));
+  if (Number((result as any)[0]?.affectedRows ?? 0) < 1) return undefined;
+  return source;
+}
+
+export async function recordResourceHistory(input: { resourceId: number; eventType: "resource_created" | "metadata_updated" | "source_verified" | "freshness_checked" | "duplicate_resolution_proposed" | "duplicate_resolution_confirmed"; summary: string; changes?: Record<string, unknown>; isPublic?: boolean; recordedBy: number }) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.insert(resourceHistory).values({ ...input, changes: input.changes, isPublic: input.isPublic ?? true });
+  return result[0].insertId;
+}
+
+export async function createFreshnessReview(input: { resourceId: number; status: "current" | "needs_review" | "stale"; note?: string; checkedBy: number }) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.insert(resourceFreshnessReviews).values({ ...input, note: input.note || null });
+  return result[0].insertId;
+}
+
+export async function previewDuplicateResolution(input: { duplicateResourceId: number; canonicalResourceId: number }) {
+  const db = await getDb();
+  if (!db || input.duplicateResourceId === input.canonicalResourceId) return undefined;
+  const rows = await db.select({ id: resources.id, title: resources.title, slug: resources.slug, status: resources.status, canonicalResourceId: resources.canonicalResourceId }).from(resources).where(inArray(resources.id, [input.duplicateResourceId, input.canonicalResourceId]));
+  const duplicate = rows.find((row) => row.id === input.duplicateResourceId);
+  const canonical = rows.find((row) => row.id === input.canonicalResourceId);
+  if (!duplicate || !canonical || duplicate.status !== "approved" || canonical.status !== "approved" || duplicate.canonicalResourceId) return undefined;
+  const [relationshipCount, bookmarkCount, collectionCount] = await Promise.all([
+    db.select({ count: sql<number>`count(*)` }).from(relationships).where(or(eq(relationships.sourceId, duplicate.id), eq(relationships.targetId, duplicate.id))),
+    db.select({ count: sql<number>`count(*)` }).from(bookmarks).where(eq(bookmarks.resourceId, duplicate.id)),
+    db.select({ count: sql<number>`count(*)` }).from(collectionResources).where(eq(collectionResources.resourceId, duplicate.id)),
+  ]);
+  const existing = await db.select().from(resourceDuplicateResolutions).where(and(eq(resourceDuplicateResolutions.duplicateResourceId, duplicate.id), eq(resourceDuplicateResolutions.canonicalResourceId, canonical.id))).limit(1);
+  return { duplicate, canonical, existing: existing[0], impact: { relationshipCount: Number(relationshipCount[0]?.count ?? 0), bookmarkCount: Number(bookmarkCount[0]?.count ?? 0), collectionCount: Number(collectionCount[0]?.count ?? 0), strategy: "Alias confirmation preserves the original resource and all linked community records; no referenced record is deleted or silently rewritten." } };
+}
+
+export async function createDuplicateResolutionProposal(input: { duplicateResourceId: number; canonicalResourceId: number; rationale: string; createdBy: number }) {
+  const db = await getDb();
+  if (!db) return { created: false, id: undefined };
+  const preview = await previewDuplicateResolution(input);
+  if (!preview || preview.existing) return { created: false, id: undefined };
+  const result = await db.insert(resourceDuplicateResolutions).values(input);
+  return { created: true, id: result[0].insertId, preview };
+}
+
+export async function confirmDuplicateResolution(input: { resolutionId: number; reviewerId: number; reviewNote?: string }) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const rows = await db.select().from(resourceDuplicateResolutions).where(and(eq(resourceDuplicateResolutions.id, input.resolutionId), eq(resourceDuplicateResolutions.status, "proposed"))).limit(1);
+  const resolution = rows[0];
+  if (!resolution) return undefined;
+  const preview = await previewDuplicateResolution({ duplicateResourceId: resolution.duplicateResourceId, canonicalResourceId: resolution.canonicalResourceId });
+  if (!preview) return undefined;
+  const alias = await db.update(resources).set({ canonicalResourceId: resolution.canonicalResourceId }).where(and(eq(resources.id, resolution.duplicateResourceId), isNull(resources.canonicalResourceId)));
+  if (Number((alias as any)[0]?.affectedRows ?? 0) < 1) return undefined;
+  const updated = await db.update(resourceDuplicateResolutions).set({ status: "confirmed", reviewedBy: input.reviewerId, reviewNote: input.reviewNote || null, reviewedAt: new Date() }).where(and(eq(resourceDuplicateResolutions.id, input.resolutionId), eq(resourceDuplicateResolutions.status, "proposed")));
+  if (Number((updated as any)[0]?.affectedRows ?? 0) < 1) return undefined;
+  return { resolution, preview };
+}
+
 export async function getResourcesByCategory(categoryId: number, limit: number = 50, offset: number = 0) {
   const db = await getDb();
   if (!db) return [];
@@ -239,7 +347,7 @@ export async function getResourcesByCategory(categoryId: number, limit: number =
   return db
     .select()
     .from(resources)
-    .where(and(eq(resources.categoryId, categoryId), eq(resources.status, "approved")))
+    .where(and(eq(resources.categoryId, categoryId), eq(resources.status, "approved"), isNull(resources.canonicalResourceId)))
     .orderBy(desc(resources.upvotes))
     .limit(limit)
     .offset(offset);

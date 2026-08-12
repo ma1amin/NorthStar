@@ -16,6 +16,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { trpc } from "@/lib/trpc";
 import { applyClientSeo } from "@/lib/seo";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const ITEMS_PER_PAGE = 12;
 
@@ -34,6 +35,7 @@ function formatPricing(value: string) {
 
 export default function Browse() {
   const [, setLocation] = useLocation();
+  const { t } = useLanguage();
   const [, routeParams] = useRoute("/browse/:categorySlug");
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | undefined>();
   const [selectedSubcategoryId, setSelectedSubcategoryId] = useState<number | undefined>();
@@ -118,13 +120,13 @@ export default function Browse() {
         <div className="container py-12 md:py-16">
           <div className="max-w-3xl">
             <p className="mb-3 text-sm font-semibold uppercase tracking-[0.18em] text-sky-600">
-              Resource directory
+              {t("resourceDirectory")}
             </p>
             <h1 className="text-4xl font-bold tracking-tight text-slate-950 md:text-5xl">
-              Browse the intelligence hub
+              {t("browseHub")}
             </h1>
             <p className="mt-4 max-w-2xl text-lg text-slate-600">
-              Search and filter verified tools, services, libraries, and ecosystems with context that helps you choose well.
+              {t("browseIntro")}
             </p>
           </div>
         </div>
@@ -132,9 +134,9 @@ export default function Browse() {
 
       <div className="container py-8 md:py-10">
         <div className="ns-surface mb-4 flex items-center justify-between gap-3 rounded-2xl p-3 lg:hidden">
-          <p className="text-sm font-medium text-slate-500">Refine the resource graph with focused filters.</p>
+          <p className="text-sm font-medium text-slate-500">{t("refineGraph")}</p>
           <Button variant="outline" onClick={() => setMobileFiltersOpen((open) => !open)} className="shrink-0 border-slate-300 bg-white text-slate-700">
-            <SlidersHorizontal className="mr-2 h-4 w-4" />{mobileFiltersOpen ? "Hide filters" : hasFilters ? "Filters active" : "Filters"}
+            <SlidersHorizontal className="mr-2 h-4 w-4" />{mobileFiltersOpen ? t("hideFilters") : hasFilters ? t("filtersActive") : t("filters")}
           </Button>
         </div>
         <div className="grid gap-8 lg:grid-cols-[260px_minmax(0,1fr)]">
@@ -142,17 +144,17 @@ export default function Browse() {
             <div className="mb-5 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <SlidersHorizontal className="h-4 w-4 text-sky-600" />
-                <h2 className="font-semibold text-slate-900">Filters</h2>
+                <h2 className="font-semibold text-slate-900">{t("filters")}</h2>
               </div>
               {hasFilters && (
                 <button onClick={() => { resetFilters(); setMobileFiltersOpen(false); }} className="text-xs font-medium text-sky-600 hover:text-sky-700">
-                  Clear all
+                  {t("clearAll")}
                 </button>
               )}
             </div>
 
             <label className="mb-2 block text-sm font-semibold text-slate-700" htmlFor="browse-search">
-              Search
+              {t("search")}
             </label>
             <div className="relative mb-6">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
@@ -163,12 +165,12 @@ export default function Browse() {
                   setQuery(event.target.value);
                   setPage(1);
                 }}
-                placeholder="Search resources..."
+                placeholder={t("searchResources")}
                 className="pl-9"
               />
             </div>
 
-            <p className="mb-2 text-sm font-semibold text-slate-700">Categories</p>
+            <p className="mb-2 text-sm font-semibold text-slate-700">{t("categories")}</p>
             <div className="space-y-1">
               <button
                 onClick={() => chooseCategory()}
@@ -176,11 +178,11 @@ export default function Browse() {
                   selectedCategoryId === undefined ? "bg-sky-50 font-semibold text-sky-700" : "text-slate-600 hover:bg-slate-50"
                 }`}
               >
-                All resources
+                {t("allResources")}
               </button>
               {categoriesLoading ? (
                 <div className="flex items-center gap-2 px-3 py-2 text-sm text-slate-400">
-                  <Loader2 className="h-4 w-4 animate-spin" /> Loading categories
+                  <Loader2 className="h-4 w-4 animate-spin" /> {t("loadingCategories")}
                 </div>
               ) : (
                 categories.map((category) => (
@@ -199,7 +201,7 @@ export default function Browse() {
 
             {selectedCategoryId !== undefined && subcategories.length > 0 && (
               <div className="mt-6 border-t border-slate-100 pt-5">
-                <p className="mb-2 text-sm font-semibold text-slate-700">Subcategories</p>
+                <p className="mb-2 text-sm font-semibold text-slate-700">{t("subcategories")}</p>
                 <div className="space-y-1">
                   <button
                     onClick={() => {
@@ -210,7 +212,7 @@ export default function Browse() {
                       selectedSubcategoryId === undefined ? "bg-sky-50 font-semibold text-sky-700" : "text-slate-600 hover:bg-slate-50"
                     }`}
                   >
-                    All subcategories
+                    {t("allSubcategories")}
                   </button>
                   {subcategories.map((subcategory) => (
                     <button
@@ -232,7 +234,7 @@ export default function Browse() {
 
             <div className="mt-6 border-t border-slate-100 pt-5">
               <label className="mb-2 block text-sm font-semibold text-slate-700" htmlFor="browse-pricing">
-                Pricing model
+                {t("pricingModel")}
               </label>
               <select
                 id="browse-pricing"
@@ -245,7 +247,7 @@ export default function Browse() {
               >
                 {PRICING_OPTIONS.map((option) => (
                   <option key={option.value} value={option.value}>
-                    {option.label}
+                    {option.value === "all" ? t("allPricing") : option.value === "free" ? t("free") : option.value === "paid" ? t("paid") : option.value === "open_source" ? t("openSource") : option.value === "enterprise" ? t("enterprise") : option.label}
                   </option>
                 ))}
               </select>
@@ -253,7 +255,7 @@ export default function Browse() {
 
             <div className="mt-5">
               <label className="mb-2 block text-sm font-semibold text-slate-700" htmlFor="browse-tag">
-                Tag
+                {t("tag")}
               </label>
               <div className="relative">
                 <Tag className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
@@ -275,11 +277,11 @@ export default function Browse() {
             <div className="mb-6 flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="text-sm text-slate-500">
-                  {resourcesFetching && !resourcesLoading ? "Updating results..." : `Showing ${resources.length} of ${total} resources`}
+                  {resourcesFetching && !resourcesLoading ? t("updatingResults") : `${t("showing")} ${resources.length} ${t("of")} ${total} ${t("resources")}`}
                 </p>
               </div>
               <div className="flex items-center gap-2">
-                <label className="sr-only" htmlFor="browse-sort">Sort resources</label>
+                <label className="sr-only" htmlFor="browse-sort">{t("sortResources")}</label>
                 <select
                   id="browse-sort"
                   value={sort}
@@ -289,19 +291,19 @@ export default function Browse() {
                   }}
                   className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700"
                 >
-                  <option value="popular">Most popular</option>
-                  <option value="newest">Newest</option>
+                  <option value="popular">{t("mostPopular")}</option>
+                  <option value="newest">{t("newest")}</option>
                 </select>
                 <div className="flex rounded-lg border border-slate-200 p-1">
                   <button
-                    aria-label="Grid view"
+                    aria-label={t("gridView")}
                     onClick={() => setViewMode("grid")}
                     className={`rounded-md p-2 ${viewMode === "grid" ? "bg-sky-50 text-sky-700" : "text-slate-400 hover:text-slate-600"}`}
                   >
                     <Grid3X3 className="h-4 w-4" />
                   </button>
                   <button
-                    aria-label="List view"
+                    aria-label={t("listView")}
                     onClick={() => setViewMode("list")}
                     className={`rounded-md p-2 ${viewMode === "list" ? "bg-sky-50 text-sky-700" : "text-slate-400 hover:text-slate-600"}`}
                   >
@@ -319,17 +321,17 @@ export default function Browse() {
               </div>
             ) : resourcesError ? (
               <Card className="p-10 text-center">
-                <h2 className="text-xl font-semibold text-slate-900">We couldn’t load resources</h2>
-                <p className="mt-2 text-slate-500">Please try again in a moment.</p>
+                <h2 className="text-xl font-semibold text-slate-900">{t("unableToLoadResources")}</h2>
+                <p className="mt-2 text-slate-500">{t("tryAgain")}</p>
               </Card>
             ) : resources.length === 0 ? (
               <Card className="p-10 text-center">
                 <Search className="mx-auto mb-4 h-10 w-10 text-slate-300" />
-                <h2 className="text-xl font-semibold text-slate-900">No matching resources</h2>
-                <p className="mt-2 text-slate-500">Try a broader search or clear one of the filters.</p>
+                <h2 className="text-xl font-semibold text-slate-900">{t("noMatchingResources")}</h2>
+                <p className="mt-2 text-slate-500">{t("broadenSearch")}</p>
                 {hasFilters && (
                   <Button onClick={resetFilters} className="mt-5 bg-sky-600 text-white hover:bg-sky-700">
-                    <X className="mr-2 h-4 w-4" /> Clear filters
+                    <X className="mr-2 h-4 w-4" /> {t("clearFilters")}
                   </Button>
                 )}
               </Card>
@@ -346,16 +348,16 @@ export default function Browse() {
                         <div className="flex items-start justify-between gap-4">
                           <div>
                             <p className="mb-2 text-xs font-semibold uppercase tracking-[0.12em] text-sky-600">
-                              {resource.categoryName ?? "Uncategorized"}
+                              {resource.categoryName ?? t("uncategorized")}
                             </p>
                             <h2 className="text-xl font-semibold text-slate-950 group-hover:text-sky-700">
                               {resource.title}
                             </h2>
                           </div>
-                          {resource.featured && <span className="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700">Featured</span>}
+                          {resource.featured && <span className="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700">{t("featured")}</span>}
                         </div>
                         <p className="mt-4 line-clamp-2 text-sm leading-6 text-slate-600">
-                          {resource.description || "No description has been added yet."}
+                          {resource.description || t("noDescriptionAdded")}
                         </p>
                       </div>
                       <div className="mt-5 flex items-center justify-between gap-4 border-t border-slate-100 pt-4 text-xs font-medium text-slate-500 md:mt-5">
@@ -374,18 +376,18 @@ export default function Browse() {
                   variant="outline"
                   disabled={page === 1}
                   onClick={() => setPage((current) => Math.max(1, current - 1))}
-                  aria-label="Previous page"
+                  aria-label={t("previous")}
                 >
-                  <ChevronLeft className="mr-1 h-4 w-4" /> Previous
+                  <ChevronLeft className="mr-1 h-4 w-4" /> {t("previous")}
                 </Button>
-                <span className="text-sm font-medium text-slate-600">Page {page} of {totalPages}</span>
+                <span className="text-sm font-medium text-slate-600">{t("page")} {page} {t("of")} {totalPages}</span>
                 <Button
                   variant="outline"
                   disabled={page === totalPages}
                   onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
-                  aria-label="Next page"
+                  aria-label={t("next")}
                 >
-                  Next <ChevronRight className="ml-1 h-4 w-4" />
+                  {t("next")} <ChevronRight className="ml-1 h-4 w-4" />
                 </Button>
               </div>
             )}
