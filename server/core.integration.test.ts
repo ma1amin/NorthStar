@@ -34,6 +34,10 @@ const mocks = vi.hoisted(() => ({
   getPendingResourceSources: vi.fn(),
   getFreshnessReviewQueue: vi.fn(),
   getProposedDuplicateResolutions: vi.fn(),
+  createApiKeyRecord: vi.fn(),
+  listOwnerApiKeys: vi.fn(),
+  getApiKeyUsageForOwner: vi.fn(),
+  revokeApiKeyRecord: vi.fn(),
 }));
 
 vi.mock("./search", () => ({ searchService: { advancedSearch: mocks.advancedSearch, getSuggestions: vi.fn(), getTrending: vi.fn() } }));
@@ -67,6 +71,10 @@ vi.mock("./db", () => ({
   getPendingResourceSources: mocks.getPendingResourceSources,
   getFreshnessReviewQueue: mocks.getFreshnessReviewQueue,
   getProposedDuplicateResolutions: mocks.getProposedDuplicateResolutions,
+  createApiKeyRecord: mocks.createApiKeyRecord,
+  listOwnerApiKeys: mocks.listOwnerApiKeys,
+  getApiKeyUsageForOwner: mocks.getApiKeyUsageForOwner,
+  revokeApiKeyRecord: mocks.revokeApiKeyRecord,
 }));
 
 import { appRouter } from "./routers";
@@ -93,6 +101,24 @@ describe("core tRPC workflows", () => {
     mocks.getPublicCollections.mockResolvedValue([{ id: 6, name: "Research stack", resourceCount: 3 }]);
     await expect(appRouter.createCaller(context()).collections.discover({ limit: 20, offset: 0 })).resolves.toEqual([{ id: 6, name: "Research stack", resourceCount: 3 }]);
     expect(mocks.getPublicCollections).toHaveBeenCalledWith(20, 0);
+  });
+
+  it("creates a scoped owner API key once, without placing its plaintext value in the audit record", async () => {
+    mocks.createApiKeyRecord.mockResolvedValue({ id: 91, keyPrefix: "ns_live_example", name: "Read client", scopes: ["resources:read"], dailyQuota: 1000, expiresAt: null });
+    const result = await appRouter.createCaller(context()).apiKeys.create({ name: "Read client", scopes: ["resources:read"], dailyQuota: 1000 });
+    expect(result).toMatchObject({ id: 91, keyPrefix: "ns_live_example", name: "Read client", key: expect.stringMatching(/^ns_live_/) });
+    expect(mocks.createApiKeyRecord).toHaveBeenCalledWith(expect.objectContaining({ ownerId: 7, name: "Read client", scopes: ["resources:read"], dailyQuota: 1000, keyHash: expect.any(String) }));
+    expect(mocks.createAuditLog).toHaveBeenCalledWith(7, "create", "api_key", 91, expect.not.objectContaining({ key: expect.anything(), keyHash: expect.anything() }));
+  });
+
+  it("limits API-key usage and revocation to the credential owner", async () => {
+    mocks.getApiKeyUsageForOwner.mockResolvedValue({ usageDay: "2026-08-13", requestCount: 12, dailyQuota: 1000, remaining: 988, status: "active" });
+    await expect(appRouter.createCaller(context()).apiKeys.usage({ apiKeyId: 91 })).resolves.toMatchObject({ remaining: 988 });
+    expect(mocks.getApiKeyUsageForOwner).toHaveBeenCalledWith(7, 91);
+    mocks.revokeApiKeyRecord.mockResolvedValue(true);
+    await expect(appRouter.createCaller(context()).apiKeys.revoke({ apiKeyId: 91 })).resolves.toEqual({ success: true });
+    expect(mocks.revokeApiKeyRecord).toHaveBeenCalledWith(7, 91);
+    expect(mocks.createAuditLog).toHaveBeenCalledWith(7, "revoke", "api_key", 91, { reason: "owner_revoked" });
   });
 
   it("serves a bounded approved graph neighborhood through the public graph contract", async () => {

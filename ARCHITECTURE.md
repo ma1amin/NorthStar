@@ -12,7 +12,8 @@ Public content is a client-rendered SPA with server-injected route metadata, Ope
 | --- | --- |
 | `drizzle/schema.ts` | Schema, relational integrity, and reviewed migrations. |
 | `server/db.ts` | Data-access helpers, graph/domain queries, provenance, freshness, and duplicate-alias logic. |
-| `server/routers.ts` | Validated tRPC contracts, authentication, authorization, and audit-aware mutations. |
+| `server/routers.ts` | Validated tRPC contracts, authentication, authorization, audit-aware mutations, and owner API-key lifecycle. |
+| `server/publicApi.ts` | Versioned read-only REST handlers, OpenAPI document, scoped API-key checks, and rate/quota boundary. |
 | `client/src/pages` | Public discovery, trust context, contribution, account, and moderation workflows. |
 | `client/src/components` | Reusable interaction, layout, accessibility, reporting, and suggestion primitives. |
 | Documentation and seed scripts | Reproducible contributor experience without sensitive data. |
@@ -31,6 +32,6 @@ Moderators can review source evidence, record freshness, and propose duplicate r
 
 ## Deferred Architecture Decisions
 
-External REST/OpenAPI consumption, semantic/vector search, worker queues, Redis, source ingestion, PWA caching, dedicated graph stores, and ecosystem integrations are not active components. They are held for explicit owner decisions in [`suggest.md`](./suggest.md), with current evidence and decision gates in [`DOCUMENTATION_TRACEABILITY.md`](./DOCUMENTATION_TRACEABILITY.md).
+The versioned `/v1` read API, owner-managed API keys, scopes, quotas, and OpenAPI document are active components. Semantic/vector search, worker queues, Redis-backed distributed rate limiting, source ingestion, PWA caching, dedicated graph stores, and ecosystem integrations remain separately governed workstreams in [`todo.md`](./todo.md), with current evidence and decision gates in [`DOCUMENTATION_TRACEABILITY.md`](./DOCUMENTATION_TRACEABILITY.md).
 
 All AI assistance must create reviewable drafts and must never publish content automatically. High-impact changes remain subject to human moderation and audit logging.

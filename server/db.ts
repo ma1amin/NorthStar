@@ -24,6 +24,8 @@ import {
   resourceHistory,
   resourceFreshnessReviews,
   resourceDuplicateResolutions,
+  apiKeys,
+  apiKeyDailyUsage,
 } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
@@ -626,6 +628,82 @@ export async function getPublicCollections(limit: number = 50, offset: number = 
     .orderBy(desc(collections.updatedAt), desc(collections.createdAt))
     .limit(Math.min(Math.max(limit, 1), 100))
     .offset(Math.max(offset, 0));
+}
+
+// Public API credentials and privacy-minimal daily quota accounting.
+export async function createApiKeyRecord(input: { ownerId: number; name: string; keyPrefix: string; keyHash: string; scopes: string[]; dailyQuota: number; expiresAt?: Date | null }) {
+  const db = await getDb();
+  if (!db) throw new Error("Database unavailable");
+  const result = await db.insert(apiKeys).values({
+    ownerId: input.ownerId,
+    name: input.name,
+    keyPrefix: input.keyPrefix,
+    keyHash: input.keyHash,
+    scopes: input.scopes,
+    dailyQuota: input.dailyQuota,
+    expiresAt: input.expiresAt ?? null,
+  });
+  return { id: Number(result[0].insertId), keyPrefix: input.keyPrefix, name: input.name, scopes: input.scopes, dailyQuota: input.dailyQuota, expiresAt: input.expiresAt ?? null };
+}
+
+export async function listOwnerApiKeys(ownerId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select({
+    id: apiKeys.id,
+    name: apiKeys.name,
+    keyPrefix: apiKeys.keyPrefix,
+    scopes: apiKeys.scopes,
+    dailyQuota: apiKeys.dailyQuota,
+    status: apiKeys.status,
+    expiresAt: apiKeys.expiresAt,
+    lastUsedAt: apiKeys.lastUsedAt,
+    revokedAt: apiKeys.revokedAt,
+    createdAt: apiKeys.createdAt,
+  }).from(apiKeys).where(eq(apiKeys.ownerId, ownerId)).orderBy(desc(apiKeys.createdAt));
+}
+
+export async function revokeApiKeyRecord(ownerId: number, apiKeyId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database unavailable");
+  const result = await db.update(apiKeys).set({ status: "revoked", revokedAt: new Date() }).where(and(eq(apiKeys.id, apiKeyId), eq(apiKeys.ownerId, ownerId), eq(apiKeys.status, "active")));
+  return Number(result[0].affectedRows ?? 0) > 0;
+}
+
+export async function getActiveApiKeyByHash(keyHash: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const [record] = await db.select().from(apiKeys).where(and(eq(apiKeys.keyHash, keyHash), eq(apiKeys.status, "active"))).limit(1);
+  if (!record || (record.expiresAt && record.expiresAt.getTime() <= Date.now())) return undefined;
+  return record;
+}
+
+export async function consumeApiKeyQuota(apiKeyId: number, dailyQuota: number, now: Date = new Date()) {
+  const db = await getDb();
+  if (!db) throw new Error("Database unavailable");
+  const usageDay = now.toISOString().slice(0, 10);
+  return db.transaction(async (tx) => {
+    const [usage] = await tx.select().from(apiKeyDailyUsage).where(and(eq(apiKeyDailyUsage.apiKeyId, apiKeyId), eq(apiKeyDailyUsage.usageDay, usageDay))).limit(1);
+    if (usage && usage.requestCount >= dailyQuota) return { allowed: false, remaining: 0, usageDay };
+    if (usage) {
+      await tx.update(apiKeyDailyUsage).set({ requestCount: usage.requestCount + 1 }).where(eq(apiKeyDailyUsage.id, usage.id));
+      await tx.update(apiKeys).set({ lastUsedAt: now }).where(eq(apiKeys.id, apiKeyId));
+      return { allowed: true, remaining: Math.max(dailyQuota - usage.requestCount - 1, 0), usageDay };
+    }
+    await tx.insert(apiKeyDailyUsage).values({ apiKeyId, usageDay, requestCount: 1 });
+    await tx.update(apiKeys).set({ lastUsedAt: now }).where(eq(apiKeys.id, apiKeyId));
+    return { allowed: true, remaining: Math.max(dailyQuota - 1, 0), usageDay };
+  });
+}
+
+export async function getApiKeyUsageForOwner(ownerId: number, apiKeyId: number, now: Date = new Date()) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const usageDay = now.toISOString().slice(0, 10);
+  const [key] = await db.select({ id: apiKeys.id, dailyQuota: apiKeys.dailyQuota, status: apiKeys.status }).from(apiKeys).where(and(eq(apiKeys.id, apiKeyId), eq(apiKeys.ownerId, ownerId))).limit(1);
+  if (!key) return undefined;
+  const [usage] = await db.select({ requestCount: apiKeyDailyUsage.requestCount }).from(apiKeyDailyUsage).where(and(eq(apiKeyDailyUsage.apiKeyId, apiKeyId), eq(apiKeyDailyUsage.usageDay, usageDay))).limit(1);
+  return { usageDay, requestCount: usage?.requestCount ?? 0, dailyQuota: key.dailyQuota, remaining: Math.max(key.dailyQuota - (usage?.requestCount ?? 0), 0), status: key.status };
 }
 
 export async function getCollectionBySlug(ownerId: number, slug: string) {

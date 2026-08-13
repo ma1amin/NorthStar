@@ -18,7 +18,7 @@ NorthStar is an open-source **Resource Intelligence Platform** for discovering, 
 
 ## Truthful Scope
 
-NorthStar is a client-rendered React SPA with server-injected SEO metadata and public fallback content. It is **not** full server-side rendering. Search is database-backed with lexical, fuzzy, filtered, and relationship-aware retrieval; no external search provider, embeddings, or semantic/vector index is enabled. The internal application uses tRPC contracts; a stable public REST API is future work.
+NorthStar is a client-rendered React SPA with server-injected SEO metadata and public fallback content. It is **not** full server-side rendering. Search is database-backed with lexical, fuzzy, filtered, and relationship-aware retrieval; no external search provider, embeddings, or semantic/vector index is enabled. The internal application uses tRPC contracts and NorthStar also provides a versioned, read-only `/v1` REST API with owner-managed scoped keys, quotas, and OpenAPI documentation.
 
 Public browsing requires no account. Authenticated contributions use the connected **Manus OAuth** identity flow. NorthStar does not currently provide local passwords, direct email sign-in, magic links, or independently selectable Google/GitHub login providers. Confirmed duplicate aliases preserve the original resource record and linked community records; they are not a destructive record-merging engine.
 
@@ -46,7 +46,7 @@ The seed script is idempotent and intentionally contains no live database export
 | --- | --- |
 | [PROJECT_POLICY.md](./PROJECT_POLICY.md) | Authoritative policy for license, governance, identity, retention, and release claims. |
 | [ARCHITECTURE.md](./ARCHITECTURE.md) | Current system boundaries, graph/search architecture, and data-quality model. |
-| [API.md](./API.md) | Current tRPC contract boundary and future public-API direction. |
+| [API.md](./API.md) | Versioned public read API, key lifecycle, scope, quota, and OpenAPI boundary. |
 | [DATA_HANDLING.md](./DATA_HANDLING.md) | Repository, seed, provenance, history, and retention safeguards. |
 | [CONTRIBUTING.md](./CONTRIBUTING.md) | Contribution workflow and quality expectations. |
 | [GOVERNANCE.md](./GOVERNANCE.md) | Maintainer-led decision-making and moderation authority. |

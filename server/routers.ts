@@ -18,6 +18,8 @@ const relationshipTypeValues = [
 ] as const;
 
 import {
+  createApiKeyRecord,
+  getApiKeyUsageForOwner,
   getApprovedResources,
   listApprovedResources,
   getResourceBySlug,
@@ -76,6 +78,8 @@ import {
   getPendingResourceSources,
   getFreshnessReviewQueue,
   getProposedDuplicateResolutions,
+  listOwnerApiKeys,
+  revokeApiKeyRecord,
 } from "./db";
 import { getDb } from "./db";
 import { TRPCError } from "@trpc/server";
@@ -86,6 +90,7 @@ import { assertSafePublicUrl, fetchResourceMetadata } from "./urlMetadata";
 import { canViewCollection, collectionSlug, normalizeProfileUpdate } from "./community";
 import { draftResourceReview } from "./aiReview";
 import { getSearchCapabilities } from "./searchCapabilities";
+import { createHash, randomBytes } from "crypto";
 
 export const appRouter = router({
   system: systemRouter,
@@ -109,6 +114,43 @@ export const appRouter = router({
         success: true,
       } as const;
     }),
+  }),
+
+  apiKeys: router({
+    list: protectedProcedure.query(({ ctx }) => listOwnerApiKeys(ctx.user.id)),
+
+    create: protectedProcedure
+      .input(z.object({
+        name: z.string().trim().min(1).max(100),
+        scopes: z.array(z.enum(["resources:read", "search:read", "categories:read", "collections:read"])).min(1).max(4),
+        dailyQuota: z.number().int().min(100).max(10000).default(1000),
+        expiresAt: z.date().min(new Date()).optional(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const plaintextKey = `ns_live_${randomBytes(24).toString("base64url")}`;
+        const keyHash = createHash("sha256").update(plaintextKey).digest("hex");
+        const keyPrefix = plaintextKey.slice(0, 16);
+        const record = await createApiKeyRecord({ ...input, ownerId: ctx.user.id, keyPrefix, keyHash, expiresAt: input.expiresAt ?? null });
+        await createAuditLog(ctx.user.id, "create", "api_key", record.id, { name: input.name, scopes: input.scopes, dailyQuota: input.dailyQuota, expiresAt: input.expiresAt?.toISOString() ?? null });
+        return { ...record, key: plaintextKey };
+      }),
+
+    usage: protectedProcedure
+      .input(z.object({ apiKeyId: z.number().int().positive() }))
+      .query(async ({ input, ctx }) => {
+        const usage = await getApiKeyUsageForOwner(ctx.user.id, input.apiKeyId);
+        if (!usage) throw new TRPCError({ code: "NOT_FOUND", message: "API key not found" });
+        return usage;
+      }),
+
+    revoke: protectedProcedure
+      .input(z.object({ apiKeyId: z.number().int().positive() }))
+      .mutation(async ({ input, ctx }) => {
+        const revoked = await revokeApiKeyRecord(ctx.user.id, input.apiKeyId);
+        if (!revoked) throw new TRPCError({ code: "NOT_FOUND", message: "Active API key not found" });
+        await createAuditLog(ctx.user.id, "revoke", "api_key", input.apiKeyId, { reason: "owner_revoked" });
+        return { success: true };
+      }),
   }),
 
   // Resources Router

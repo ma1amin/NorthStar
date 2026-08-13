@@ -13,7 +13,8 @@ This record documents the evidence used to reconcile NorthStar’s completion tr
 | Localization, RTL, themes, and public routes | `client/src/contexts/LanguageContext.test.ts`, `client/src/contexts/ThemeContext.test.ts`, `references/phase3-browser-check.md`, TypeScript, and public browser checks | Home, Search, Graph Explorer, collections, the new Trending/About/Developer/Settings routes, and other critical product journeys support EN/AR and RTL. Theme preference persists locally; the footer remains intentionally untranslated. |
 | SEO and rendering | `server/seo.test.ts`, route metadata helpers, and public HTML verification | Client-rendered SPA with server-injected metadata and meaningful fallback content; not SSR. |
 | Community and moderation | `server/core.integration.test.ts` with protected reports, source/freshness review, data-quality queue access, duplicate alias authorization, role controls, and bulk rejection | Moderators retain human review authority; reports and AI drafts never automatically alter public data. |
-| Latest automated verification | `git diff --check`, `pnpm check`, and `pnpm test` after the public UX phase | TypeScript passed; 14 Vitest files and 81 tests passed. |
+| Public REST API | Migration `0008_nifty_proudstar.sql`, `/v1/openapi.json`, `server/publicApi.ts`, Developer key portal, `server/publicApi.test.ts`, and router lifecycle coverage | OpenAPI published with a 200 response; protected `/v1/resources` returns the expected 401 without a key. API keys are hashed, scoped, owner-revocable, quota-limited, and read-only. |
+| Latest automated verification | `git diff --check`, `pnpm check`, and `pnpm test` after the public API phase | TypeScript passed; 15 Vitest files and 86 tests passed. |
 
 ## Browser and Migration Review
 

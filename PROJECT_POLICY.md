@@ -28,7 +28,7 @@ A confirmed duplicate resolution preserves the original resource and its linked 
 
 ## Release Truthfulness
 
-NorthStar is a client-rendered React application with server-injected public metadata and fallback content. It is not full server-side rendering, does not currently provide a stable public REST API, does not enable semantic/vector search, and is not verified as published to the configured GitHub remote from this environment. Privileged browser QA remains CAPTCHA-limited; automated authorization and integration tests are the current evidence for those operations.
+NorthStar is a client-rendered React application with server-injected public metadata and fallback content. It is not full server-side rendering and does not enable semantic/vector search. It provides a stable versioned, read-only `/v1` REST API with owner-managed API keys, scopes, daily quotas, and OpenAPI documentation; it does not provide public write or moderation API contracts. Privileged browser QA remains CAPTCHA-limited; automated authorization and integration tests are the current evidence for those operations.
 
 ## Change-Control Requirements
 

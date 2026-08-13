@@ -514,6 +514,57 @@ export type CollectionResource = typeof collectionResources.$inferSelect;
 export type InsertCollectionResource = typeof collectionResources.$inferInsert;
 
 /**
+ * User-owned credentials for the public, versioned, read-only REST API.
+ * Plaintext keys are returned once at creation; only their SHA-256 hashes persist.
+ */
+export const apiKeys = mysqlTable(
+  "api_keys",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    ownerId: int("ownerId").notNull(),
+    name: varchar("name", { length: 100 }).notNull(),
+    keyPrefix: varchar("keyPrefix", { length: 24 }).notNull(),
+    keyHash: varchar("keyHash", { length: 64 }).notNull(),
+    scopes: json("scopes").$type<string[]>().notNull(),
+    dailyQuota: int("dailyQuota").notNull().default(1000),
+    status: mysqlEnum("status", ["active", "revoked"]).notNull().default("active"),
+    expiresAt: timestamp("expiresAt"),
+    lastUsedAt: timestamp("lastUsedAt"),
+    revokedAt: timestamp("revokedAt"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  (table) => ({
+    ownerStatusIdx: index("api_key_owner_status_idx").on(table.ownerId, table.status),
+    hashUq: uniqueIndex("api_key_hash_uq").on(table.keyHash),
+    prefixIdx: index("api_key_prefix_idx").on(table.keyPrefix),
+    ownerFk: foreignKey({ columns: [table.ownerId], foreignColumns: [users.id] }).onDelete("cascade"),
+  })
+);
+
+export type ApiKey = typeof apiKeys.$inferSelect;
+export type InsertApiKey = typeof apiKeys.$inferInsert;
+
+/** Aggregate per-key, per-day usage for quota enforcement without storing request payloads or IP addresses. */
+export const apiKeyDailyUsage = mysqlTable(
+  "api_key_daily_usage",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    apiKeyId: int("apiKeyId").notNull(),
+    usageDay: varchar("usageDay", { length: 10 }).notNull(),
+    requestCount: int("requestCount").notNull().default(0),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  (table) => ({
+    keyDayUq: uniqueIndex("api_key_day_uq").on(table.apiKeyId, table.usageDay),
+    keyDayIdx: index("api_key_day_idx").on(table.apiKeyId, table.usageDay),
+    apiKeyFk: foreignKey({ columns: [table.apiKeyId], foreignColumns: [apiKeys.id] }).onDelete("cascade"),
+  })
+);
+
+export type ApiKeyDailyUsage = typeof apiKeyDailyUsage.$inferSelect;
+export type InsertApiKeyDailyUsage = typeof apiKeyDailyUsage.$inferInsert;
+
+/**
  * Resource submissions (pending approval).
  */
 export const submissions = mysqlTable(
