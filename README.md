@@ -53,7 +53,11 @@ The seed script is idempotent and intentionally contains no live database export
 | [SECURITY.md](./SECURITY.md) | Vulnerability-reporting guidance and security principles. |
 | [DOCUMENTATION_TRACEABILITY.md](./DOCUMENTATION_TRACEABILITY.md) | Evidence-based comparison of supplied requirements and current implementation. |
 | [REMAINING_WORK_ROADMAP.md](./REMAINING_WORK_ROADMAP.md) | Current delivered baseline, verification limits, and decision gates. |
-| [suggest.md](./suggest.md) | Owner-controlled register for deferred recommendations; nothing in this file is scheduled until explicitly approved. |
+| [suggest.md](./suggest.md) | Approved enhancement register and phased acceptance criteria. |
+
+## Imported Specification Corpus
+
+The folders `01-product` through `13-research` preserve the GitHub repository’s original NorthStar documentation corpus for traceability. They are historical design/reference material and do not supersede current code, the MIT license, or the authoritative policy documents above. See [DOCUMENTATION_TRACEABILITY.md](./DOCUMENTATION_TRACEABILITY.md) for the evidence-led reconciliation.
 
 ## License
 

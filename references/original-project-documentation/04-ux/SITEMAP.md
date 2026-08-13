@@ -1,0 +1,23 @@
+# NorthStar Sitemap
+
+- Home
+  - Explore
+  - Search
+  - Categories
+  - Trending
+  - Collections
+- Resource
+  - Overview
+  - Relationships
+  - Alternatives
+  - Integrations
+  - Similar
+- Submit
+- Collection
+- Authentication
+- User Profile
+- Contributor Area
+- Moderator Area
+- Settings
+- About
+- API / Developer
