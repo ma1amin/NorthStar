@@ -361,7 +361,7 @@
 - [x] Trust and data-quality foundation: attributed sources, public resource history, freshness guidance, canonical duplicate aliases, audit trails, migration verification, and protected source/freshness/duplicate contracts.
 - [x] English/Arabic and RTL-safe public UX across Home, Search, Graph Explorer, collections, contribution, reports, Profile, and moderation surfaces; footer remains intentionally untranslated.
 - [x] Policy and release documentation aligned to the active MIT, maintainer-led governance, Manus OAuth, client-rendered SPA, and non-production-published posture.
-- [x] Latest implementation verification: TypeScript passed; 22 Vitest files and 101 tests passed after the consent-first intake and verified-contributor programme; the completed approved programme checkpoint and GitHub synchronization are pending.
+- [x] Latest implementation verification: TypeScript passed; 22 Vitest files and 101 tests passed after the consent-first intake, verified-contributor programme, and staged-value-experiment framework; the approved-programme checkpoint (`0fb50d1b`) and GitHub main synchronization are complete.
 
 ## Remaining Features — Owner Decision Required
 Any newly proposed product, infrastructure, integration, or UX enhancement is held exclusively in [`suggest.md`](./suggest.md) until the owner explicitly selects it. The comprehensive enhancement programme below captures the previously approved work and must remain evidence-led, incremental, and reversible where data changes are involved.
