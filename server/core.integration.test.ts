@@ -321,6 +321,7 @@ describe("core tRPC workflows", () => {
 
   it("creates private intake drafts only after explicit consent and requires separate owner submission", async () => {
     mocks.getContributorIntakeAllowance.mockResolvedValue({ limit: 10, used: 0, verified: false });
+    await expect(appRouter.createCaller(context()).intake.allowance()).resolves.toEqual({ limit: 10, used: 0, verified: false, remaining: 10 });
     mocks.createTextIntake.mockResolvedValue(51);
     await expect(appRouter.createCaller(context()).intake.create({ text: "Useful tool https://example.com", inputType: "pasted_text", retentionMode: "minimized", consentConfirmed: true })).resolves.toMatchObject({ intakeId: 51, candidateCount: 1, allowance: { remaining: 9, verified: false } });
     expect(mocks.createTextIntake).toHaveBeenCalledWith(expect.objectContaining({ ownerId: 7, consentConfirmed: true, candidates: [expect.objectContaining({ url: "https://example.com/" })] }));

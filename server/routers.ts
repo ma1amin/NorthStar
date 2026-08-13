@@ -174,6 +174,10 @@ export const appRouter = router({
 
   intake: router({
     list: protectedProcedure.query(({ ctx }) => getIntakesForOwner(ctx.user.id)),
+    allowance: protectedProcedure.query(async ({ ctx }) => {
+      const allowance = await getContributorIntakeAllowance(ctx.user.id);
+      return { ...allowance, remaining: Math.max(0, allowance.limit - allowance.used) };
+    }),
     get: protectedProcedure
       .input(z.object({ intakeId: z.number().int().positive() }))
       .query(({ input, ctx }) => getIntakeForOwner(ctx.user.id, input.intakeId)),
