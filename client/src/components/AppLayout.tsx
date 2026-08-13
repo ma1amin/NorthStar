@@ -141,6 +141,7 @@ export function AppLayout({ children }: AppLayoutProps) {
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={() => navigate("/profile")}><UserRound className="mr-2 h-4 w-4" />Profile</DropdownMenuItem>
                   <DropdownMenuItem onClick={() => navigate("/capture")}><Plus className="mr-2 h-4 w-4" />{t("captureResources")}</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate("/workspace")}><FolderOpen className="mr-2 h-4 w-4" />Research workspace</DropdownMenuItem>
                   <DropdownMenuItem onClick={() => navigate("/settings")}><Settings className="mr-2 h-4 w-4" />{t("settings")}</DropdownMenuItem>
                   <DropdownMenuItem onClick={() => navigate("/collections")}><FolderOpen className="mr-2 h-4 w-4" />Collections</DropdownMenuItem>
                   {(user.role === "admin" || user.role === "moderator") && <DropdownMenuItem onClick={() => navigate("/admin")}><Network className="mr-2 h-4 w-4" />Moderation</DropdownMenuItem>}

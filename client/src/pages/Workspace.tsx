@@ -1,0 +1,27 @@
+import { useState } from "react";
+import { useLocation } from "wouter";
+import { BriefcaseBusiness, LockKeyhole, Plus, Sparkles } from "lucide-react";
+import { useAuth } from "@/_core/hooks/useAuth";
+import { trpc } from "@/lib/trpc";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { toast } from "sonner";
+
+export default function Workspace() {
+  const { isAuthenticated, startLogin } = useAuth();
+  const [, navigate] = useLocation();
+  const [name, setName] = useState("");
+  const [slug, setSlug] = useState("");
+  const [description, setDescription] = useState("");
+  const { data: workspaces, isLoading, refetch } = trpc.workspaces.list.useQuery(undefined, { enabled: isAuthenticated });
+  const create = trpc.workspaces.create.useMutation({ onSuccess: () => { toast.success("Private workspace created"); setName(""); setSlug(""); setDescription(""); refetch(); }, onError: (error) => toast.error(error.message) });
+
+  if (!isAuthenticated) return <div className="container py-16"><Card className="ns-surface mx-auto max-w-xl p-8 text-center"><LockKeyhole className="mx-auto h-10 w-10 text-sky-600" /><h1 className="mt-4 text-2xl font-semibold text-[var(--ns-ink)]">Private research workspace</h1><p className="mt-3 text-sm leading-6 text-[var(--ns-muted)]">Create a personal area for organizing public NorthStar resources. It does not change access to public knowledge.</p><div className="mt-6 flex justify-center gap-3"><Button onClick={() => startLogin()} className="ns-primary-button">Sign in to continue</Button><Button variant="outline" onClick={() => navigate("/browse")}>Browse resources</Button></div></Card></div>;
+
+  const submit = (event: React.FormEvent) => { event.preventDefault(); create.mutate({ name: name.trim(), slug: slug.trim(), description: description.trim() || undefined }); };
+  return <div className="ns-noise min-h-screen py-10 md:py-14"><div className="container max-w-5xl"><header className="ns-surface rounded-3xl p-7 shadow-sm md:p-9"><div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between"><div><p className="text-sm font-semibold uppercase tracking-[0.16em] text-sky-700">Professional research pilot</p><h1 className="mt-2 text-3xl font-semibold tracking-tight text-[var(--ns-ink)]">Your private workspace</h1><p className="mt-3 max-w-2xl text-sm leading-6 text-[var(--ns-muted)]">Pin public resources and capture concise personal context. Workspace content remains private by default and never paywalls NorthStar’s public directory.</p></div><div className="flex items-center gap-2 rounded-2xl bg-sky-50 px-4 py-3 text-sm text-sky-800 dark:bg-sky-500/10 dark:text-sky-200"><LockKeyhole className="h-4 w-4" />Owner-only by default</div></div></header>
+    <div className="mt-7 grid gap-6 lg:grid-cols-[0.9fr_1.1fr]"><Card className="ns-surface p-6 shadow-sm"><div className="flex items-center gap-2"><Plus className="h-5 w-5 text-sky-600" /><h2 className="font-semibold text-[var(--ns-ink)]">Create a workspace</h2></div><form className="mt-5 space-y-4" onSubmit={submit}><label className="block text-sm font-medium text-[var(--ns-ink)]">Name<Input className="mt-1.5" value={name} onChange={(event) => { setName(event.target.value); if (!slug) setSlug(event.target.value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")); }} maxLength={255} required /></label><label className="block text-sm font-medium text-[var(--ns-ink)]">Private slug<Input className="mt-1.5" value={slug} onChange={(event) => setSlug(event.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))} pattern="[a-z0-9]+(?:-[a-z0-9]+)*" maxLength={255} required /></label><label className="block text-sm font-medium text-[var(--ns-ink)]">Purpose <span className="font-normal text-[var(--ns-muted)]">(optional)</span><Textarea className="mt-1.5" value={description} onChange={(event) => setDescription(event.target.value)} rows={3} maxLength={2000} /></label><Button type="submit" disabled={create.isPending} className="ns-primary-button w-full">{create.isPending ? "Creating…" : "Create private workspace"}</Button></form></Card>
+      <div className="space-y-4">{isLoading ? <Card className="ns-surface p-8 text-center text-sm text-[var(--ns-muted)]">Loading workspaces…</Card> : workspaces?.length ? workspaces.map((workspace) => <Card key={workspace.id} className="ns-hover-lift ns-surface p-6 shadow-sm"><div className="flex items-start justify-between gap-4"><div><div className="flex items-center gap-2"><BriefcaseBusiness className="h-5 w-5 text-violet-600" /><h2 className="font-semibold text-[var(--ns-ink)]">{workspace.name}</h2></div><p className="mt-2 text-sm leading-6 text-[var(--ns-muted)]">{workspace.description || "Ready for your curated research path."}</p><p className="mt-3 text-xs font-medium text-[var(--ns-muted)]">Private workspace · Updated {new Date(workspace.updatedAt).toLocaleDateString()}</p></div><Sparkles className="h-5 w-5 text-sky-500" /></div></Card>) : <Card className="ns-surface p-8 text-center"><BriefcaseBusiness className="mx-auto h-10 w-10 text-slate-300" /><h2 className="mt-4 font-semibold text-[var(--ns-ink)]">Start with a focused question</h2><p className="mt-2 text-sm text-[var(--ns-muted)]">Create a workspace, then use public Browse and Node Views to decide which resources to pin.</p></Card>}</div></div></div></div>;
+}

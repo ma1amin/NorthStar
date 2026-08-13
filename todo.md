@@ -361,7 +361,7 @@
 - [x] Trust and data-quality foundation: attributed sources, public resource history, freshness guidance, canonical duplicate aliases, audit trails, migration verification, and protected source/freshness/duplicate contracts.
 - [x] English/Arabic and RTL-safe public UX across Home, Search, Graph Explorer, collections, contribution, reports, Profile, and moderation surfaces; footer remains intentionally untranslated.
 - [x] Policy and release documentation aligned to the active MIT, maintainer-led governance, Manus OAuth, client-rendered SPA, and non-production-published posture.
-- [x] Latest implementation verification: TypeScript passed; 24 Vitest files and 106 tests passed after the Atlas 2 visual system, live curated directory expansion, bounded filterable Graph Explorer, relationship-rich sanitized fixture, and contributor-allowance feedback; release checkpoint (`4c18face`) and GitHub main synchronization are complete.
+- [x] Latest implementation verification: TypeScript passed; 26 Vitest files and 110 tests passed after the governed-expansion schema migration, semantic lifecycle safety foundation, review-only ingestion/API contracts, private workspace route, graph-projection readiness, and live Home-card rotation; the current expansion-slice checkpoint and GitHub synchronization are pending.
 
 ## Remaining Features — Owner Decision Required
 Any newly proposed product, infrastructure, integration, or UX enhancement is held exclusively in [`suggest.md`](./suggest.md) until the owner explicitly selects it. The comprehensive enhancement programme below captures the previously approved work and must remain evidence-led, incremental, and reversible where data changes are involved.
@@ -400,3 +400,12 @@ Any newly proposed product, infrastructure, integration, or UX enhancement is he
 - [x] Refine onboarding, contributor capture/verification, profile, and moderation command-center journeys around clear next actions, real status feedback, and EN/AR localization without translating the footer.
 - [x] Implement every remaining approved, non-conflicting documented feature in scoped, testable releases; document exact external credential, consent, owner-decision, or authentication blockers without falsely marking them complete.
 - [x] Complete cross-route browser QA, seed/migration validation, TypeScript and full test verification; update evidence records, checkpoint every validated slice, and synchronize GitHub `main`.
+
+## Approved Intelligent Expansion Programme
+- [x] Add audited, least-privilege schema and lifecycle contracts for semantic indexing, reviewed external-source ingestion, private workspaces, organization claims, API-capacity requests, and optional graph projections.
+- [ ] Implement semantic-search provider lifecycle, public-metadata-only indexing, hybrid retrieval boundaries, evaluation controls, administrator status, and no-credential safe fallback; keep live provider credentials empty until the owner supplies them later.
+- [ ] Build a named-source, review-only ingestion workspace with batch provenance, terms/license context, candidate deduplication, stop-on-error controls, and moderator decisions; keep messaging connectors paused.
+- [ ] Deliver opt-in professional workspaces, organization verification/appeals, and time-limited read-only API-capacity requests with auditable administrator review and no public-knowledge paywall.
+- [x] Add reversible graph-projection readiness for optional Neo4j/ArangoDB providers while retaining relational truth and parity/fallback safeguards.
+- [ ] Expand the approved directory in evidence-backed batches and improve Atlas 2 across the new workflows; add live Home resource cards that rotate every three seconds, pause on hover/focus, and respect reduced-motion preferences.
+- [ ] Complete an authenticated privileged browser walkthrough when available, run all migration/provider/UX validations, update documentation, checkpoint every slice, and synchronize GitHub `main`.

@@ -31,6 +31,13 @@ import {
   intakeCandidates,
   contributorVerificationApplications,
   contributorAppeals,
+  ingestionSources,
+  ingestionBatches,
+  ingestionCandidates,
+  researchWorkspaces,
+  workspaceResources,
+  organizationClaims,
+  apiCapacityRequests,
 } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
@@ -1319,4 +1326,150 @@ export async function getContributorAppeals(userId: number) {
   const db = await getDb();
   if (!db) return [];
   return db.select().from(contributorAppeals).where(eq(contributorAppeals.userId, userId)).orderBy(desc(contributorAppeals.createdAt)).limit(50);
+}
+
+// Review-only external source ingestion. These helpers never fetch remote data
+// and never create or publish resources or relationships.
+export async function createIngestionSource(input: { name: string; baseUrl: string; termsUrl?: string; sourceType: "official_site" | "official_docs" | "official_repository" | "manual_feed"; createdBy: number }) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.insert(ingestionSources).values({ ...input, termsUrl: input.termsUrl || null });
+  return Number(result[0].insertId);
+}
+
+export async function listIngestionSources(status?: "draft" | "approved" | "paused" | "retired") {
+  const db = await getDb();
+  if (!db) return [];
+  const reviewer = alias(users, "ingestion_source_reviewer");
+  const query = db.select({ source: ingestionSources, creatorName: users.name, reviewerName: reviewer.name })
+    .from(ingestionSources)
+    .innerJoin(users, eq(ingestionSources.createdBy, users.id))
+    .leftJoin(reviewer, eq(ingestionSources.reviewedBy, reviewer.id));
+  const rows = status
+    ? await query.where(eq(ingestionSources.status, status)).orderBy(desc(ingestionSources.createdAt)).limit(100)
+    : await query.orderBy(desc(ingestionSources.createdAt)).limit(100);
+  return rows;
+}
+
+export async function reviewIngestionSource(input: { sourceId: number; reviewerId: number; status: "approved" | "paused" | "retired"; reviewNote?: string }) {
+  const db = await getDb();
+  if (!db) return false;
+  const result = await db.update(ingestionSources)
+    .set({ status: input.status, reviewedBy: input.reviewerId, reviewNote: input.reviewNote || null, reviewedAt: new Date() })
+    .where(and(eq(ingestionSources.id, input.sourceId), eq(ingestionSources.status, "draft")));
+  return Number((result as any)[0]?.affectedRows ?? 0) > 0;
+}
+
+export async function createIngestionBatch(input: { sourceId: number; requestedBy: number }) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const source = await db.select({ id: ingestionSources.id }).from(ingestionSources)
+    .where(and(eq(ingestionSources.id, input.sourceId), eq(ingestionSources.status, "approved"))).limit(1);
+  if (!source[0]) return undefined;
+  const result = await db.insert(ingestionBatches).values(input);
+  return Number(result[0].insertId);
+}
+
+export async function addIngestionCandidates(input: { batchId: number; candidates: Array<{ externalUrl: string; contentHash: string; title?: string; summary?: string; attribution?: string; licenseNote?: string; assessment?: unknown }> }) {
+  const db = await getDb();
+  if (!db || !input.candidates.length) return 0;
+  const batch = await db.select({ id: ingestionBatches.id, status: ingestionBatches.status }).from(ingestionBatches).where(eq(ingestionBatches.id, input.batchId)).limit(1);
+  if (!batch[0] || !["queued", "processing"].includes(batch[0].status)) return 0;
+  await db.insert(ingestionCandidates).values(input.candidates.slice(0, 50).map((candidate) => ({ ...candidate, batchId: input.batchId, title: candidate.title || null, summary: candidate.summary || null, attribution: candidate.attribution || null, licenseNote: candidate.licenseNote || null, assessment: candidate.assessment ?? null }))).onDuplicateKeyUpdate({ set: { contentHash: sql`values(${ingestionCandidates.contentHash})` } });
+  const countRows = await db.select({ count: sql<number>`count(*)` }).from(ingestionCandidates).where(eq(ingestionCandidates.batchId, input.batchId));
+  await db.update(ingestionBatches).set({ candidateCount: Number(countRows[0]?.count ?? 0), status: "ready_for_review", completedAt: new Date() }).where(eq(ingestionBatches.id, input.batchId));
+  return Number(countRows[0]?.count ?? 0);
+}
+
+export async function listIngestionCandidatesForModeration(limit = 100) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select({ candidate: ingestionCandidates, batch: ingestionBatches, source: ingestionSources })
+    .from(ingestionCandidates)
+    .innerJoin(ingestionBatches, eq(ingestionCandidates.batchId, ingestionBatches.id))
+    .innerJoin(ingestionSources, eq(ingestionBatches.sourceId, ingestionSources.id))
+    .where(eq(ingestionCandidates.status, "pending"))
+    .orderBy(desc(ingestionCandidates.createdAt)).limit(Math.min(Math.max(limit, 1), 100));
+}
+
+export async function reviewIngestionCandidate(input: { candidateId: number; reviewerId: number; status: "accepted" | "duplicate" | "rejected"; duplicateResourceId?: number; reviewNote?: string }) {
+  const db = await getDb();
+  if (!db) return false;
+  const result = await db.update(ingestionCandidates)
+    .set({ status: input.status, duplicateResourceId: input.status === "duplicate" ? input.duplicateResourceId || null : null, reviewedBy: input.reviewerId, reviewNote: input.reviewNote || null, reviewedAt: new Date() })
+    .where(and(eq(ingestionCandidates.id, input.candidateId), eq(ingestionCandidates.status, "pending")));
+  return Number((result as any)[0]?.affectedRows ?? 0) > 0;
+}
+
+export async function createResearchWorkspace(input: { ownerId: number; name: string; slug: string; description?: string }) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.insert(researchWorkspaces).values({ ...input, description: input.description || null });
+  return Number(result[0].insertId);
+}
+
+export async function listResearchWorkspaces(ownerId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(researchWorkspaces).where(and(eq(researchWorkspaces.ownerId, ownerId), eq(researchWorkspaces.status, "active"))).orderBy(desc(researchWorkspaces.updatedAt)).limit(50);
+}
+
+export async function addResourceToWorkspace(input: { ownerId: number; workspaceId: number; resourceId: number; note?: string }) {
+  const db = await getDb();
+  if (!db) return false;
+  const workspace = await db.select({ id: researchWorkspaces.id }).from(researchWorkspaces).where(and(eq(researchWorkspaces.id, input.workspaceId), eq(researchWorkspaces.ownerId, input.ownerId), eq(researchWorkspaces.status, "active"))).limit(1);
+  if (!workspace[0]) return false;
+  await db.insert(workspaceResources).values({ workspaceId: input.workspaceId, resourceId: input.resourceId, note: input.note || null }).onDuplicateKeyUpdate({ set: { note: input.note || null } });
+  return true;
+}
+
+export async function createOrganizationClaim(input: { applicantId: number; organizationName: string; websiteUrl: string; contactEmail: string; evidenceUrl?: string; resourceId?: number; rationale: string }) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const open = await db.select({ id: organizationClaims.id }).from(organizationClaims).where(and(eq(organizationClaims.applicantId, input.applicantId), eq(organizationClaims.organizationName, input.organizationName), eq(organizationClaims.status, "pending"))).limit(1);
+  if (open[0]) return undefined;
+  const result = await db.insert(organizationClaims).values({ ...input, evidenceUrl: input.evidenceUrl || null, resourceId: input.resourceId || null });
+  return Number(result[0].insertId);
+}
+
+export async function listOrganizationClaims(status?: "pending" | "approved" | "rejected" | "suspended" | "expired") {
+  const db = await getDb();
+  if (!db) return [];
+  return status ? db.select().from(organizationClaims).where(eq(organizationClaims.status, status)).orderBy(desc(organizationClaims.createdAt)).limit(100) : db.select().from(organizationClaims).orderBy(desc(organizationClaims.createdAt)).limit(100);
+}
+
+export async function reviewOrganizationClaim(input: { claimId: number; reviewerId: number; status: "approved" | "rejected" | "suspended"; expiresAt?: Date; reviewNote?: string }) {
+  const db = await getDb();
+  if (!db) return false;
+  const result = await db.update(organizationClaims).set({ status: input.status, expiresAt: input.status === "approved" ? input.expiresAt || null : null, reviewedBy: input.reviewerId, reviewNote: input.reviewNote || null, reviewedAt: new Date() }).where(and(eq(organizationClaims.id, input.claimId), eq(organizationClaims.status, "pending")));
+  return Number((result as any)[0]?.affectedRows ?? 0) > 0;
+}
+
+export async function createApiCapacityRequest(input: { requestedBy: number; apiKeyId: number; requestedDailyQuota: number; rationale: string }) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const key = await db.select({ id: apiKeys.id }).from(apiKeys).where(and(eq(apiKeys.id, input.apiKeyId), eq(apiKeys.ownerId, input.requestedBy), eq(apiKeys.status, "active"))).limit(1);
+  if (!key[0]) return undefined;
+  const open = await db.select({ id: apiCapacityRequests.id }).from(apiCapacityRequests).where(and(eq(apiCapacityRequests.apiKeyId, input.apiKeyId), eq(apiCapacityRequests.status, "pending"))).limit(1);
+  if (open[0]) return undefined;
+  const result = await db.insert(apiCapacityRequests).values(input);
+  return Number(result[0].insertId);
+}
+
+export async function listApiCapacityRequests(status?: "pending" | "approved" | "rejected" | "expired" | "revoked") {
+  const db = await getDb();
+  if (!db) return [];
+  return status ? db.select().from(apiCapacityRequests).where(eq(apiCapacityRequests.status, status)).orderBy(desc(apiCapacityRequests.createdAt)).limit(100) : db.select().from(apiCapacityRequests).orderBy(desc(apiCapacityRequests.createdAt)).limit(100);
+}
+
+export async function reviewApiCapacityRequest(input: { requestId: number; reviewerId: number; status: "approved" | "rejected" | "revoked"; grantedDailyQuota?: number; expiresAt?: Date; reviewNote?: string }) {
+  const db = await getDb();
+  if (!db) return false;
+  const requests = await db.select().from(apiCapacityRequests).where(and(eq(apiCapacityRequests.id, input.requestId), eq(apiCapacityRequests.status, "pending"))).limit(1);
+  const request = requests[0];
+  if (!request) return false;
+  if (input.status === "approved" && (!input.grantedDailyQuota || !input.expiresAt)) return false;
+  await db.update(apiCapacityRequests).set({ status: input.status, grantedDailyQuota: input.status === "approved" ? input.grantedDailyQuota || null : null, expiresAt: input.status === "approved" ? input.expiresAt || null : null, reviewedBy: input.reviewerId, reviewNote: input.reviewNote || null, reviewedAt: new Date() }).where(eq(apiCapacityRequests.id, input.requestId));
+  if (input.status === "approved") await db.update(apiKeys).set({ dailyQuota: input.grantedDailyQuota! }).where(eq(apiKeys.id, request.apiKeyId));
+  return true;
 }

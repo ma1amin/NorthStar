@@ -912,3 +912,245 @@ export const reputationEvents = mysqlTable(
 
 export type ReputationEvent = typeof reputationEvents.$inferSelect;
 export type InsertReputationEvent = typeof reputationEvents.$inferInsert;
+
+/**
+ * Semantic indexing tracks only approved public resource metadata. Embeddings
+ * remain with the configured provider; private intake/workspace content never
+ * enters this lifecycle.
+ */
+export const semanticIndexJobs = mysqlTable(
+  "semantic_index_jobs",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    resourceId: int("resourceId").notNull(),
+    indexVersion: varchar("indexVersion", { length: 64 }).notNull(),
+    documentHash: varchar("documentHash", { length: 64 }).notNull(),
+    status: mysqlEnum("status", ["queued", "indexed", "skipped", "failed"]).notNull().default("queued"),
+    providerId: varchar("providerId", { length: 64 }),
+    errorCode: varchar("errorCode", { length: 120 }),
+    requestedBy: int("requestedBy"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    processedAt: timestamp("processedAt"),
+  },
+  (table) => ({
+    resourceVersionUq: uniqueIndex("semantic_resource_version_uq").on(table.resourceId, table.indexVersion),
+    statusCreatedIdx: index("semantic_status_created_idx").on(table.status, table.createdAt),
+    resourceFk: foreignKey({ columns: [table.resourceId], foreignColumns: [resources.id] }).onDelete("cascade"),
+    requestedByFk: foreignKey({ columns: [table.requestedBy], foreignColumns: [users.id] }).onDelete("set null"),
+  })
+);
+
+export type SemanticIndexJob = typeof semanticIndexJobs.$inferSelect;
+export type InsertSemanticIndexJob = typeof semanticIndexJobs.$inferInsert;
+
+/** Named public sources are registered before any review-only ingestion batch runs. */
+export const ingestionSources = mysqlTable(
+  "ingestion_sources",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    name: varchar("name", { length: 255 }).notNull(),
+    baseUrl: varchar("baseUrl", { length: 2048 }).notNull(),
+    termsUrl: varchar("termsUrl", { length: 2048 }),
+    sourceType: mysqlEnum("sourceType", ["official_site", "official_docs", "official_repository", "manual_feed"]).notNull(),
+    status: mysqlEnum("status", ["draft", "approved", "paused", "retired"]).notNull().default("draft"),
+    createdBy: int("createdBy").notNull(),
+    reviewedBy: int("reviewedBy"),
+    reviewNote: text("reviewNote"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    reviewedAt: timestamp("reviewedAt"),
+  },
+  (table) => ({
+    baseUrlUq: uniqueIndex("ingestion_source_url_uq").on(table.baseUrl),
+    statusCreatedIdx: index("ingestion_source_status_created_idx").on(table.status, table.createdAt),
+    createdByFk: foreignKey({ columns: [table.createdBy], foreignColumns: [users.id] }).onDelete("restrict"),
+    reviewedByFk: foreignKey({ columns: [table.reviewedBy], foreignColumns: [users.id] }).onDelete("set null"),
+  })
+);
+
+export type IngestionSource = typeof ingestionSources.$inferSelect;
+export type InsertIngestionSource = typeof ingestionSources.$inferInsert;
+
+/** A bounded batch groups candidates and preserves its operational outcome. */
+export const ingestionBatches = mysqlTable(
+  "ingestion_batches",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    sourceId: int("sourceId").notNull(),
+    requestedBy: int("requestedBy").notNull(),
+    status: mysqlEnum("status", ["queued", "processing", "ready_for_review", "stopped", "failed", "closed"]).notNull().default("queued"),
+    candidateCount: int("candidateCount").notNull().default(0),
+    stopReason: varchar("stopReason", { length: 500 }),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    completedAt: timestamp("completedAt"),
+  },
+  (table) => ({
+    sourceStatusCreatedIdx: index("ingestion_batch_source_status_idx").on(table.sourceId, table.status, table.createdAt),
+    requestedByIdx: index("ingestion_batch_requested_by_idx").on(table.requestedBy),
+    sourceFk: foreignKey({ columns: [table.sourceId], foreignColumns: [ingestionSources.id] }).onDelete("restrict"),
+    requestedByFk: foreignKey({ columns: [table.requestedBy], foreignColumns: [users.id] }).onDelete("restrict"),
+  })
+);
+
+export type IngestionBatch = typeof ingestionBatches.$inferSelect;
+export type InsertIngestionBatch = typeof ingestionBatches.$inferInsert;
+
+/** Candidates are private to the review workflow until a moderator routes them onward. */
+export const ingestionCandidates = mysqlTable(
+  "ingestion_candidates",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    batchId: int("batchId").notNull(),
+    externalUrl: varchar("externalUrl", { length: 2048 }).notNull(),
+    contentHash: varchar("contentHash", { length: 64 }).notNull(),
+    title: varchar("title", { length: 255 }),
+    summary: text("summary"),
+    attribution: varchar("attribution", { length: 500 }),
+    licenseNote: varchar("licenseNote", { length: 500 }),
+    assessment: json("assessment"),
+    status: mysqlEnum("status", ["pending", "accepted", "duplicate", "rejected"]).notNull().default("pending"),
+    duplicateResourceId: int("duplicateResourceId"),
+    reviewedBy: int("reviewedBy"),
+    reviewNote: text("reviewNote"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    reviewedAt: timestamp("reviewedAt"),
+  },
+  (table) => ({
+    batchStatusIdx: index("ingestion_candidate_batch_status_idx").on(table.batchId, table.status),
+    statusCreatedIdx: index("ingestion_candidate_status_created_idx").on(table.status, table.createdAt),
+    batchUrlUq: uniqueIndex("ingestion_candidate_batch_url_uq").on(table.batchId, table.externalUrl),
+    batchFk: foreignKey({ columns: [table.batchId], foreignColumns: [ingestionBatches.id] }).onDelete("cascade"),
+    duplicateResourceFk: foreignKey({ columns: [table.duplicateResourceId], foreignColumns: [resources.id] }).onDelete("set null"),
+    reviewedByFk: foreignKey({ columns: [table.reviewedBy], foreignColumns: [users.id] }).onDelete("set null"),
+  })
+);
+
+export type IngestionCandidate = typeof ingestionCandidates.$inferSelect;
+export type InsertIngestionCandidate = typeof ingestionCandidates.$inferInsert;
+
+/** Private research workspaces add personal organization without limiting public discovery. */
+export const researchWorkspaces = mysqlTable(
+  "research_workspaces",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    ownerId: int("ownerId").notNull(),
+    name: varchar("name", { length: 255 }).notNull(),
+    slug: varchar("slug", { length: 255 }).notNull(),
+    description: text("description"),
+    status: mysqlEnum("status", ["active", "archived"]).notNull().default("active"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  (table) => ({
+    ownerSlugUq: uniqueIndex("workspace_owner_slug_uq").on(table.ownerId, table.slug),
+    ownerStatusIdx: index("workspace_owner_status_idx").on(table.ownerId, table.status),
+    ownerFk: foreignKey({ columns: [table.ownerId], foreignColumns: [users.id] }).onDelete("cascade"),
+  })
+);
+
+export type ResearchWorkspace = typeof researchWorkspaces.$inferSelect;
+export type InsertResearchWorkspace = typeof researchWorkspaces.$inferInsert;
+
+export const workspaceResources = mysqlTable(
+  "workspace_resources",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    workspaceId: int("workspaceId").notNull(),
+    resourceId: int("resourceId").notNull(),
+    note: varchar("note", { length: 1200 }),
+    order: int("order").notNull().default(0),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  (table) => ({
+    workspaceResourceUq: uniqueIndex("workspace_resource_uq").on(table.workspaceId, table.resourceId),
+    workspaceOrderIdx: index("workspace_resource_order_idx").on(table.workspaceId, table.order),
+    workspaceFk: foreignKey({ columns: [table.workspaceId], foreignColumns: [researchWorkspaces.id] }).onDelete("cascade"),
+    resourceFk: foreignKey({ columns: [table.resourceId], foreignColumns: [resources.id] }).onDelete("cascade"),
+  })
+);
+
+export type WorkspaceResource = typeof workspaceResources.$inferSelect;
+export type InsertWorkspaceResource = typeof workspaceResources.$inferInsert;
+
+/** Organization claim requests remain proposals and never grant direct publishing authority. */
+export const organizationClaims = mysqlTable(
+  "organization_claims",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    applicantId: int("applicantId").notNull(),
+    organizationName: varchar("organizationName", { length: 255 }).notNull(),
+    websiteUrl: varchar("websiteUrl", { length: 2048 }).notNull(),
+    contactEmail: varchar("contactEmail", { length: 320 }).notNull(),
+    evidenceUrl: varchar("evidenceUrl", { length: 2048 }),
+    resourceId: int("resourceId"),
+    rationale: text("rationale").notNull(),
+    status: mysqlEnum("status", ["pending", "approved", "rejected", "suspended", "expired"]).notNull().default("pending"),
+    expiresAt: timestamp("expiresAt"),
+    reviewedBy: int("reviewedBy"),
+    reviewNote: text("reviewNote"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    reviewedAt: timestamp("reviewedAt"),
+  },
+  (table) => ({
+    applicantStatusIdx: index("org_claim_applicant_status_idx").on(table.applicantId, table.status),
+    statusCreatedIdx: index("org_claim_status_created_idx").on(table.status, table.createdAt),
+    applicantFk: foreignKey({ columns: [table.applicantId], foreignColumns: [users.id] }).onDelete("restrict"),
+    resourceFk: foreignKey({ columns: [table.resourceId], foreignColumns: [resources.id] }).onDelete("set null"),
+    reviewedByFk: foreignKey({ columns: [table.reviewedBy], foreignColumns: [users.id] }).onDelete("set null"),
+  })
+);
+
+export type OrganizationClaim = typeof organizationClaims.$inferSelect;
+export type InsertOrganizationClaim = typeof organizationClaims.$inferInsert;
+
+/** Read-only API capacity requests must be approved, bounded, and revocable. */
+export const apiCapacityRequests = mysqlTable(
+  "api_capacity_requests",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    apiKeyId: int("apiKeyId").notNull(),
+    requestedBy: int("requestedBy").notNull(),
+    requestedDailyQuota: int("requestedDailyQuota").notNull(),
+    rationale: text("rationale").notNull(),
+    status: mysqlEnum("status", ["pending", "approved", "rejected", "expired", "revoked"]).notNull().default("pending"),
+    grantedDailyQuota: int("grantedDailyQuota"),
+    expiresAt: timestamp("expiresAt"),
+    reviewedBy: int("reviewedBy"),
+    reviewNote: text("reviewNote"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    reviewedAt: timestamp("reviewedAt"),
+  },
+  (table) => ({
+    keyStatusIdx: index("api_capacity_key_status_idx").on(table.apiKeyId, table.status),
+    requestedByStatusIdx: index("api_capacity_requester_status_idx").on(table.requestedBy, table.status),
+    statusCreatedIdx: index("api_capacity_status_created_idx").on(table.status, table.createdAt),
+    apiKeyFk: foreignKey({ columns: [table.apiKeyId], foreignColumns: [apiKeys.id] }).onDelete("cascade"),
+    requestedByFk: foreignKey({ columns: [table.requestedBy], foreignColumns: [users.id] }).onDelete("restrict"),
+    reviewedByFk: foreignKey({ columns: [table.reviewedBy], foreignColumns: [users.id] }).onDelete("set null"),
+  })
+);
+
+export type ApiCapacityRequest = typeof apiCapacityRequests.$inferSelect;
+export type InsertApiCapacityRequest = typeof apiCapacityRequests.$inferInsert;
+
+/** Projection runs record optional graph-provider synchronization without changing relational truth. */
+export const graphProjectionRuns = mysqlTable(
+  "graph_projection_runs",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    providerId: mysqlEnum("providerId", ["neo4j", "arangodb"]).notNull(),
+    requestedBy: int("requestedBy"),
+    status: mysqlEnum("status", ["queued", "running", "completed", "failed", "disabled"]).notNull().default("queued"),
+    resourceCount: int("resourceCount").notNull().default(0),
+    relationshipCount: int("relationshipCount").notNull().default(0),
+    errorCode: varchar("errorCode", { length: 120 }),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    completedAt: timestamp("completedAt"),
+  },
+  (table) => ({
+    providerStatusCreatedIdx: index("graph_projection_provider_status_idx").on(table.providerId, table.status, table.createdAt),
+    requestedByFk: foreignKey({ columns: [table.requestedBy], foreignColumns: [users.id] }).onDelete("set null"),
+  })
+);
+
+export type GraphProjectionRun = typeof graphProjectionRuns.$inferSelect;
+export type InsertGraphProjectionRun = typeof graphProjectionRuns.$inferInsert;

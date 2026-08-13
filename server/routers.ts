@@ -98,6 +98,22 @@ import {
   createContributorAppeal,
   getContributorAppeals,
   getContributorIntakeAllowance,
+  createIngestionSource,
+  listIngestionSources,
+  reviewIngestionSource,
+  createIngestionBatch,
+  addIngestionCandidates,
+  listIngestionCandidatesForModeration,
+  reviewIngestionCandidate,
+  createResearchWorkspace,
+  listResearchWorkspaces,
+  addResourceToWorkspace,
+  createOrganizationClaim,
+  listOrganizationClaims,
+  reviewOrganizationClaim,
+  createApiCapacityRequest,
+  listApiCapacityRequests,
+  reviewApiCapacityRequest,
 } from "./db";
 import { getDb } from "./db";
 import { TRPCError } from "@trpc/server";
@@ -169,6 +185,45 @@ export const appRouter = router({
         if (!revoked) throw new TRPCError({ code: "NOT_FOUND", message: "Active API key not found" });
         await createAuditLog(ctx.user.id, "revoke", "api_key", input.apiKeyId, { reason: "owner_revoked" });
         return { success: true };
+      }),
+    requestCapacity: protectedProcedure
+      .input(z.object({ apiKeyId: z.number().int().positive(), requestedDailyQuota: z.number().int().min(1001).max(100000), rationale: z.string().trim().min(20).max(2000) }))
+      .mutation(async ({ input, ctx }) => {
+        const id = await createApiCapacityRequest({ ...input, requestedBy: ctx.user.id });
+        if (!id) throw new TRPCError({ code: "CONFLICT", message: "A pending request already exists or the active API key was not found" });
+        await createAuditLog(ctx.user.id, "request", "api_capacity_request", id, { apiKeyId: input.apiKeyId, requestedDailyQuota: input.requestedDailyQuota });
+        return { id };
+      }),
+  }),
+
+  workspaces: router({
+    list: protectedProcedure.query(({ ctx }) => listResearchWorkspaces(ctx.user.id)),
+    create: protectedProcedure
+      .input(z.object({ name: z.string().trim().min(2).max(255), slug: z.string().trim().min(2).max(255).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/), description: z.string().trim().max(2000).optional() }))
+      .mutation(async ({ input, ctx }) => {
+        const id = await createResearchWorkspace({ ...input, ownerId: ctx.user.id });
+        if (!id) throw new TRPCError({ code: "CONFLICT", message: "A workspace with this slug already exists" });
+        await createAuditLog(ctx.user.id, "create", "research_workspace", id, { name: input.name });
+        return { id };
+      }),
+    pinResource: protectedProcedure
+      .input(z.object({ workspaceId: z.number().int().positive(), resourceId: z.number().int().positive(), note: z.string().trim().max(1200).optional() }))
+      .mutation(async ({ input, ctx }) => {
+        const pinned = await addResourceToWorkspace({ ...input, ownerId: ctx.user.id });
+        if (!pinned) throw new TRPCError({ code: "NOT_FOUND", message: "Active workspace not found" });
+        await createAuditLog(ctx.user.id, "pin", "workspace_resource", input.resourceId, { workspaceId: input.workspaceId });
+        return { success: true };
+      }),
+  }),
+
+  organizations: router({
+    claim: protectedProcedure
+      .input(z.object({ organizationName: z.string().trim().min(2).max(255), websiteUrl: z.string().url().max(2048).refine((value) => new URL(value).protocol === "https:", "HTTPS website required"), contactEmail: z.string().trim().email().max(320), evidenceUrl: z.string().url().max(2048).optional(), resourceId: z.number().int().positive().optional(), rationale: z.string().trim().min(20).max(2000) }))
+      .mutation(async ({ input, ctx }) => {
+        const id = await createOrganizationClaim({ ...input, applicantId: ctx.user.id });
+        if (!id) throw new TRPCError({ code: "CONFLICT", message: "A pending claim for this organization already exists" });
+        await createAuditLog(ctx.user.id, "request", "organization_claim", id, { organizationName: input.organizationName, resourceId: input.resourceId ?? null });
+        return { id };
       }),
   }),
 
@@ -1150,6 +1205,80 @@ export const appRouter = router({
 
   // Moderation Router
   moderation: router({
+    getOrganizationClaims: adminProcedure
+      .input(z.object({ status: z.enum(["pending", "approved", "rejected", "suspended", "expired"]).default("pending") }))
+      .query(({ input }) => listOrganizationClaims(input.status)),
+    reviewOrganizationClaim: adminProcedure
+      .input(z.object({ claimId: z.number().int().positive(), status: z.enum(["approved", "rejected", "suspended"]), expiresAt: z.date().optional(), reviewNote: z.string().trim().max(2000).optional() }).superRefine((input, context) => {
+        if (input.status === "approved" && !input.expiresAt) context.addIssue({ code: z.ZodIssueCode.custom, message: "Approved claims require an expiry date", path: ["expiresAt"] });
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const updated = await reviewOrganizationClaim({ ...input, reviewerId: ctx.user.id });
+        if (!updated) throw new TRPCError({ code: "CONFLICT", message: "Claim is no longer pending" });
+        await createAuditLog(ctx.user.id, `review_organization_claim_${input.status}`, "organization_claim", input.claimId, { expiresAt: input.expiresAt?.toISOString() ?? null, reviewNote: input.reviewNote ?? null });
+        return { success: true };
+      }),
+    getApiCapacityRequests: adminProcedure
+      .input(z.object({ status: z.enum(["pending", "approved", "rejected", "expired", "revoked"]).default("pending") }))
+      .query(({ input }) => listApiCapacityRequests(input.status)),
+    reviewApiCapacityRequest: adminProcedure
+      .input(z.object({ requestId: z.number().int().positive(), status: z.enum(["approved", "rejected", "revoked"]), grantedDailyQuota: z.number().int().min(1001).max(100000).optional(), expiresAt: z.date().optional(), reviewNote: z.string().trim().max(2000).optional() }).superRefine((input, context) => {
+        if (input.status === "approved" && (!input.grantedDailyQuota || !input.expiresAt)) context.addIssue({ code: z.ZodIssueCode.custom, message: "Approval requires a quota and expiry", path: ["grantedDailyQuota"] });
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const updated = await reviewApiCapacityRequest({ ...input, reviewerId: ctx.user.id });
+        if (!updated) throw new TRPCError({ code: "CONFLICT", message: "Capacity request is no longer pending or lacks approval fields" });
+        await createAuditLog(ctx.user.id, `review_api_capacity_${input.status}`, "api_capacity_request", input.requestId, { grantedDailyQuota: input.grantedDailyQuota ?? null, expiresAt: input.expiresAt?.toISOString() ?? null, reviewNote: input.reviewNote ?? null });
+        return { success: true };
+      }),
+    getIngestionSources: adminProcedure
+      .input(z.object({ status: z.enum(["draft", "approved", "paused", "retired"]).optional() }))
+      .query(({ input }) => listIngestionSources(input.status)),
+    createIngestionSource: adminProcedure
+      .input(z.object({ name: z.string().trim().min(2).max(255), baseUrl: z.string().url().max(2048).refine((value) => new URL(value).protocol === "https:", "HTTPS source required"), termsUrl: z.string().url().max(2048).optional(), sourceType: z.enum(["official_site", "official_docs", "official_repository", "manual_feed"]) }))
+      .mutation(async ({ input, ctx }) => {
+        const id = await createIngestionSource({ ...input, createdBy: ctx.user.id });
+        if (!id) throw new TRPCError({ code: "CONFLICT", message: "Unable to register source" });
+        await createAuditLog(ctx.user.id, "create", "ingestion_source", id, { name: input.name, baseUrl: input.baseUrl, sourceType: input.sourceType });
+        return { id };
+      }),
+    reviewIngestionSource: adminProcedure
+      .input(z.object({ sourceId: z.number().int().positive(), status: z.enum(["approved", "paused", "retired"]), reviewNote: z.string().trim().max(2000).optional() }))
+      .mutation(async ({ input, ctx }) => {
+        const updated = await reviewIngestionSource({ ...input, reviewerId: ctx.user.id });
+        if (!updated) throw new TRPCError({ code: "CONFLICT", message: "Source is no longer awaiting review" });
+        await createAuditLog(ctx.user.id, `review_ingestion_source_${input.status}`, "ingestion_source", input.sourceId, { reviewNote: input.reviewNote ?? null });
+        return { success: true };
+      }),
+    createIngestionBatch: adminProcedure
+      .input(z.object({ sourceId: z.number().int().positive() }))
+      .mutation(async ({ input, ctx }) => {
+        const id = await createIngestionBatch({ ...input, requestedBy: ctx.user.id });
+        if (!id) throw new TRPCError({ code: "CONFLICT", message: "Only approved sources can create a bounded batch" });
+        await createAuditLog(ctx.user.id, "create", "ingestion_batch", id, { sourceId: input.sourceId });
+        return { id };
+      }),
+    addIngestionCandidates: adminProcedure
+      .input(z.object({ batchId: z.number().int().positive(), candidates: z.array(z.object({ externalUrl: z.string().url().max(2048).refine((value) => new URL(value).protocol === "https:", "HTTPS candidate required"), contentHash: z.string().regex(/^[a-f0-9]{64}$/i), title: z.string().trim().max(255).optional(), summary: z.string().trim().max(8000).optional(), attribution: z.string().trim().max(500).optional(), licenseNote: z.string().trim().max(500).optional(), assessment: z.unknown().optional() })).min(1).max(50) }))
+      .mutation(async ({ input, ctx }) => {
+        const count = await addIngestionCandidates(input);
+        if (!count) throw new TRPCError({ code: "CONFLICT", message: "Batch is unavailable for candidates" });
+        await createAuditLog(ctx.user.id, "queue", "ingestion_batch", input.batchId, { candidateCount: count });
+        return { candidateCount: count };
+      }),
+    getIngestionCandidates: adminProcedure
+      .input(z.object({ limit: z.number().int().min(1).max(100).default(50) }))
+      .query(({ input }) => listIngestionCandidatesForModeration(input.limit)),
+    reviewIngestionCandidate: adminProcedure
+      .input(z.object({ candidateId: z.number().int().positive(), status: z.enum(["accepted", "duplicate", "rejected"]), duplicateResourceId: z.number().int().positive().optional(), reviewNote: z.string().trim().max(2000).optional() }).superRefine((input, context) => {
+        if (input.status === "duplicate" && !input.duplicateResourceId) context.addIssue({ code: z.ZodIssueCode.custom, message: "A canonical resource is required for duplicate decisions", path: ["duplicateResourceId"] });
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const updated = await reviewIngestionCandidate({ ...input, reviewerId: ctx.user.id });
+        if (!updated) throw new TRPCError({ code: "CONFLICT", message: "Candidate is no longer pending review" });
+        await createAuditLog(ctx.user.id, `review_ingestion_candidate_${input.status}`, "ingestion_candidate", input.candidateId, { duplicateResourceId: input.duplicateResourceId ?? null, reviewNote: input.reviewNote ?? null });
+        return { success: true };
+      }),
     getIntakeCandidates: adminProcedure
       .input(z.object({ limit: z.number().int().min(1).max(100).default(50) }))
       .query(({ input }) => listIntakeCandidatesForModeration(input.limit)),

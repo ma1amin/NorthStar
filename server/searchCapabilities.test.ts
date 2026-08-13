@@ -9,6 +9,7 @@ describe("search capabilities", () => {
       semanticSearchEnabled: false,
       externalProviderConfigured: false,
       semanticIndexStatus: "not_configured",
+      semanticProviderId: null,
     });
   });
 });
