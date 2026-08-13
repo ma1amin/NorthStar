@@ -365,3 +365,17 @@
 
 ## Remaining Features — Owner Decision Required
 All product, infrastructure, integration, and UX enhancements that are not currently approved are held exclusively in [`suggest.md`](./suggest.md). They are **not** active execution items until the owner explicitly selects them. The register includes data-quality moderator queues, source-contribution UI, alias messaging/record migration, full documentation localization, theme preferences, richer collections, public API/OpenAPI, search quality/provider work, CI/operations, PWA, ingestion, AI enrichment, graph-scale architecture, integrations, additional routes, privileged QA, and GitHub publication verification.
+
+## Comprehensive Enhancement Programme — Approved
+- [ ] Create release slices from all held suggestions, maintain migration/rollback notes, and synchronize every validated checkpoint with the configured GitHub repository.
+- [ ] Build a moderator data-quality command workspace for source review, freshness decisions, duplicate-resolution previews, canonical alias confirmation, audit history, and responsive error/loading states.
+- [ ] Add contributor-facing source-evidence submission, canonical-alias messaging, and safe record-migration workflow with preview, idempotency, audit, rollback, and collision controls.
+- [ ] Complete public UX: remaining critical EN/AR content localization excluding the footer, RTL QA, persisted theme preference, richer collection discovery/activity, and dedicated Trending/About/Settings/Developer routes.
+- [ ] Create versioned public read endpoints, OpenAPI specification, API-key lifecycle, scopes, quotas, revocation, developer portal, and contract tests.
+- [ ] Add privacy-safe search-quality measurement, relevance evaluation, provider abstraction, external lexical benchmark, and semantic/vector readiness behind explicit human-review boundaries.
+- [ ] Add PWA manifest, service worker, offline-safe public routes, cache invalidation, installation checks, and accessible fallback states.
+- [ ] Implement governed freshness automation, source scoring, external-source ingestion policy/queue/adapters, deduplication, licensing controls, and moderation review.
+- [ ] Expand AI enrichment proposals and graph-scale provider/caching/job boundaries while preserving provenance, costs, privacy, and human approval.
+- [ ] Add CI/release gates, dependency and secret scanning, health/metrics/traces, backup-restore runbooks, alerting, load tests, and incident guidance.
+- [ ] Build approved integration foundations for browser extension, Telegram, WhatsApp, Discord, and Slack with secure configuration, user consent, and end-to-end testing.
+- [ ] Run full security, migration, performance, accessibility, responsive, privileged browser, and GitHub publication verification; update all platform documentation and release records.
