@@ -72,6 +72,9 @@ import {
   previewDuplicateResolution,
   createDuplicateResolutionProposal,
   confirmDuplicateResolution,
+  getPendingResourceSources,
+  getFreshnessReviewQueue,
+  getProposedDuplicateResolutions,
 } from "./db";
 import { getDb } from "./db";
 import { TRPCError } from "@trpc/server";
@@ -1074,6 +1077,18 @@ export const appRouter = router({
         await createAuditLog(ctx.user.id, `review_source_${input.status}`, "resource_source", input.sourceId, { resourceId: source.resourceId });
         return { success: true, resourceId: source.resourceId };
       }),
+
+    getPendingSources: adminProcedure
+      .input(z.object({ limit: z.number().min(1).max(100).default(50), offset: z.number().min(0).default(0) }))
+      .query(({ input }) => getPendingResourceSources(input.limit, input.offset)),
+
+    getFreshnessQueue: adminProcedure
+      .input(z.object({ limit: z.number().min(1).max(100).default(50), offset: z.number().min(0).default(0) }))
+      .query(({ input }) => getFreshnessReviewQueue(input.limit, input.offset)),
+
+    getProposedDuplicateResolutions: adminProcedure
+      .input(z.object({ limit: z.number().min(1).max(100).default(50), offset: z.number().min(0).default(0) }))
+      .query(({ input }) => getProposedDuplicateResolutions(input.limit, input.offset)),
 
     recordFreshness: adminProcedure
       .input(z.object({ resourceId: z.number().int().positive(), status: z.enum(["current", "needs_review", "stale"]), note: z.string().trim().max(2000).optional() }))

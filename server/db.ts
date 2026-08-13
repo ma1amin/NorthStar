@@ -1,5 +1,6 @@
 import { eq, and, or, like, desc, asc, inArray, isNull, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
+import { alias } from "drizzle-orm/mysql-core";
 import {
   InsertUser,
   users,
@@ -338,6 +339,80 @@ export async function confirmDuplicateResolution(input: { resolutionId: number; 
   const updated = await db.update(resourceDuplicateResolutions).set({ status: "confirmed", reviewedBy: input.reviewerId, reviewNote: input.reviewNote || null, reviewedAt: new Date() }).where(and(eq(resourceDuplicateResolutions.id, input.resolutionId), eq(resourceDuplicateResolutions.status, "proposed")));
   if (Number((updated as any)[0]?.affectedRows ?? 0) < 1) return undefined;
   return { resolution, preview };
+}
+
+export async function getPendingResourceSources(limit: number = 50, offset: number = 0) {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select({
+      id: resourceSources.id,
+      resourceId: resourceSources.resourceId,
+      url: resourceSources.url,
+      sourceType: resourceSources.sourceType,
+      attribution: resourceSources.attribution,
+      licenseNote: resourceSources.licenseNote,
+      capturedAt: resourceSources.capturedAt,
+      resourceTitle: resources.title,
+      resourceSlug: resources.slug,
+      contributorName: users.name,
+    })
+    .from(resourceSources)
+    .innerJoin(resources, eq(resourceSources.resourceId, resources.id))
+    .innerJoin(users, eq(resourceSources.addedBy, users.id))
+    .where(eq(resourceSources.verificationStatus, "pending"))
+    .orderBy(desc(resourceSources.capturedAt))
+    .limit(Math.min(Math.max(limit, 1), 100))
+    .offset(Math.max(offset, 0));
+}
+
+export async function getFreshnessReviewQueue(limit: number = 50, offset: number = 0) {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select({
+      resourceId: resources.id,
+      resourceTitle: resources.title,
+      resourceSlug: resources.slug,
+      resourceUrl: resources.url,
+      lastReviewedAt: sql<Date | null>`max(${resourceFreshnessReviews.checkedAt})`,
+      latestStatus: sql<"current" | "needs_review" | "stale" | null>`substring_index(group_concat(${resourceFreshnessReviews.status} order by ${resourceFreshnessReviews.checkedAt} desc), ',', 1)`,
+    })
+    .from(resources)
+    .leftJoin(resourceFreshnessReviews, eq(resourceFreshnessReviews.resourceId, resources.id))
+    .where(and(eq(resources.status, "approved"), isNull(resources.canonicalResourceId)))
+    .groupBy(resources.id, resources.title, resources.slug, resources.url)
+    .orderBy(sql`case when max(${resourceFreshnessReviews.checkedAt}) is null then 0 else 1 end`, sql`max(${resourceFreshnessReviews.checkedAt}) asc`)
+    .limit(Math.min(Math.max(limit, 1), 100))
+    .offset(Math.max(offset, 0));
+}
+
+export async function getProposedDuplicateResolutions(limit: number = 50, offset: number = 0) {
+  const db = await getDb();
+  if (!db) return [];
+  const duplicateResource = alias(resources, "duplicate_resource");
+  const canonicalResource = alias(resources, "canonical_resource");
+  return db
+    .select({
+      id: resourceDuplicateResolutions.id,
+      duplicateResourceId: resourceDuplicateResolutions.duplicateResourceId,
+      canonicalResourceId: resourceDuplicateResolutions.canonicalResourceId,
+      rationale: resourceDuplicateResolutions.rationale,
+      createdAt: resourceDuplicateResolutions.createdAt,
+      duplicateTitle: duplicateResource.title,
+      duplicateSlug: duplicateResource.slug,
+      canonicalTitle: canonicalResource.title,
+      canonicalSlug: canonicalResource.slug,
+      proposerName: users.name,
+    })
+    .from(resourceDuplicateResolutions)
+    .innerJoin(duplicateResource, eq(resourceDuplicateResolutions.duplicateResourceId, duplicateResource.id))
+    .innerJoin(canonicalResource, eq(resourceDuplicateResolutions.canonicalResourceId, canonicalResource.id))
+    .innerJoin(users, eq(resourceDuplicateResolutions.createdBy, users.id))
+    .where(eq(resourceDuplicateResolutions.status, "proposed"))
+    .orderBy(desc(resourceDuplicateResolutions.createdAt))
+    .limit(Math.min(Math.max(limit, 1), 100))
+    .offset(Math.max(offset, 0));
 }
 
 export async function getResourcesByCategory(categoryId: number, limit: number = 50, offset: number = 0) {

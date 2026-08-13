@@ -361,15 +361,17 @@
 - [x] Trust and data-quality foundation: attributed sources, public resource history, freshness guidance, canonical duplicate aliases, audit trails, migration verification, and protected source/freshness/duplicate contracts.
 - [x] Critical English/Arabic product flows and RTL-safe layouts across discovery, contribution, collections, reports, Profile, and moderation surfaces.
 - [x] Policy and release documentation aligned to the active MIT, maintainer-led governance, Manus OAuth, client-rendered SPA, and non-production-published posture.
-- [x] Latest implementation verification: TypeScript passed; 13 Vitest files and 77 tests passed at checkpoint `4b843044`.
+- [x] Latest implementation verification: TypeScript passed; 13 Vitest files and 78 tests passed after the data-quality moderation UX slice; checkpoint pending.
 
 ## Remaining Features — Owner Decision Required
-All product, infrastructure, integration, and UX enhancements that are not currently approved are held exclusively in [`suggest.md`](./suggest.md). They are **not** active execution items until the owner explicitly selects them. The register includes data-quality moderator queues, source-contribution UI, alias messaging/record migration, full documentation localization, theme preferences, richer collections, public API/OpenAPI, search quality/provider work, CI/operations, PWA, ingestion, AI enrichment, graph-scale architecture, integrations, additional routes, privileged QA, and GitHub publication verification.
+Any newly proposed product, infrastructure, integration, or UX enhancement is held exclusively in [`suggest.md`](./suggest.md) until the owner explicitly selects it. The comprehensive enhancement programme below captures the previously approved work and must remain evidence-led, incremental, and reversible where data changes are involved.
 
 ## Comprehensive Enhancement Programme — Approved
 - [ ] Create release slices from all held suggestions, maintain migration/rollback notes, and synchronize every validated checkpoint with the configured GitHub repository.
-- [ ] Build a moderator data-quality command workspace for source review, freshness decisions, duplicate-resolution previews, canonical alias confirmation, audit history, and responsive error/loading states.
+- [x] Build a moderator data-quality command workspace for source review, freshness decisions, duplicate-resolution previews, canonical alias confirmation, audit history, and responsive error/loading states.
 - [ ] Add contributor-facing source-evidence submission, canonical-alias messaging, and safe record-migration workflow with preview, idempotency, audit, rollback, and collision controls.
+- [x] Add contributor-facing source-evidence submission in Node View trust context, with pending-review expectations and localized feedback.
+- [x] Add canonical-alias messaging when an archived duplicate URL resolves to its verified canonical Node View.
 - [ ] Complete public UX: remaining critical EN/AR content localization excluding the footer, RTL QA, persisted theme preference, richer collection discovery/activity, and dedicated Trending/About/Settings/Developer routes.
 - [ ] Create versioned public read endpoints, OpenAPI specification, API-key lifecycle, scopes, quotas, revocation, developer portal, and contract tests.
 - [ ] Add privacy-safe search-quality measurement, relevance evaluation, provider abstraction, external lexical benchmark, and semantic/vector readiness behind explicit human-review boundaries.

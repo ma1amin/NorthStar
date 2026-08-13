@@ -6,9 +6,9 @@
 
 ## Current Conclusion
 
-NorthStar has a complete **core resource-intelligence platform**: public discovery, structured/fuzzy/relationship-aware search, ten relationship types, bounded graph exploration, contributions, collections, votes, reputation, human moderation, audit history, bilingual critical flows, and evidence-led data-quality foundations. [1] [2] [3]
+NorthStar has a complete **core resource-intelligence platform**: public discovery, structured/fuzzy/relationship-aware search, ten relationship types, bounded graph exploration, contributions, collections, votes, reputation, human moderation, audit history, bilingual critical flows, and evidence-led data-quality workflows. [1] [2] [3]
 
-The primary remaining work is not core directory functionality. It is moderator operating UX for the new data-quality foundations, public-developer API work, measured search quality, delivery/observability maturity, PWA/offline decisions, governed ingestion, and scale experiments. These ideas are preserved in [`suggest.md`](./suggest.md) until the owner chooses to scope them. [4]
+The primary remaining work is not core directory functionality. It is public-developer API work, measured search quality, delivery/observability maturity, PWA/offline decisions, governed ingestion, record-migration safeguards, and scale experiments. These approved workstreams are sequenced in [`todo.md`](./todo.md) and retain their fuller acceptance criteria in [`suggest.md`](./suggest.md). [4]
 
 ## Evidence Matrix
 
@@ -20,7 +20,7 @@ The primary remaining work is not core directory functionality. It is moderator 
 | Community submissions, duplicate detection, edit suggestions, collections, votes, reputation, reports | **Implemented** | Schema, protected contracts, and integration tests. [1] [2] | Social curation expansion remains held. |
 | Human oversight, RBAC, audits, bulk moderation, roles, AI drafts | **Implemented** | Role-gated router contracts and audit test coverage. [1] [3] | Privileged browser walkthrough is CAPTCHA-limited. |
 | EN/AR critical product flows and RTL layouts | **Implemented with documented low-priority follow-up** | Locale catalog, RTL browser QA, and locale tests. [3] [6] | Footer utility copy, some command-palette labels, and a documentation-localization decision remain held. |
-| Attributed sources, public history, freshness guidance, canonical aliases | **Implemented foundation** | Migration `0007`, schema, trust-context UI, protected source/freshness/alias contracts, and 77-test verification. [1] [3] | No dedicated moderator queue UI, automatic freshness job, source scoring, or destructive record merge. |
+| Attributed sources, public history, freshness guidance, canonical aliases | **Implemented with operating UX** | Migration `0007`, schema, Node View evidence submission/alias notice, Admin source/freshness/duplicate queues, protected source/freshness/alias contracts, and 78-test verification. [1] [3] | Automatic freshness jobs, source scoring, and a governed cross-record migration workflow remain pending. |
 | Public REST API, OpenAPI, API keys, quota lifecycle | **Not implemented** | API documentation retains internal tRPC-only boundary. [7] | Held as `S-08`. |
 | Semantic/vector search and external search provider | **Not implemented** | Search capability documentation and current dependencies. [5] | Held as `S-09` and `S-10`. |
 | Search quality analytics beyond completed-query counts | **Partial** | Privacy-conscious completed-query analytics exists. [1] | Clicks, reformulation, relevance set, latency baseline, and quality thresholds are held. |
@@ -34,7 +34,7 @@ The primary remaining work is not core directory functionality. It is moderator 
 
 ## Current Decision Boundary
 
-No unimplemented capability in this matrix is automatically scheduled. All recommendations, including moderator data-quality queues, API work, search experiments, operational maturity, and integrations, are held in [`suggest.md`](./suggest.md) until explicit owner direction. The active execution history and completed work are maintained in [`todo.md`](./todo.md).
+The currently approved capability work is sequenced in [`todo.md`](./todo.md). Any newly proposed capability remains in [`suggest.md`](./suggest.md) until explicit owner direction, and no documentation entry is treated as implementation evidence without current code plus tests or documented QA.
 
 ## References
 

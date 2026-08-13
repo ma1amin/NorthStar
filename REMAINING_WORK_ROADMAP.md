@@ -14,7 +14,7 @@ NorthStar’s verified core release now includes policy alignment, English/Arabi
 
 ## Verified Limitations
 
-The data-quality foundation is not yet a complete operating programme. It has no dedicated moderator queue UI, automatic freshness jobs, source scoring, or destructive record-migration workflow. The release also has no stable public REST/OpenAPI API, semantic/vector provider, PWA, CI/CD/observability stack, ingestion framework, or verified GitHub publication from this environment. Privileged browser QA remains blocked by CAPTCHA; automated authorization and integration tests are the evidence for those protected workflows. [2] [3]
+The data-quality foundation now includes a dedicated moderator command workspace for evidence review, freshness decisions, and duplicate-alias proposals/confirmation, as well as contributor evidence submission and canonical-alias messaging in Node View. Automatic freshness jobs, source scoring, and the governed cross-record migration workflow remain unfinished. The release also has no stable public REST/OpenAPI API, semantic/vector provider, PWA, CI/CD/observability stack, ingestion framework, or verified GitHub publication from this environment. Privileged browser QA remains blocked by CAPTCHA; automated authorization and integration tests are the evidence for those protected workflows. [2] [3]
 
 ## Owner Decision Gate
 

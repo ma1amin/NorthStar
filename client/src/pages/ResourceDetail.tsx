@@ -24,6 +24,7 @@ import { toast } from "sonner";
 import { applyClientSeo } from "@/lib/seo";
 import { ReportResourceDialog } from "@/components/ReportResourceDialog";
 import { SuggestResourceEditDialog } from "@/components/SuggestResourceEditDialog";
+import { SubmitSourceDialog } from "@/components/SubmitSourceDialog";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 const RELATIONSHIP_TABS = [
@@ -380,6 +381,14 @@ export default function ResourceDetail() {
           <Link href="/browse" className="inline-flex items-center gap-2 text-sm font-medium text-sky-600 hover:text-sky-700">
             <ArrowLeft className="h-4 w-4" /> {t("backToBrowse")}
           </Link>
+          {slug !== resource.slug && (
+            <Card className="mt-5 border-sky-200 bg-sky-50/80 p-4 text-sm text-sky-950">
+              <p className="font-medium">{t("aliasNotice")}</p>
+              <Link href={`/resource/${resource.slug}`} className="mt-2 inline-flex font-semibold text-sky-700 hover:text-sky-900">
+                {resource.title}
+              </Link>
+            </Card>
+          )}
           <div className="mt-8 flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
             <div className="flex items-start gap-5">
               <div className="ns-glow-ring flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-500 to-blue-600 text-xl font-bold text-white shadow-lg">
@@ -565,6 +574,7 @@ export default function ResourceDetail() {
                 <div className="border-t border-slate-100 pt-4">
                   <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">{t("evidenceSources")}</p>
                   {trustContext?.sources?.length ? <ul className="mt-2 space-y-2">{trustContext.sources.slice(0, 3).map((source) => <li key={source.id}><a href={source.url} target="_blank" rel="noreferrer" className="block truncate font-medium text-sky-700 hover:text-sky-900">{source.attribution || source.url}</a><p className="mt-0.5 text-xs capitalize text-slate-500">{source.sourceType}</p></li>)}</ul> : <p className="mt-2 text-slate-500">{t("noApprovedEvidence")}</p>}
+                  <div className="mt-4"><SubmitSourceDialog resourceId={resource.id} isAuthenticated={isAuthenticated} /></div>
                 </div>
                 <div className="border-t border-slate-100 pt-4">
                   <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">{t("publicHistory")}</p>

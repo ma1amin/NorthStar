@@ -30,6 +30,9 @@ const mocks = vi.hoisted(() => ({
   previewDuplicateResolution: vi.fn(),
   createDuplicateResolutionProposal: vi.fn(),
   confirmDuplicateResolution: vi.fn(),
+  getPendingResourceSources: vi.fn(),
+  getFreshnessReviewQueue: vi.fn(),
+  getProposedDuplicateResolutions: vi.fn(),
 }));
 
 vi.mock("./search", () => ({ searchService: { advancedSearch: mocks.advancedSearch, getSuggestions: vi.fn(), getTrending: vi.fn() } }));
@@ -59,6 +62,9 @@ vi.mock("./db", () => ({
   previewDuplicateResolution: mocks.previewDuplicateResolution,
   createDuplicateResolutionProposal: mocks.createDuplicateResolutionProposal,
   confirmDuplicateResolution: mocks.confirmDuplicateResolution,
+  getPendingResourceSources: mocks.getPendingResourceSources,
+  getFreshnessReviewQueue: mocks.getFreshnessReviewQueue,
+  getProposedDuplicateResolutions: mocks.getProposedDuplicateResolutions,
 }));
 
 import { appRouter } from "./routers";
@@ -205,5 +211,19 @@ describe("core tRPC workflows", () => {
     mocks.confirmDuplicateResolution.mockResolvedValue({ resolution: { id: 44, duplicateResourceId: 3, canonicalResourceId: 1 }, preview });
     await expect(appRouter.createCaller(context("admin")).moderation.confirmDuplicateResolution({ resolutionId: 44, reviewNote: "Confirmed against official sources." })).resolves.toEqual({ success: true, canonicalResourceId: 1, duplicateResourceId: 3 });
     expect(mocks.createAuditLog).toHaveBeenCalledWith(7, "confirm_duplicate_resolution", "resource_duplicate_resolution", 44, expect.objectContaining({ duplicateResourceId: 3, canonicalResourceId: 1 }));
+  });
+
+  it("serves data-quality queues to moderators and denies them to ordinary users", async () => {
+    mocks.getPendingResourceSources.mockResolvedValue([{ id: 5, resourceTitle: "Resource" }]);
+    mocks.getFreshnessReviewQueue.mockResolvedValue([{ resourceId: 1, resourceTitle: "Resource" }]);
+    mocks.getProposedDuplicateResolutions.mockResolvedValue([{ id: 9, duplicateTitle: "Old name", canonicalTitle: "Current name" }]);
+
+    await expect(appRouter.createCaller(context("moderator")).moderation.getPendingSources({ limit: 20, offset: 0 })).resolves.toHaveLength(1);
+    await expect(appRouter.createCaller(context("moderator")).moderation.getFreshnessQueue({ limit: 20, offset: 0 })).resolves.toHaveLength(1);
+    await expect(appRouter.createCaller(context("moderator")).moderation.getProposedDuplicateResolutions({ limit: 20, offset: 0 })).resolves.toHaveLength(1);
+    await expect(appRouter.createCaller(context()).moderation.getPendingSources({ limit: 20, offset: 0 })).rejects.toMatchObject({ code: "FORBIDDEN" });
+    expect(mocks.getPendingResourceSources).toHaveBeenCalledWith(20, 0);
+    expect(mocks.getFreshnessReviewQueue).toHaveBeenCalledWith(20, 0);
+    expect(mocks.getProposedDuplicateResolutions).toHaveBeenCalledWith(20, 0);
   });
 });
