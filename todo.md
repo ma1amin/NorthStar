@@ -379,5 +379,5 @@ Any newly proposed product, infrastructure, integration, or UX enhancement is he
 - [x] Implement governed freshness automation, source scoring, external-source ingestion policy/queue/adapters, deduplication, licensing controls, and moderation review.
 - [x] Expand AI enrichment proposals and graph-scale provider/caching/job boundaries while preserving provenance, costs, privacy, and human approval.
 - [x] Add CI/release gates, dependency and secret scanning, health/metrics/traces, backup-restore runbooks, alerting, load tests, and incident guidance.
-- [ ] Build approved integration foundations for browser extension, Telegram, WhatsApp, Discord, and Slack with secure configuration, user consent, and end-to-end testing.
+- [x] Build approved integration foundations for browser extension, Telegram, WhatsApp, Discord, and Slack with secure configuration, user consent, and end-to-end testing.
 - [ ] Run full security, migration, performance, accessibility, responsive, privileged browser, and GitHub publication verification; update all platform documentation and release records.
