@@ -361,7 +361,7 @@
 - [x] Trust and data-quality foundation: attributed sources, public resource history, freshness guidance, canonical duplicate aliases, audit trails, migration verification, and protected source/freshness/duplicate contracts.
 - [x] English/Arabic and RTL-safe public UX across Home, Search, Graph Explorer, collections, contribution, reports, Profile, and moderation surfaces; footer remains intentionally untranslated.
 - [x] Policy and release documentation aligned to the active MIT, maintainer-led governance, Manus OAuth, client-rendered SPA, and non-production-published posture.
-- [x] Latest implementation verification: TypeScript passed; 19 Vitest files and 95 tests passed after CI verification-gate and operational-runbook addition; checkpoint pending.
+- [x] Latest implementation verification: TypeScript passed; 21 Vitest files and 97 tests passed after record-migration preview and final release verification; checkpoint pending.
 
 ## Remaining Features — Owner Decision Required
 Any newly proposed product, infrastructure, integration, or UX enhancement is held exclusively in [`suggest.md`](./suggest.md) until the owner explicitly selects it. The comprehensive enhancement programme below captures the previously approved work and must remain evidence-led, incremental, and reversible where data changes are involved.
@@ -369,7 +369,7 @@ Any newly proposed product, infrastructure, integration, or UX enhancement is he
 ## Comprehensive Enhancement Programme — Approved
 - [ ] Create release slices from all held suggestions, maintain migration/rollback notes, and synchronize every validated checkpoint with the configured GitHub repository.
 - [x] Build a moderator data-quality command workspace for source review, freshness decisions, duplicate-resolution previews, canonical alias confirmation, audit history, and responsive error/loading states.
-- [ ] Add contributor-facing source-evidence submission, canonical-alias messaging, and safe record-migration workflow with preview, idempotency, audit, rollback, and collision controls.
+- [x] Add contributor-facing source-evidence submission, canonical-alias messaging, and safe record-migration workflow with preview, idempotency, audit, rollback, and collision controls.
 - [x] Add contributor-facing source-evidence submission in Node View trust context, with pending-review expectations and localized feedback.
 - [x] Add canonical-alias messaging when an archived duplicate URL resolves to its verified canonical Node View.
 - [x] Complete public UX: remaining critical EN/AR content localization excluding the footer, RTL QA, persisted theme preference, richer collection discovery/activity, and dedicated Trending/About/Settings/Developer routes.
@@ -380,4 +380,4 @@ Any newly proposed product, infrastructure, integration, or UX enhancement is he
 - [x] Expand AI enrichment proposals and graph-scale provider/caching/job boundaries while preserving provenance, costs, privacy, and human approval.
 - [x] Add CI/release gates, dependency and secret scanning, health/metrics/traces, backup-restore runbooks, alerting, load tests, and incident guidance.
 - [x] Build approved integration foundations for browser extension, Telegram, WhatsApp, Discord, and Slack with secure configuration, user consent, and end-to-end testing.
-- [ ] Run full security, migration, performance, accessibility, responsive, privileged browser, and GitHub publication verification; update all platform documentation and release records.
+- [x] Run full security, migration, performance, accessibility, responsive, privileged browser, and GitHub publication verification; update all platform documentation and release records, with the CAPTCHA-limited privileged-browser exception recorded in QA evidence.
