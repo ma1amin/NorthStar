@@ -38,6 +38,10 @@ const mocks = vi.hoisted(() => ({
   listOwnerApiKeys: vi.fn(),
   getApiKeyUsageForOwner: vi.fn(),
   revokeApiKeyRecord: vi.fn(),
+  getSearchQualitySummary: vi.fn(),
+  createSearchEvaluationCase: vi.fn(),
+  listSearchEvaluationCases: vi.fn(),
+  reviewSearchEvaluationCase: vi.fn(),
 }));
 
 vi.mock("./search", () => ({ searchService: { advancedSearch: mocks.advancedSearch, getSuggestions: vi.fn(), getTrending: vi.fn() } }));
@@ -75,6 +79,10 @@ vi.mock("./db", () => ({
   listOwnerApiKeys: mocks.listOwnerApiKeys,
   getApiKeyUsageForOwner: mocks.getApiKeyUsageForOwner,
   revokeApiKeyRecord: mocks.revokeApiKeyRecord,
+  getSearchQualitySummary: mocks.getSearchQualitySummary,
+  createSearchEvaluationCase: mocks.createSearchEvaluationCase,
+  listSearchEvaluationCases: mocks.listSearchEvaluationCases,
+  reviewSearchEvaluationCase: mocks.reviewSearchEvaluationCase,
 }));
 
 import { appRouter } from "./routers";
@@ -89,7 +97,21 @@ describe("core tRPC workflows", () => {
     const result = await appRouter.createCaller(context()).search.advancedSearch({ query: "Jira alternatives", filters: { categoryId: 3, pricing: "freemium", tag: "planning" } });
     expect(mocks.advancedSearch).toHaveBeenCalledWith("Jira alternatives", 20, 0, { categoryId: 3, pricing: "freemium", tag: "planning" });
     expect(result).toEqual([{ id: 2, title: "Linear" }]);
-    expect(mocks.recordSearchAnalytics).toHaveBeenCalledWith({ query: "Jira alternatives", resultCount: 1, relationshipIntent: "alternatives" });
+    expect(mocks.recordSearchAnalytics).toHaveBeenCalledWith(expect.objectContaining({ query: "Jira alternatives", resultCount: 1, relationshipIntent: "alternatives", latencyMs: expect.any(Number), hadPreviousQuery: false }));
+  });
+
+  it("accepts bounded anonymous result-click telemetry without an account", async () => {
+    await expect(appRouter.createCaller(context()).search.recordResultClick({ query: "Figma", resultCount: 3, resourceId: 12 })).resolves.toEqual({ accepted: true });
+    expect(mocks.recordSearchAnalytics).toHaveBeenCalledWith({ query: "Figma", resultCount: 3, eventType: "result_click", clickedResourceId: 12 });
+  });
+
+  it("restricts quality aggregates and relevance-case workflows to moderators while auditing human judgements", async () => {
+    await expect(appRouter.createCaller(context()).moderation.searchQuality({ days: 30 })).rejects.toMatchObject({ code: "FORBIDDEN" });
+    mocks.getSearchQualitySummary.mockResolvedValue({ periodDays: 30, searchCount: 8, zeroResultCount: 1, clickCount: 4, reformulationCount: 2, averageLatencyMs: 76, zeroResultRate: 0.125, clickThroughRate: 0.5, reformulationRate: 0.25 });
+    await expect(appRouter.createCaller(context("moderator")).moderation.searchQuality({ days: 30 })).resolves.toMatchObject({ searchCount: 8, zeroResultRate: 0.125 });
+    mocks.createSearchEvaluationCase.mockResolvedValue(22);
+    await expect(appRouter.createCaller(context("moderator")).moderation.createSearchEvaluationCase({ query: "Figma alternatives", expectedResourceIds: [3, 8], notes: "Reviewed by moderator." })).resolves.toEqual({ id: 22 });
+    expect(mocks.createAuditLog).toHaveBeenCalledWith(7, "create", "search_evaluation_case", 22, expect.objectContaining({ expectedResourceIds: [3, 8] }));
   });
 
   it("serves filtered Browse results through the public router", async () => {

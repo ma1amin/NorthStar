@@ -25,6 +25,7 @@ import Trending from "./pages/Trending";
 import About from "./pages/About";
 import Developer from "./pages/Developer";
 import Settings from "./pages/Settings";
+import SearchQuality from "./pages/SearchQuality";
 import NotFound from "./pages/NotFound";
 
 function Router() {
@@ -51,6 +52,7 @@ function Router() {
         <Route path={"/collections"} component={Collections} />
         <Route path={"/collection/:id"} component={CollectionDetail} />
         <Route path={"/settings"} component={Settings} />
+        <Route path={"/admin/search-quality"} component={SearchQuality} />
 
         {/* Admin pages */}
         <Route path={"/admin"} component={Admin} />

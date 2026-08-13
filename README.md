@@ -47,6 +47,7 @@ The seed script is idempotent and intentionally contains no live database export
 | [PROJECT_POLICY.md](./PROJECT_POLICY.md) | Authoritative policy for license, governance, identity, retention, and release claims. |
 | [ARCHITECTURE.md](./ARCHITECTURE.md) | Current system boundaries, graph/search architecture, and data-quality model. |
 | [API.md](./API.md) | Versioned public read API, key lifecycle, scope, quota, and OpenAPI boundary. |
+| [SEARCH_QUALITY.md](./SEARCH_QUALITY.md) | Privacy-safe measurement, human relevance evaluation, provider boundary, and external benchmark gate. |
 | [DATA_HANDLING.md](./DATA_HANDLING.md) | Repository, seed, provenance, history, and retention safeguards. |
 | [CONTRIBUTING.md](./CONTRIBUTING.md) | Contribution workflow and quality expectations. |
 | [GOVERNANCE.md](./GOVERNANCE.md) | Maintainer-led decision-making and moderation authority. |

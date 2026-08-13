@@ -55,6 +55,10 @@ import {
   getPendingResourceEditSuggestions,
   reviewResourceEditSuggestion,
   recordSearchAnalytics,
+  getSearchQualitySummary,
+  createSearchEvaluationCase,
+  listSearchEvaluationCases,
+  reviewSearchEvaluationCase,
   createAuditLog,
   updateUserReputation,
   recordReputationEvent,
@@ -1079,6 +1083,30 @@ export const appRouter = router({
 
   // Moderation Router
   moderation: router({
+    searchQuality: adminProcedure
+      .input(z.object({ days: z.number().int().min(1).max(90).default(30) }))
+      .query(({ input }) => getSearchQualitySummary(input.days)),
+
+    listSearchEvaluationCases: adminProcedure
+      .input(z.object({ status: z.enum(["draft", "approved", "rejected"]).optional() }))
+      .query(({ input }) => listSearchEvaluationCases(input.status)),
+
+    createSearchEvaluationCase: adminProcedure
+      .input(z.object({ query: z.string().trim().min(1).max(255), expectedResourceIds: z.array(z.number().int().positive()).min(1).max(20), notes: z.string().max(1000).optional() }))
+      .mutation(async ({ input, ctx }) => {
+        const id = await createSearchEvaluationCase({ ...input, createdBy: ctx.user.id });
+        await createAuditLog(ctx.user.id, "create", "search_evaluation_case", id, { query: input.query, expectedResourceIds: input.expectedResourceIds, notes: input.notes ?? null });
+        return { id };
+      }),
+
+    reviewSearchEvaluationCase: adminProcedure
+      .input(z.object({ id: z.number().int().positive(), status: z.enum(["approved", "rejected"]), reviewNote: z.string().max(1000).optional() }))
+      .mutation(async ({ input, ctx }) => {
+        const updated = await reviewSearchEvaluationCase({ ...input, reviewerId: ctx.user.id });
+        if (!updated) throw new TRPCError({ code: "NOT_FOUND", message: "Draft relevance case not found" });
+        await createAuditLog(ctx.user.id, "review", "search_evaluation_case", input.id, { status: input.status, reviewNote: input.reviewNote ?? null });
+        return { success: true };
+      }),
     draftResourceReview: aiDraftProcedure
       .input(z.object({ resourceId: z.number().int().positive() }))
       .mutation(async ({ input, ctx }) => {
@@ -1389,13 +1417,22 @@ export const appRouter = router({
             pricing: z.enum(["free", "freemium", "paid", "open_source", "enterprise"]).optional(),
             tag: z.string().trim().min(1).max(64).optional(),
           }).optional(),
+          hadPreviousQuery: z.boolean().default(false),
         })
       )
       .query(async ({ input }) => {
+        const startedAt = Date.now();
         const results = await searchService.advancedSearch(input.query, input.limit, input.offset, input.filters);
         const relationshipIntent = input.query.toLowerCase().match(/\b(alternatives?|integrations?|competitors?|similar)\b/)?.[1];
-        void Promise.resolve(recordSearchAnalytics({ query: input.query, resultCount: results.length, relationshipIntent })).catch(() => undefined);
+        void Promise.resolve(recordSearchAnalytics({ query: input.query, resultCount: results.length, relationshipIntent, latencyMs: Date.now() - startedAt, hadPreviousQuery: input.hadPreviousQuery })).catch(() => undefined);
         return results;
+      }),
+
+    recordResultClick: metadataProcedure
+      .input(z.object({ query: z.string().min(1).max(255), resultCount: z.number().int().min(0).max(100), resourceId: z.number().int().positive() }))
+      .mutation(async ({ input }) => {
+        void Promise.resolve(recordSearchAnalytics({ query: input.query, resultCount: input.resultCount, eventType: "result_click", clickedResourceId: input.resourceId })).catch(() => undefined);
+        return { accepted: true };
       }),
 
     getSuggestions: publicProcedure

@@ -660,16 +660,49 @@ export const searchAnalytics = mysqlTable(
     normalizedQuery: varchar("normalizedQuery", { length: 255 }).notNull(),
     resultCount: int("resultCount").notNull(),
     relationshipIntent: varchar("relationshipIntent", { length: 64 }),
+    eventType: mysqlEnum("eventType", ["search", "result_click"]).notNull().default("search"),
+    latencyMs: int("latencyMs"),
+    clickedResourceId: int("clickedResourceId"),
+    hadPreviousQuery: boolean("hadPreviousQuery").notNull().default(false),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
   },
   (table) => ({
     normalizedQueryIdx: index("search_analytics_normalized_query_idx").on(table.normalizedQuery),
     createdAtIdx: index("search_analytics_created_at_idx").on(table.createdAt),
+    eventTypeCreatedIdx: index("search_analytics_event_created_idx").on(table.eventType, table.createdAt),
   })
 );
 
 export type SearchAnalyticsEvent = typeof searchAnalytics.$inferSelect;
 export type InsertSearchAnalyticsEvent = typeof searchAnalytics.$inferInsert;
+
+/**
+ * Maintainer-authored relevance cases. Expected resource IDs are human judgements,
+ * not generated relevance claims, and cases remain non-public until approved.
+ */
+export const searchEvaluationCases = mysqlTable(
+  "search_evaluation_cases",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    query: varchar("query", { length: 255 }).notNull(),
+    expectedResourceIds: json("expectedResourceIds").$type<number[]>().notNull(),
+    notes: text("notes"),
+    status: mysqlEnum("status", ["draft", "approved", "rejected"]).notNull().default("draft"),
+    createdBy: int("createdBy").notNull(),
+    reviewedBy: int("reviewedBy"),
+    reviewNote: text("reviewNote"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    reviewedAt: timestamp("reviewedAt"),
+  },
+  (table) => ({
+    statusCreatedIdx: index("search_eval_status_created_idx").on(table.status, table.createdAt),
+    createdByFk: foreignKey({ columns: [table.createdBy], foreignColumns: [users.id] }).onDelete("restrict"),
+    reviewedByFk: foreignKey({ columns: [table.reviewedBy], foreignColumns: [users.id] }).onDelete("set null"),
+  })
+);
+
+export type SearchEvaluationCase = typeof searchEvaluationCases.$inferSelect;
+export type InsertSearchEvaluationCase = typeof searchEvaluationCases.$inferInsert;
 
 /**
  * Community resource reports are queued for moderator review; they never alter

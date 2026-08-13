@@ -8,7 +8,8 @@ NorthStar’s active search provider is the database-backed relationship-aware s
 | --- | --- |
 | Relationship-aware lexical search | Active |
 | Bounded fuzzy fallback | Active |
-| Anonymous aggregate query analytics | Active, with identifier and URL-like query filtering |
+| Aggregate quality analytics | Active: privacy-filtered queries, result count, latency, zero-result rate, click-through and reformulation signals; no identity/session/IP retention |
+| Human relevance evaluation | Active: moderator-authored and reviewable expected-resource cases, provider-independent ranking metrics |
 | External search provider | **Not configured** |
 | Semantic/vector search | **Not enabled** |
 | Embedding generation | **Not enabled** |
@@ -27,4 +28,4 @@ Any semantic result must remain distinct from approved graph edges. AI may sugge
 
 ## Decision Boundary
 
-Search-quality measurement, provider benchmarking, external lexical search, semantic/vector retrieval, and embedding jobs are preserved as held recommendations in [`suggest.md`](./suggest.md). They are not active implementation commitments until the owner selects the relevant suggestion IDs and approves their privacy, cost, retention, and operational boundaries.
+Search-quality measurement, human-reviewed relevance cases, provider abstraction, and an external-benchmark license gate are active. The relational provider remains the only configured provider. External lexical search, semantic/vector retrieval, embedding jobs, and any benchmark dataset import remain separately governed implementation decisions that require privacy, cost, retention, licensing, and operational approval. See [`SEARCH_QUALITY.md`](./SEARCH_QUALITY.md) for the measurable-signal boundary and benchmark requirements.

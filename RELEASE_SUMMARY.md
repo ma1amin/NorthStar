@@ -16,7 +16,8 @@ This repository is a managed project checkpoint, not a claim of published produc
 | Duplicate safety | Moderators can preview/propose resolutions; only administrators can confirm an alias. Confirmation preserves the original resource and linked community records rather than deleting or silently rewriting them. |
 | Public detail context | Resource Detail shows approved evidence, public history, and freshness guidance without exposing private reports or reviewer notes. |
 | Public API | Versioned `/v1` read endpoints, OpenAPI 3.1 document, owner-managed hashed API keys, explicit scopes, per-minute limits, database-backed daily quotas, and Developer portal are delivered. |
-| Verification | TypeScript passed; 15 Vitest files and 86 tests passed after the public API release slice. |
+| Search quality | Privacy-safe latency, zero-result, click, and reformulation signals; human-reviewed relevance cases; provider adapter; and a documented external-benchmark license gate are delivered. |
+| Verification | TypeScript passed; 16 Vitest files and 90 tests passed after the search-quality release slice. |
 
 ## Known Limits
 

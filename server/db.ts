@@ -1,4 +1,4 @@
-import { eq, and, or, like, desc, asc, inArray, isNull, sql } from "drizzle-orm";
+import { eq, and, or, like, desc, asc, inArray, isNull, sql, gte } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { alias } from "drizzle-orm/mysql-core";
 import {
@@ -17,6 +17,7 @@ import {
   resourceTags,
   auditLogs,
   searchAnalytics,
+  searchEvaluationCases,
   resourceReports,
   resourceEditSuggestions,
   reputationEvents,
@@ -874,7 +875,7 @@ export async function setUserRole(userId: number, role: "user" | "moderator" | "
  * Records aggregate discovery quality signals without persisting a user, IP address,
  * session identifier, or unredacted email/URL-like query text.
  */
-export async function recordSearchAnalytics(input: { query: string; resultCount: number; relationshipIntent?: string }) {
+export async function recordSearchAnalytics(input: { query: string; resultCount: number; relationshipIntent?: string; eventType?: "search" | "result_click"; latencyMs?: number; clickedResourceId?: number; hadPreviousQuery?: boolean }) {
   const normalizedQuery = input.query.trim().toLowerCase().replace(/\s+/g, " ").slice(0, 255);
   if (!normalizedQuery || /@|:\/\//.test(normalizedQuery) || /\d{12,}/.test(normalizedQuery)) return;
 
@@ -885,7 +886,50 @@ export async function recordSearchAnalytics(input: { query: string; resultCount:
     normalizedQuery,
     resultCount: Math.max(0, input.resultCount),
     relationshipIntent: input.relationshipIntent,
+    eventType: input.eventType ?? "search",
+    latencyMs: input.latencyMs === undefined ? null : Math.min(Math.max(Math.round(input.latencyMs), 0), 120_000),
+    clickedResourceId: input.clickedResourceId,
+    hadPreviousQuery: input.hadPreviousQuery ?? false,
   });
+}
+
+export async function getSearchQualitySummary(days: number = 30, now: Date = new Date()) {
+  const db = await getDb();
+  if (!db) return { periodDays: days, searchCount: 0, zeroResultCount: 0, clickCount: 0, reformulationCount: 0, averageLatencyMs: null as number | null, zeroResultRate: 0, clickThroughRate: 0, reformulationRate: 0 };
+  const boundedDays = Math.min(Math.max(Math.round(days), 1), 90);
+  const since = new Date(now.getTime() - boundedDays * 86_400_000);
+  const [row] = await db.select({
+    searchCount: sql<number>`sum(case when ${searchAnalytics.eventType} = 'search' then 1 else 0 end)`,
+    zeroResultCount: sql<number>`sum(case when ${searchAnalytics.eventType} = 'search' and ${searchAnalytics.resultCount} = 0 then 1 else 0 end)`,
+    clickCount: sql<number>`sum(case when ${searchAnalytics.eventType} = 'result_click' then 1 else 0 end)`,
+    reformulationCount: sql<number>`sum(case when ${searchAnalytics.eventType} = 'search' and ${searchAnalytics.hadPreviousQuery} = true then 1 else 0 end)`,
+    averageLatencyMs: sql<number | null>`avg(case when ${searchAnalytics.eventType} = 'search' then ${searchAnalytics.latencyMs} end)`,
+  }).from(searchAnalytics).where(gte(searchAnalytics.createdAt, since));
+  const searchCount = Number(row?.searchCount ?? 0);
+  const zeroResultCount = Number(row?.zeroResultCount ?? 0);
+  const clickCount = Number(row?.clickCount ?? 0);
+  const reformulationCount = Number(row?.reformulationCount ?? 0);
+  return { periodDays: boundedDays, searchCount, zeroResultCount, clickCount, reformulationCount, averageLatencyMs: row?.averageLatencyMs === null || row?.averageLatencyMs === undefined ? null : Math.round(Number(row.averageLatencyMs)), zeroResultRate: searchCount ? zeroResultCount / searchCount : 0, clickThroughRate: searchCount ? clickCount / searchCount : 0, reformulationRate: searchCount ? reformulationCount / searchCount : 0 };
+}
+
+export async function createSearchEvaluationCase(input: { query: string; expectedResourceIds: number[]; notes?: string; createdBy: number }) {
+  const db = await getDb();
+  if (!db) throw new Error("Database unavailable");
+  const result = await db.insert(searchEvaluationCases).values({ query: input.query.trim(), expectedResourceIds: input.expectedResourceIds, notes: input.notes?.trim() || null, createdBy: input.createdBy });
+  return Number(result[0].insertId);
+}
+
+export async function listSearchEvaluationCases(status?: "draft" | "approved" | "rejected") {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(searchEvaluationCases).where(status ? eq(searchEvaluationCases.status, status) : undefined).orderBy(desc(searchEvaluationCases.createdAt));
+}
+
+export async function reviewSearchEvaluationCase(input: { id: number; status: "approved" | "rejected"; reviewerId: number; reviewNote?: string }) {
+  const db = await getDb();
+  if (!db) throw new Error("Database unavailable");
+  const result = await db.update(searchEvaluationCases).set({ status: input.status, reviewedBy: input.reviewerId, reviewNote: input.reviewNote?.trim() || null, reviewedAt: new Date() }).where(and(eq(searchEvaluationCases.id, input.id), eq(searchEvaluationCases.status, "draft")));
+  return Number(result[0].affectedRows ?? 0) > 0;
 }
 
 export async function createResourceReport(input: { resourceId: number; reporterId: number; reason: "spam" | "duplicate" | "inaccurate" | "malicious" | "other"; details?: string }) {

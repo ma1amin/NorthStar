@@ -442,7 +442,8 @@ export async function calculateRelationshipStrength(
  */
 export const searchService = {
   advancedSearch: async (query: string, limit: number = 50, offset: number = 0, filters?: SearchFilters) => {
-    return searchResourcesAdvanced(query, limit, offset, filters);
+    const { relationalSearchProvider } = await import("./searchProvider");
+    return relationalSearchProvider.search(query, limit, offset, filters);
   },
   getSuggestions: getSearchSuggestions,
   getTrending: getTrendingSearches,
