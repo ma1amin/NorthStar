@@ -381,5 +381,5 @@ Any newly proposed product, infrastructure, integration, or UX enhancement is he
 - [x] Add CI/release gates, dependency and secret scanning, health/metrics/traces, backup-restore runbooks, alerting, load tests, and incident guidance.
 - [x] Build approved integration foundations for browser extension, Telegram, WhatsApp, Discord, and Slack with secure configuration, user consent, and end-to-end testing.
 - [x] Run full security, migration, performance, accessibility, responsive, privileged browser, and GitHub publication verification; update all platform documentation and release records, with the CAPTCHA-limited privileged-browser exception recorded in QA evidence.
-- [ ] Publish the approved release through the owner-controlled project interface, then activate and record the deployed daily freshness-review Heartbeat job.
-- [ ] Complete an owner-authenticated moderation walkthrough covering source review, freshness queue, duplicate proposals, and audit-history visibility; record any CAPTCHA limitation accurately.
+- [x] Publish the approved release through the owner-controlled project interface, then activate and record the deployed daily freshness-review Heartbeat job.
+- [x] Complete an owner-authenticated moderation walkthrough covering source review, freshness queue, duplicate proposals, and audit-history visibility; record any CAPTCHA limitation accurately.
