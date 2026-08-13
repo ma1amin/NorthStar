@@ -15,7 +15,8 @@ This record documents the evidence used to reconcile NorthStar’s completion tr
 | Community and moderation | `server/core.integration.test.ts` with protected reports, source/freshness review, data-quality queue access, duplicate alias authorization, role controls, and bulk rejection | Moderators retain human review authority; reports and AI drafts never automatically alter public data. |
 | Public REST API | Migration `0008_nifty_proudstar.sql`, `/v1/openapi.json`, `server/publicApi.ts`, Developer key portal, `server/publicApi.test.ts`, and router lifecycle coverage | OpenAPI published with a 200 response; protected `/v1/resources` returns the expected 401 without a key. API keys are hashed, scoped, owner-revocable, quota-limited, and read-only. |
 | Search quality | Migration `0009_low_odin.sql`, Search UI telemetry, Search Quality moderator route, `server/searchProvider.ts`, `SEARCH_QUALITY.md`, browser smoke note, and router/provider tests | Aggregate latency, zero-result, click, and reformulation metrics exclude account/session/IP identifiers. Relevance cases are human-authored and auditable; no external provider or benchmark score is claimed. |
-| Latest automated verification | `git diff --check`, `pnpm check`, and `pnpm test` after the search-quality phase | TypeScript passed; 16 Vitest files and 90 tests passed. |
+| Progressive web app | Manifest, production-only registration helper, service-worker cache boundary, offline fallback, install control, and `client/src/lib/pwa.test.ts` | Served manifest, worker, and offline fallback all returned 200. API, storage, authentication, live search, and protected mutations are explicitly excluded from caches. |
+| Latest automated verification | `git diff --check`, `pnpm check`, and `pnpm test` after the PWA phase | TypeScript passed; 17 Vitest files and 91 tests passed. |
 
 ## Browser and Migration Review
 

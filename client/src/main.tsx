@@ -6,9 +6,11 @@ import { createRoot } from "react-dom/client";
 import superjson from "superjson";
 import App from "./App";
 import { getLoginUrl } from "./const";
+import { registerNorthStarServiceWorker } from "./lib/pwa";
 import "./index.css";
 
 const queryClient = new QueryClient();
+void registerNorthStarServiceWorker(import.meta.env.PROD).catch(() => undefined);
 
 const redirectToLoginIfUnauthorized = (error: unknown) => {
   if (!(error instanceof TRPCClientError)) return;

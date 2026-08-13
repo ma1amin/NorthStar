@@ -27,6 +27,7 @@ import {
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useTheme } from "@/contexts/ThemeContext";
+import { PwaInstallButton } from "@/components/PwaInstallButton";
 import { isNavigatorRouteActive } from "@/lib/navigation";
 import { Button } from "@/components/ui/button";
 import {
@@ -124,6 +125,7 @@ export function AppLayout({ children }: AppLayoutProps) {
             <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl text-slate-600 hover:bg-slate-100" onClick={toggleTheme} aria-label={theme === "light" ? t("switchToDark") : t("switchToLight")}>
               {theme === "light" ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
             </Button>
+            <PwaInstallButton />
             {isAuthenticated && user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>

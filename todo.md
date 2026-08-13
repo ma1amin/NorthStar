@@ -361,7 +361,7 @@
 - [x] Trust and data-quality foundation: attributed sources, public resource history, freshness guidance, canonical duplicate aliases, audit trails, migration verification, and protected source/freshness/duplicate contracts.
 - [x] English/Arabic and RTL-safe public UX across Home, Search, Graph Explorer, collections, contribution, reports, Profile, and moderation surfaces; footer remains intentionally untranslated.
 - [x] Policy and release documentation aligned to the active MIT, maintainer-led governance, Manus OAuth, client-rendered SPA, and non-production-published posture.
-- [x] Latest implementation verification: TypeScript passed; 16 Vitest files and 90 tests passed after the privacy-safe search-quality, evaluation, and provider-boundary slice; checkpoint pending.
+- [x] Latest implementation verification: TypeScript passed; 17 Vitest files and 91 tests passed after the production-safe PWA manifest, service-worker, install, and offline-fallback slice; checkpoint pending.
 
 ## Remaining Features — Owner Decision Required
 Any newly proposed product, infrastructure, integration, or UX enhancement is held exclusively in [`suggest.md`](./suggest.md) until the owner explicitly selects it. The comprehensive enhancement programme below captures the previously approved work and must remain evidence-led, incremental, and reversible where data changes are involved.
@@ -375,7 +375,7 @@ Any newly proposed product, infrastructure, integration, or UX enhancement is he
 - [x] Complete public UX: remaining critical EN/AR content localization excluding the footer, RTL QA, persisted theme preference, richer collection discovery/activity, and dedicated Trending/About/Settings/Developer routes.
 - [x] Create versioned public read endpoints, OpenAPI specification, API-key lifecycle, scopes, quotas, revocation, developer portal, and contract tests.
 - [x] Add privacy-safe search-quality measurement, relevance evaluation, provider abstraction, external lexical benchmark, and semantic/vector readiness behind explicit human-review boundaries.
-- [ ] Add PWA manifest, service worker, offline-safe public routes, cache invalidation, installation checks, and accessible fallback states.
+- [x] Add PWA manifest, service worker, offline-safe public routes, cache invalidation, installation checks, and accessible fallback states.
 - [ ] Implement governed freshness automation, source scoring, external-source ingestion policy/queue/adapters, deduplication, licensing controls, and moderation review.
 - [ ] Expand AI enrichment proposals and graph-scale provider/caching/job boundaries while preserving provenance, costs, privacy, and human approval.
 - [ ] Add CI/release gates, dependency and secret scanning, health/metrics/traces, backup-restore runbooks, alerting, load tests, and incident guidance.

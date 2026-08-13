@@ -1,0 +1,12 @@
+{
+  "name": "NorthStar — Resource Intelligence Platform",
+  "short_name": "NorthStar",
+  "description": "Discover digital resources and navigate their verified knowledge-graph relationships.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f8fbff",
+  "theme_color": "#0f172a",
+  "lang": "en",
+  "dir": "ltr",
+  "icons": [{ "src": "/northstar-icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
+}
