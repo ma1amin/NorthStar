@@ -42,6 +42,7 @@ const mocks = vi.hoisted(() => ({
   createSearchEvaluationCase: vi.fn(),
   listSearchEvaluationCases: vi.fn(),
   reviewSearchEvaluationCase: vi.fn(),
+  runFreshnessReviewSweep: vi.fn(),
 }));
 
 vi.mock("./search", () => ({ searchService: { advancedSearch: mocks.advancedSearch, getSuggestions: vi.fn(), getTrending: vi.fn() } }));
@@ -83,6 +84,7 @@ vi.mock("./db", () => ({
   createSearchEvaluationCase: mocks.createSearchEvaluationCase,
   listSearchEvaluationCases: mocks.listSearchEvaluationCases,
   reviewSearchEvaluationCase: mocks.reviewSearchEvaluationCase,
+  runFreshnessReviewSweep: mocks.runFreshnessReviewSweep,
 }));
 
 import { appRouter } from "./routers";
@@ -112,6 +114,14 @@ describe("core tRPC workflows", () => {
     mocks.createSearchEvaluationCase.mockResolvedValue(22);
     await expect(appRouter.createCaller(context("moderator")).moderation.createSearchEvaluationCase({ query: "Figma alternatives", expectedResourceIds: [3, 8], notes: "Reviewed by moderator." })).resolves.toEqual({ id: 22 });
     expect(mocks.createAuditLog).toHaveBeenCalledWith(7, "create", "search_evaluation_case", 22, expect.objectContaining({ expectedResourceIds: [3, 8] }));
+  });
+
+  it("limits the review-only freshness sweep to moderators and records its queue outcome", async () => {
+    await expect(appRouter.createCaller(context()).moderation.runFreshnessSweep({ reviewAfterDays: 90, limit: 20 })).rejects.toMatchObject({ code: "FORBIDDEN" });
+    mocks.runFreshnessReviewSweep.mockResolvedValue({ reviewAfterDays: 90, scanned: 2, queued: 1, resourceIds: [33] });
+    await expect(appRouter.createCaller(context("moderator")).moderation.runFreshnessSweep({ reviewAfterDays: 90, limit: 20 })).resolves.toMatchObject({ queued: 1, resourceIds: [33] });
+    expect(mocks.runFreshnessReviewSweep).toHaveBeenCalledWith({ checkedBy: 7, reviewAfterDays: 90, limit: 20 });
+    expect(mocks.createAuditLog).toHaveBeenCalledWith(7, "queue_freshness_review", "freshness_sweep", 0, expect.objectContaining({ scanned: 2, queued: 1, resourceIds: [33] }));
   });
 
   it("serves filtered Browse results through the public router", async () => {

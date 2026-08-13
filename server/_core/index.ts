@@ -9,6 +9,7 @@ import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { registerPublicApi } from "../publicApi";
+import { runScheduledFreshnessSweep } from "../freshnessSchedule";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -46,6 +47,7 @@ async function startServer() {
     })
   );
   registerPublicApi(app);
+  app.post("/api/scheduled/freshness-review", runScheduledFreshnessSweep);
   // development mode uses Vite, production mode uses static files
   if (process.env.NODE_ENV === "development") {
     await setupVite(app, server);

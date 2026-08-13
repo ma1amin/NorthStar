@@ -390,6 +390,22 @@ export async function getFreshnessReviewQueue(limit: number = 50, offset: number
     .offset(Math.max(offset, 0));
 }
 
+export async function runFreshnessReviewSweep(input: { checkedBy: number; reviewAfterDays?: number; limit?: number; now?: Date }) {
+  const reviewAfterDays = Math.min(Math.max(input.reviewAfterDays ?? 90, 30), 365);
+  const now = input.now ?? new Date();
+  const cutoff = now.getTime() - reviewAfterDays * 86_400_000;
+  const candidates = await getFreshnessReviewQueue(Math.min(Math.max(input.limit ?? 50, 1), 100), 0);
+  const overdue = candidates.filter((candidate) => {
+    const reviewedAt = candidate.lastReviewedAt ? new Date(candidate.lastReviewedAt).getTime() : 0;
+    return (reviewedAt === 0 || reviewedAt < cutoff) && candidate.latestStatus !== "needs_review" && candidate.latestStatus !== "stale";
+  });
+  for (const candidate of overdue) {
+    await createFreshnessReview({ resourceId: candidate.resourceId, checkedBy: input.checkedBy, status: "needs_review", note: `Queued after ${reviewAfterDays} days without a current freshness review. Human verification is required before changing any public resource data.` });
+    await recordResourceHistory({ resourceId: candidate.resourceId, recordedBy: input.checkedBy, eventType: "freshness_checked", summary: "Resource queued for human freshness verification.", isPublic: false });
+  }
+  return { reviewAfterDays, scanned: candidates.length, queued: overdue.length, resourceIds: overdue.map((candidate) => candidate.resourceId) };
+}
+
 export async function getProposedDuplicateResolutions(limit: number = 50, offset: number = 0) {
   const db = await getDb();
   if (!db) return [];

@@ -19,6 +19,6 @@ Resource data is treated as a claim, not truth by default. The application store
 
 ## Current Retention Boundary
 
-The current application provides source, public-history, freshness, and alias foundations. It does **not** yet provide a complete retention schedule, source scoring programme, personal-data export, anonymisation, destructive duplicate merge, or automatic freshness job. Maintainers must not promise deletion timelines, portable exports, historical completeness, or automatic correction until an owner-approved policy and corresponding workflow exist.
+The current application provides source, public-history, freshness, alias, review-only freshness-sweep, and ingestion-provenance foundations. A cron-authenticated freshness callback is available but no recurring job is active until the site is published and an owner explicitly registers and records the task UID. The application does **not** provide a complete retention schedule, personal-data export, anonymisation, destructive duplicate merge, automatic correction, or active external ingestion connector.
 
 Any future source ingestion, retention, export, anonymisation, or record-migration work requires a written proposal, access review, auditability, migration/rollback plan, and Arabic/RTL implications review. The authoritative policy is maintained in [PROJECT_POLICY.md](./PROJECT_POLICY.md); deferred proposals are held in [suggest.md](./suggest.md).

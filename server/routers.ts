@@ -81,6 +81,7 @@ import {
   confirmDuplicateResolution,
   getPendingResourceSources,
   getFreshnessReviewQueue,
+  runFreshnessReviewSweep,
   getProposedDuplicateResolutions,
   listOwnerApiKeys,
   revokeApiKeyRecord,
@@ -1083,6 +1084,13 @@ export const appRouter = router({
 
   // Moderation Router
   moderation: router({
+    runFreshnessSweep: adminProcedure
+      .input(z.object({ reviewAfterDays: z.number().int().min(30).max(365).default(90), limit: z.number().int().min(1).max(100).default(50) }))
+      .mutation(async ({ input, ctx }) => {
+        const result = await runFreshnessReviewSweep({ ...input, checkedBy: ctx.user.id });
+        await createAuditLog(ctx.user.id, "queue_freshness_review", "freshness_sweep", 0, { ...input, scanned: result.scanned, queued: result.queued, resourceIds: result.resourceIds });
+        return result;
+      }),
     searchQuality: adminProcedure
       .input(z.object({ days: z.number().int().min(1).max(90).default(30) }))
       .query(({ input }) => getSearchQualitySummary(input.days)),

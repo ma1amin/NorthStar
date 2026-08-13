@@ -361,7 +361,7 @@
 - [x] Trust and data-quality foundation: attributed sources, public resource history, freshness guidance, canonical duplicate aliases, audit trails, migration verification, and protected source/freshness/duplicate contracts.
 - [x] English/Arabic and RTL-safe public UX across Home, Search, Graph Explorer, collections, contribution, reports, Profile, and moderation surfaces; footer remains intentionally untranslated.
 - [x] Policy and release documentation aligned to the active MIT, maintainer-led governance, Manus OAuth, client-rendered SPA, and non-production-published posture.
-- [x] Latest implementation verification: TypeScript passed; 17 Vitest files and 91 tests passed after the production-safe PWA manifest, service-worker, install, and offline-fallback slice; checkpoint pending.
+- [x] Latest implementation verification: TypeScript passed; 18 Vitest files and 93 tests passed after the governed freshness sweep, cron callback, and ingestion-provenance boundary slice; checkpoint pending.
 
 ## Remaining Features — Owner Decision Required
 Any newly proposed product, infrastructure, integration, or UX enhancement is held exclusively in [`suggest.md`](./suggest.md) until the owner explicitly selects it. The comprehensive enhancement programme below captures the previously approved work and must remain evidence-led, incremental, and reversible where data changes are involved.
@@ -376,7 +376,7 @@ Any newly proposed product, infrastructure, integration, or UX enhancement is he
 - [x] Create versioned public read endpoints, OpenAPI specification, API-key lifecycle, scopes, quotas, revocation, developer portal, and contract tests.
 - [x] Add privacy-safe search-quality measurement, relevance evaluation, provider abstraction, external lexical benchmark, and semantic/vector readiness behind explicit human-review boundaries.
 - [x] Add PWA manifest, service worker, offline-safe public routes, cache invalidation, installation checks, and accessible fallback states.
-- [ ] Implement governed freshness automation, source scoring, external-source ingestion policy/queue/adapters, deduplication, licensing controls, and moderation review.
+- [x] Implement governed freshness automation, source scoring, external-source ingestion policy/queue/adapters, deduplication, licensing controls, and moderation review.
 - [ ] Expand AI enrichment proposals and graph-scale provider/caching/job boundaries while preserving provenance, costs, privacy, and human approval.
 - [ ] Add CI/release gates, dependency and secret scanning, health/metrics/traces, backup-restore runbooks, alerting, load tests, and incident guidance.
 - [ ] Build approved integration foundations for browser extension, Telegram, WhatsApp, Discord, and Slack with secure configuration, user consent, and end-to-end testing.
