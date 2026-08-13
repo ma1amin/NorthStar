@@ -26,10 +26,6 @@ import About from "./pages/About";
 import Developer from "./pages/Developer";
 import Settings from "./pages/Settings";
 import SearchQuality from "./pages/SearchQuality";
-import CaptureResources from "./pages/CaptureResources";
-import AdminContributors from "./pages/AdminContributors";
-import Workspace from "./pages/Workspace";
-import AdminIngestion from "./pages/AdminIngestion";
 import NotFound from "./pages/NotFound";
 
 function Router() {
@@ -51,16 +47,12 @@ function Router() {
 
         {/* User pages */}
         <Route path={"/submit"} component={Submit} />
-        <Route path={"/capture"} component={CaptureResources} />
         <Route path={"/profile"} component={Profile} />
         <Route path={"/profile/:userId"} component={Profile} />
         <Route path={"/collections"} component={Collections} />
         <Route path={"/collection/:id"} component={CollectionDetail} />
         <Route path={"/settings"} component={Settings} />
-        <Route path={"/workspace"} component={Workspace} />
         <Route path={"/admin/search-quality"} component={SearchQuality} />
-        <Route path={"/admin/contributors"} component={AdminContributors} />
-        <Route path={"/admin/ingestion"} component={AdminIngestion} />
 
         {/* Admin pages */}
         <Route path={"/admin"} component={Admin} />

@@ -7,6 +7,7 @@ import superjson from "superjson";
 import App from "./App";
 import { getLoginUrl } from "./const";
 import { registerNorthStarServiceWorker } from "./lib/pwa";
+import { fetchTrpc } from "./lib/apiTransport";
 import "./index.css";
 
 const queryClient = new QueryClient();
@@ -44,12 +45,7 @@ const trpcClient = trpc.createClient({
     httpBatchLink({
       url: "/api/trpc",
       transformer: superjson,
-      fetch(input, init) {
-        return globalThis.fetch(input, {
-          ...(init ?? {}),
-          credentials: "include",
-        });
-      },
+      fetch: fetchTrpc,
     }),
   ],
 });

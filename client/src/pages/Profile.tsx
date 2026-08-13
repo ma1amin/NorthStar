@@ -18,7 +18,6 @@ import {
   Pencil,
   ArrowUpRight,
   Sparkles,
-  ShieldCheck,
 } from "lucide-react";
 import { useLocation } from "wouter";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -31,8 +30,6 @@ export default function Profile() {
   const [editing, setEditing] = useState(false);
   const [profileForm, setProfileForm] = useState({ name: "", bio: "", avatar: "" });
   const [profileMessage, setProfileMessage] = useState("");
-  const [showVerificationForm, setShowVerificationForm] = useState(false);
-  const [verificationForm, setVerificationForm] = useState({ portfolioUrl: "", rationale: "" });
 
   const { data: contributions, isLoading: contributionsLoading } = trpc.resources.mySubmissions.useQuery(
     { limit: 50, offset: 0 },
@@ -47,7 +44,6 @@ export default function Profile() {
     { enabled: isAuthenticated }
   );
   const { data: reputationSummary } = trpc.user.getReputationSummary.useQuery(undefined, { enabled: isAuthenticated });
-  const { data: verification } = trpc.contributor.verification.useQuery(undefined, { enabled: isAuthenticated });
   const updateProfile = trpc.user.updateProfile.useMutation({
     onSuccess: async () => {
       await utils.auth.me.invalidate();
@@ -62,14 +58,6 @@ export default function Profile() {
       setProfileMessage("Collection created.");
     },
     onError: (error) => setProfileMessage(error.message || "Could not create collection."),
-  });
-  const applyForVerification = trpc.contributor.applyForVerification.useMutation({
-    onSuccess: async () => {
-      await utils.contributor.verification.invalidate();
-      setShowVerificationForm(false);
-      setProfileMessage("Verification application submitted for human review.");
-    },
-    onError: (error) => setProfileMessage(error.message || "Could not submit verification application."),
   });
 
   useEffect(() => {
@@ -135,17 +123,10 @@ export default function Profile() {
             <div className="mt-5 flex flex-wrap items-center gap-2">
               <Badge className="bg-sky-100 text-sky-800 hover:bg-sky-100">{user?.role === "admin" ? t("administrator") : t("member")}</Badge>
               <Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-800"><Sparkles className="mr-1 h-3 w-3" /> {reputationSummary?.score ?? user?.reputation ?? 0} {t("reputation")}</Badge>
-              {verification?.status === "approved" && <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-100"><ShieldCheck className="mr-1 h-3 w-3" /> {t("verifiedContributor")}</Badge>}
               <span className="text-sm text-slate-500">Building a more useful open web, one resource at a time.</span>
             </div>
             {user?.bio && <p className="mt-4 max-w-2xl text-sm leading-6 text-slate-600">{user.bio}</p>}
           </div>
-        </Card>
-
-        <Card className="ns-surface mt-5 border-violet-100 bg-[radial-gradient(circle_at_95%_5%,rgba(221,214,254,.7),transparent_32%),white] p-5 shadow-sm md:p-6">
-          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between"><div className="max-w-2xl"><div className="flex items-center gap-2 text-violet-700"><ShieldCheck className="h-5 w-5" /><p className="text-sm font-bold uppercase tracking-[.13em]">{t("verification")}</p></div><h2 className="mt-2 font-['Sora'] text-xl font-bold text-slate-950">{verification?.status === "approved" ? t("verifiedContributor") : t("fasterLane")}</h2><p className="mt-2 text-sm leading-6 text-slate-600">{t("verificationIntro")}</p></div>{verification?.status === "approved" ? <Badge className="w-fit bg-emerald-100 text-emerald-800 hover:bg-emerald-100">{t("approved")}</Badge> : verification?.status === "pending" ? <Badge className="w-fit bg-amber-100 text-amber-800 hover:bg-amber-100">{t("pendingModeration")}</Badge> : <Button className="w-full bg-violet-600 text-white hover:bg-violet-700 md:w-auto" onClick={() => setShowVerificationForm((open) => !open)}>{t("applyForVerification")}</Button>}</div>
-          <div className="mt-4 rounded-xl border border-violet-100 bg-white/80 p-4 text-sm text-slate-600"><p className="font-semibold text-slate-800">{t("contributorBenefits")}</p><p className="mt-1">{t("fasterLane")}—with sampled human review for every contributor status.</p></div>
-          {showVerificationForm && <form className="mt-5 grid gap-4 rounded-2xl border border-violet-200 bg-white p-5" onSubmit={(event) => { event.preventDefault(); applyForVerification.mutate({ portfolioUrl: verificationForm.portfolioUrl.trim() || undefined, rationale: verificationForm.rationale.trim() }); }}><div className="space-y-2"><Label htmlFor="portfolio-url">{t("portfolioUrl")}</Label><Input id="portfolio-url" type="url" value={verificationForm.portfolioUrl} onChange={(event) => setVerificationForm((current) => ({ ...current, portfolioUrl: event.target.value }))} placeholder="https://…" /></div><div className="space-y-2"><Label htmlFor="verification-rationale">{t("verificationRationale")}</Label><Textarea id="verification-rationale" value={verificationForm.rationale} onChange={(event) => setVerificationForm((current) => ({ ...current, rationale: event.target.value }))} minLength={80} maxLength={3000} rows={5} required /></div><div className="flex justify-end gap-3"><Button type="button" variant="outline" onClick={() => setShowVerificationForm(false)}>{t("cancel")}</Button><Button type="submit" disabled={applyForVerification.isPending || verificationForm.rationale.trim().length < 80} className="bg-violet-600 text-white hover:bg-violet-700">{applyForVerification.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : t("applyForVerification")}</Button></div></form>}
         </Card>
 
         <Card className="ns-surface mt-5 border-sky-100 bg-[linear-gradient(135deg,rgba(240,249,255,0.9),#fff)] p-5 shadow-sm md:p-6">

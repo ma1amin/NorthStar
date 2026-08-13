@@ -43,19 +43,6 @@ const mocks = vi.hoisted(() => ({
   listSearchEvaluationCases: vi.fn(),
   reviewSearchEvaluationCase: vi.fn(),
   runFreshnessReviewSweep: vi.fn(),
-  createTextIntake: vi.fn(),
-  getIntakesForOwner: vi.fn(),
-  getIntakeForOwner: vi.fn(),
-  submitIntakeForOwner: vi.fn(),
-  listIntakeCandidatesForModeration: vi.fn(),
-  reviewIntakeCandidate: vi.fn(),
-  createVerificationApplication: vi.fn(),
-  getVerificationForUser: vi.fn(),
-  listVerificationApplications: vi.fn(),
-  reviewVerificationApplication: vi.fn(),
-  createContributorAppeal: vi.fn(),
-  getContributorAppeals: vi.fn(),
-  getContributorIntakeAllowance: vi.fn(),
 }));
 
 vi.mock("./search", () => ({ searchService: { advancedSearch: mocks.advancedSearch, getSuggestions: vi.fn(), getTrending: vi.fn() } }));
@@ -98,19 +85,6 @@ vi.mock("./db", () => ({
   listSearchEvaluationCases: mocks.listSearchEvaluationCases,
   reviewSearchEvaluationCase: mocks.reviewSearchEvaluationCase,
   runFreshnessReviewSweep: mocks.runFreshnessReviewSweep,
-  createTextIntake: mocks.createTextIntake,
-  getIntakesForOwner: mocks.getIntakesForOwner,
-  getIntakeForOwner: mocks.getIntakeForOwner,
-  submitIntakeForOwner: mocks.submitIntakeForOwner,
-  listIntakeCandidatesForModeration: mocks.listIntakeCandidatesForModeration,
-  reviewIntakeCandidate: mocks.reviewIntakeCandidate,
-  createVerificationApplication: mocks.createVerificationApplication,
-  getVerificationForUser: mocks.getVerificationForUser,
-  listVerificationApplications: mocks.listVerificationApplications,
-  reviewVerificationApplication: mocks.reviewVerificationApplication,
-  createContributorAppeal: mocks.createContributorAppeal,
-  getContributorAppeals: mocks.getContributorAppeals,
-  getContributorIntakeAllowance: mocks.getContributorIntakeAllowance,
 }));
 
 import { appRouter } from "./routers";
@@ -317,27 +291,5 @@ describe("core tRPC workflows", () => {
     expect(mocks.getPendingResourceSources).toHaveBeenCalledWith(20, 0);
     expect(mocks.getFreshnessReviewQueue).toHaveBeenCalledWith(20, 0);
     expect(mocks.getProposedDuplicateResolutions).toHaveBeenCalledWith(20, 0);
-  });
-
-  it("creates private intake drafts only after explicit consent and requires separate owner submission", async () => {
-    mocks.getContributorIntakeAllowance.mockResolvedValue({ limit: 10, used: 0, verified: false });
-    await expect(appRouter.createCaller(context()).intake.allowance()).resolves.toEqual({ limit: 10, used: 0, verified: false, remaining: 10 });
-    mocks.createTextIntake.mockResolvedValue(51);
-    await expect(appRouter.createCaller(context()).intake.create({ text: "Useful tool https://example.com", inputType: "pasted_text", retentionMode: "minimized", consentConfirmed: true })).resolves.toMatchObject({ intakeId: 51, candidateCount: 1, allowance: { remaining: 9, verified: false } });
-    expect(mocks.createTextIntake).toHaveBeenCalledWith(expect.objectContaining({ ownerId: 7, consentConfirmed: true, candidates: [expect.objectContaining({ url: "https://example.com/" })] }));
-    await expect(appRouter.createCaller(context()).intake.create({ text: "https://example.com", inputType: "pasted_text", consentConfirmed: false } as any)).rejects.toMatchObject({ code: "BAD_REQUEST" });
-    mocks.submitIntakeForOwner.mockResolvedValue(true);
-    await expect(appRouter.createCaller(context()).intake.submit({ intakeId: 51 })).resolves.toEqual({ success: true });
-    expect(mocks.submitIntakeForOwner).toHaveBeenCalledWith(7, 51);
-  });
-
-  it("keeps verification applications and appeals protected while limiting review to moderators", async () => {
-    mocks.createVerificationApplication.mockResolvedValue(61);
-    await expect(appRouter.createCaller(context()).contributor.applyForVerification({ portfolioUrl: "https://example.com/about", rationale: "I have maintained open-source design tooling and have accepted, evidence-backed community contributions to review." })).resolves.toEqual({ id: 61 });
-    mocks.createContributorAppeal.mockResolvedValue(71);
-    await expect(appRouter.createCaller(context()).contributor.appeal({ targetType: "verification", targetId: 61, rationale: "Please reconsider this decision with my updated public contribution context." })).resolves.toEqual({ id: 71 });
-    await expect(appRouter.createCaller(context()).moderation.getVerificationApplications({ status: "pending" })).rejects.toMatchObject({ code: "FORBIDDEN" });
-    mocks.reviewVerificationApplication.mockResolvedValue(true);
-    await expect(appRouter.createCaller(context("moderator")).moderation.reviewVerificationApplication({ applicationId: 61, status: "approved", reviewNote: "Portfolio and accepted work confirmed." })).resolves.toEqual({ success: true });
   });
 });

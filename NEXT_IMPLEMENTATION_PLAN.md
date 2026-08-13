@@ -1,21 +1,6 @@
 # NorthStar: Repository Publication, Product-Gap Remediation, and Experience Redesign Plan
 
-# Historical Plan Closure Notice
-
-**Status:** This plan is **closed as a historical implementation record**. Its P0/P1/P2 programme was completed through the documented remediation and enhancement checkpoints, including relationship-taxonomy completion, graph exploration, moderation and contributor workflows, localization, public API/PWA/search/AI/provider boundaries, operations documentation, and GitHub synchronization. It must not be read as a live gap register.
-
-The authoritative current state is [`CURRENT_IMPLEMENTATION_AUDIT.md`](./CURRENT_IMPLEMENTATION_AUDIT.md). The active owner-requested platform-visibility release is defined in [`NORTHSTAR_COMPLETION_PLAN.md`](./NORTHSTAR_COMPLETION_PLAN.md) and tracked in [`todo.md`](./todo.md). External-provider activation, billing/experiment enrolment, and privileged browser QA remain governed boundaries rather than unfinished implementation claims.
-
-| Historical section | Closure outcome | Current evidence |
-| --- | --- | --- |
-| Phases 1–3 | Completed | Release documentation, migrations, tests, API/search/PWA/AI/graph-provider records, and contributor-programme evidence. |
-| Phase 4 | Completed and refined in the current release | Atlas 2 design-system record, shared semantic themes, live directory preview, and graph-explorer workspace. |
-| Phase 5 | Completed for prior releases; refreshed validation pending for the current owner-requested slice | Current browser-smoke notes, updated test suite, `VERIFICATION.md`, and the active tracker. |
-| New work | Active | Rich sanitized fixtures, curated public directory expansion, practical graph testing, and final cross-route evidence are tracked in the current plan. |
-
----
-
-## Original Historical Goal
+## Goal
 
 Prepare NorthStar for an open-source GitHub release at `github.com/ma1amin/NorthStar` while closing the most consequential gaps against the supplied ORIG, relationship-intelligence, and initiation specifications. The work will also redesign the onboarding, profile, and moderation journeys into a coherent, accessible, mobile-first experience without changing the platform’s truthful architectural claims.
 

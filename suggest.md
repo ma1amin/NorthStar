@@ -2,21 +2,7 @@
 
 This document is the **owner-controlled register** for NorthStar recommendations. On **13 August 2026**, the project owner approved every entry for phased implementation. Each item has therefore been mapped to the active **Comprehensive Enhancement Programme** in [`todo.md`](./todo.md), while this register retains the decision context and acceptance criteria.
 
-> **Historical status convention:** The phase labels in the held-suggestions table record the original execution sequence. They are not the current delivery state. The reconciliation table below is authoritative as of 13 August 2026.
-
-## Current Reconciliation
-
-| IDs | Current state | Accurate boundary |
-| --- | --- | --- |
-| S-01 to S-04 | **Implemented** | Data-quality moderation, source evidence, canonical aliases, and non-destructive record-migration preview are delivered with role/audit safeguards. |
-| S-05 to S-07 | **Implemented for active and critical flows** | EN/AR and RTL cover the changed core flows; the footer remains English by owner preference. Theme preference, collections, and real-signal boundaries are delivered. |
-| S-08 to S-09 | **Implemented** | Versioned read API/OpenAPI/API-key controls and privacy-safe search-quality measurement/relevance review are delivered. |
-| S-10 | **Implemented provider boundary; external semantic provider inactive** | The relational lexical provider and evaluation guard are active. No external or vector provider is configured without a specific owner-approved provider, privacy, and corpus decision. |
-| S-11 | **Implemented baseline with declared limits** | CI and operations runbook are delivered. Distributed tracing, uptime alerts, automated production backups, and a load-test baseline are not claimed active. |
-| S-12 | **Implemented** | Manifest, installation support, and bounded offline cache safety are delivered; protected/live data paths are excluded from offline caching. |
-| S-13 to S-16 | **Implemented guarded foundations; inactive provider/entitlement boundaries** | Governed ingestion, AI proposals, graph portability, and integration consent/configuration guards exist. No external source, connector, webhook, messaging transfer, graph store, billing, or user-consent activation is active without a separate owner-approved configuration. |
-| S-17 | **Implemented** | Trending, About, Settings, and Developer routes are delivered and are included in the current Atlas 2 visual consistency work. |
-| S-18 to S-19 | **Implemented with environment-qualified QA** | Router authorization coverage, recorded owner moderation walkthrough, GitHub synchronization, and CI workflow are delivered. CAPTCHA/session-limited environments still cannot substitute for an authenticated visual QA session. |
+> **Status convention:** “Approved — phased implementation” means the owner has authorized delivery, but an item must still be implemented, tested, documented, checkpointed, and synchronized before it can be represented as an existing platform capability.
 
 ## How to Use This Register
 
