@@ -1438,6 +1438,12 @@ export async function listOrganizationClaims(status?: "pending" | "approved" | "
   return status ? db.select().from(organizationClaims).where(eq(organizationClaims.status, status)).orderBy(desc(organizationClaims.createdAt)).limit(100) : db.select().from(organizationClaims).orderBy(desc(organizationClaims.createdAt)).limit(100);
 }
 
+export async function listOrganizationClaimsForApplicant(applicantId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(organizationClaims).where(eq(organizationClaims.applicantId, applicantId)).orderBy(desc(organizationClaims.createdAt)).limit(50);
+}
+
 export async function reviewOrganizationClaim(input: { claimId: number; reviewerId: number; status: "approved" | "rejected" | "suspended"; expiresAt?: Date; reviewNote?: string }) {
   const db = await getDb();
   if (!db) return false;
@@ -1460,6 +1466,15 @@ export async function listApiCapacityRequests(status?: "pending" | "approved" | 
   const db = await getDb();
   if (!db) return [];
   return status ? db.select().from(apiCapacityRequests).where(eq(apiCapacityRequests.status, status)).orderBy(desc(apiCapacityRequests.createdAt)).limit(100) : db.select().from(apiCapacityRequests).orderBy(desc(apiCapacityRequests.createdAt)).limit(100);
+}
+
+export async function listApiCapacityRequestsForOwner(ownerId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select({ request: apiCapacityRequests, keyName: apiKeys.name, keyPrefix: apiKeys.keyPrefix })
+    .from(apiCapacityRequests)
+    .innerJoin(apiKeys, eq(apiCapacityRequests.apiKeyId, apiKeys.id))
+    .where(eq(apiCapacityRequests.requestedBy, ownerId)).orderBy(desc(apiCapacityRequests.createdAt)).limit(50);
 }
 
 export async function reviewApiCapacityRequest(input: { requestId: number; reviewerId: number; status: "approved" | "rejected" | "revoked"; grantedDailyQuota?: number; expiresAt?: Date; reviewNote?: string }) {

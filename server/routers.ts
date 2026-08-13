@@ -110,9 +110,11 @@ import {
   addResourceToWorkspace,
   createOrganizationClaim,
   listOrganizationClaims,
+  listOrganizationClaimsForApplicant,
   reviewOrganizationClaim,
   createApiCapacityRequest,
   listApiCapacityRequests,
+  listApiCapacityRequestsForOwner,
   reviewApiCapacityRequest,
 } from "./db";
 import { getDb } from "./db";
@@ -194,6 +196,7 @@ export const appRouter = router({
         await createAuditLog(ctx.user.id, "request", "api_capacity_request", id, { apiKeyId: input.apiKeyId, requestedDailyQuota: input.requestedDailyQuota });
         return { id };
       }),
+    capacityRequests: protectedProcedure.query(({ ctx }) => listApiCapacityRequestsForOwner(ctx.user.id)),
   }),
 
   workspaces: router({
@@ -217,6 +220,7 @@ export const appRouter = router({
   }),
 
   organizations: router({
+    myClaims: protectedProcedure.query(({ ctx }) => listOrganizationClaimsForApplicant(ctx.user.id)),
     claim: protectedProcedure
       .input(z.object({ organizationName: z.string().trim().min(2).max(255), websiteUrl: z.string().url().max(2048).refine((value) => new URL(value).protocol === "https:", "HTTPS website required"), contactEmail: z.string().trim().email().max(320), evidenceUrl: z.string().url().max(2048).optional(), resourceId: z.number().int().positive().optional(), rationale: z.string().trim().min(20).max(2000) }))
       .mutation(async ({ input, ctx }) => {
