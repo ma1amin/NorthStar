@@ -29,6 +29,7 @@ import SearchQuality from "./pages/SearchQuality";
 import CaptureResources from "./pages/CaptureResources";
 import AdminContributors from "./pages/AdminContributors";
 import Workspace from "./pages/Workspace";
+import AdminIngestion from "./pages/AdminIngestion";
 import NotFound from "./pages/NotFound";
 
 function Router() {
@@ -59,6 +60,7 @@ function Router() {
         <Route path={"/workspace"} component={Workspace} />
         <Route path={"/admin/search-quality"} component={SearchQuality} />
         <Route path={"/admin/contributors"} component={AdminContributors} />
+        <Route path={"/admin/ingestion"} component={AdminIngestion} />
 
         {/* Admin pages */}
         <Route path={"/admin"} component={Admin} />

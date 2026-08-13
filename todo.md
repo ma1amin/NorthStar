@@ -403,8 +403,8 @@ Any newly proposed product, infrastructure, integration, or UX enhancement is he
 
 ## Approved Intelligent Expansion Programme
 - [x] Add audited, least-privilege schema and lifecycle contracts for semantic indexing, reviewed external-source ingestion, private workspaces, organization claims, API-capacity requests, and optional graph projections.
-- [ ] Implement semantic-search provider lifecycle, public-metadata-only indexing, hybrid retrieval boundaries, evaluation controls, administrator status, and no-credential safe fallback; keep live provider credentials empty until the owner supplies them later.
-- [ ] Build a named-source, review-only ingestion workspace with batch provenance, terms/license context, candidate deduplication, stop-on-error controls, and moderator decisions; keep messaging connectors paused.
+- [x] Implement semantic-search provider lifecycle, public-metadata-only indexing, hybrid retrieval boundaries, evaluation controls, administrator status, and no-credential safe fallback; keep live provider credentials empty until the owner supplies them later.
+- [x] Build a named-source, review-only ingestion workspace with batch provenance, terms/license context, candidate deduplication, stop-on-error controls, and moderator decisions; keep messaging connectors paused.
 - [ ] Deliver opt-in professional workspaces, organization verification/appeals, and time-limited read-only API-capacity requests with auditable administrator review and no public-knowledge paywall.
 - [x] Add reversible graph-projection readiness for optional Neo4j/ArangoDB providers while retaining relational truth and parity/fallback safeguards.
 - [ ] Expand the approved directory in evidence-backed batches and improve Atlas 2 across the new workflows; add live Home resource cards that rotate every three seconds, pause on hover/focus, and respect reduced-motion preferences.
