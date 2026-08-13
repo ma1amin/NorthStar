@@ -361,7 +361,7 @@
 - [x] Trust and data-quality foundation: attributed sources, public resource history, freshness guidance, canonical duplicate aliases, audit trails, migration verification, and protected source/freshness/duplicate contracts.
 - [x] English/Arabic and RTL-safe public UX across Home, Search, Graph Explorer, collections, contribution, reports, Profile, and moderation surfaces; footer remains intentionally untranslated.
 - [x] Policy and release documentation aligned to the active MIT, maintainer-led governance, Manus OAuth, client-rendered SPA, and non-production-published posture.
-- [x] Latest implementation verification: TypeScript passed; 19 Vitest files and 95 tests passed after the AI proposal and relational graph-provider boundary slice; checkpoint pending.
+- [x] Latest implementation verification: TypeScript passed; 19 Vitest files and 95 tests passed after CI verification-gate and operational-runbook addition; checkpoint pending.
 
 ## Remaining Features — Owner Decision Required
 Any newly proposed product, infrastructure, integration, or UX enhancement is held exclusively in [`suggest.md`](./suggest.md) until the owner explicitly selects it. The comprehensive enhancement programme below captures the previously approved work and must remain evidence-led, incremental, and reversible where data changes are involved.
@@ -378,6 +378,6 @@ Any newly proposed product, infrastructure, integration, or UX enhancement is he
 - [x] Add PWA manifest, service worker, offline-safe public routes, cache invalidation, installation checks, and accessible fallback states.
 - [x] Implement governed freshness automation, source scoring, external-source ingestion policy/queue/adapters, deduplication, licensing controls, and moderation review.
 - [x] Expand AI enrichment proposals and graph-scale provider/caching/job boundaries while preserving provenance, costs, privacy, and human approval.
-- [ ] Add CI/release gates, dependency and secret scanning, health/metrics/traces, backup-restore runbooks, alerting, load tests, and incident guidance.
+- [x] Add CI/release gates, dependency and secret scanning, health/metrics/traces, backup-restore runbooks, alerting, load tests, and incident guidance.
 - [ ] Build approved integration foundations for browser extension, Telegram, WhatsApp, Discord, and Slack with secure configuration, user consent, and end-to-end testing.
 - [ ] Run full security, migration, performance, accessibility, responsive, privileged browser, and GitHub publication verification; update all platform documentation and release records.
