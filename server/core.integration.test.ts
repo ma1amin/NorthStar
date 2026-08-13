@@ -30,6 +30,7 @@ const mocks = vi.hoisted(() => ({
   previewDuplicateResolution: vi.fn(),
   createDuplicateResolutionProposal: vi.fn(),
   confirmDuplicateResolution: vi.fn(),
+  getPublicCollections: vi.fn(),
   getPendingResourceSources: vi.fn(),
   getFreshnessReviewQueue: vi.fn(),
   getProposedDuplicateResolutions: vi.fn(),
@@ -62,6 +63,7 @@ vi.mock("./db", () => ({
   previewDuplicateResolution: mocks.previewDuplicateResolution,
   createDuplicateResolutionProposal: mocks.createDuplicateResolutionProposal,
   confirmDuplicateResolution: mocks.confirmDuplicateResolution,
+  getPublicCollections: mocks.getPublicCollections,
   getPendingResourceSources: mocks.getPendingResourceSources,
   getFreshnessReviewQueue: mocks.getFreshnessReviewQueue,
   getProposedDuplicateResolutions: mocks.getProposedDuplicateResolutions,
@@ -85,6 +87,12 @@ describe("core tRPC workflows", () => {
   it("serves filtered Browse results through the public router", async () => {
     mocks.listApprovedResources.mockResolvedValue({ items: [{ id: 1, slug: "figma" }], total: 1 });
     await expect(appRouter.createCaller(context()).resources.listFiltered({ limit: 12, offset: 0, categoryId: 2, sort: "popular" })).resolves.toEqual({ items: [{ id: 1, slug: "figma" }], total: 1 });
+  });
+
+  it("exposes public collection discovery without requiring a session", async () => {
+    mocks.getPublicCollections.mockResolvedValue([{ id: 6, name: "Research stack", resourceCount: 3 }]);
+    await expect(appRouter.createCaller(context()).collections.discover({ limit: 20, offset: 0 })).resolves.toEqual([{ id: 6, name: "Research stack", resourceCount: 3 }]);
+    expect(mocks.getPublicCollections).toHaveBeenCalledWith(20, 0);
   });
 
   it("serves a bounded approved graph neighborhood through the public graph contract", async () => {

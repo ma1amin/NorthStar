@@ -11,6 +11,7 @@ NorthStar’s verified core release now includes policy alignment, English/Arabi
 | Resource trust context | Approved sources, public history, and latest freshness guidance are available to public Node Views. |
 | Quality moderation foundation | Source review, freshness recording, duplicate preview/proposal, and administrator-only alias confirmation are protected and audited. |
 | Duplicate safety | Confirmation creates a canonical alias and preserves the original resource plus linked community records rather than deleting or silently rewriting them. |
+| Public UX and local preferences | EN/AR core public journeys, RTL, a persisted light/dark preference, public collection discovery, and Trending/About/Developer/Settings routes are delivered; the footer remains intentionally English. |
 
 ## Verified Limitations
 

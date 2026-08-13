@@ -31,6 +31,7 @@ import {
   getUserBookmarks,
   isBookmarked,
   getUserCollections,
+  getPublicCollections,
   getCollectionBySlug,
   getCollectionResources,
   // bookmarks imported from schema
@@ -778,6 +779,10 @@ export const appRouter = router({
 
   // Collections Router
   collections: router({
+    discover: publicProcedure
+      .input(z.object({ limit: z.number().min(1).max(100).default(20), offset: z.number().min(0).default(0) }))
+      .query(({ input }) => getPublicCollections(input.limit, input.offset)),
+
     // Get user's collections
     list: protectedProcedure
       .input(

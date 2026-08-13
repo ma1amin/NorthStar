@@ -16,6 +16,11 @@ interface ThemeProviderProps {
   switchable?: boolean;
 }
 
+export function getInitialTheme(getItem: (key: string) => string | null, defaultTheme: Theme = "light"): Theme {
+  const stored = getItem("theme");
+  return stored === "dark" || stored === "light" ? stored : defaultTheme;
+}
+
 export function ThemeProvider({
   children,
   defaultTheme = "light",
@@ -23,8 +28,7 @@ export function ThemeProvider({
 }: ThemeProviderProps) {
   const [theme, setTheme] = useState<Theme>(() => {
     if (switchable) {
-      const stored = localStorage.getItem("theme");
-      return (stored as Theme) || defaultTheme;
+      return getInitialTheme((key) => localStorage.getItem(key), defaultTheme);
     }
     return defaultTheme;
   });

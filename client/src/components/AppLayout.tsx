@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "wouter";
 import {
   Compass,
+  Code2,
   GitBranch,
   FolderOpen,
   Flag,
@@ -11,15 +12,20 @@ import {
   Languages,
   LogOut,
   Menu,
+  Moon,
   Network,
   Plus,
   Search,
+  Settings,
+  TrendingUp,
   UserRound,
   Users,
   X,
+  Sun,
 } from "lucide-react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useTheme } from "@/contexts/ThemeContext";
 import { isNavigatorRouteActive } from "@/lib/navigation";
 import { Button } from "@/components/ui/button";
 import {
@@ -47,6 +53,7 @@ interface AppLayoutProps {
 export function AppLayout({ children }: AppLayoutProps) {
   const { user, isAuthenticated, startLogin, logout } = useAuth();
   const { locale, toggleLocale, t } = useLanguage();
+  const { theme, toggleTheme } = useTheme();
   const [location, setLocation] = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [commandOpen, setCommandOpen] = useState(false);
@@ -55,6 +62,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   const primaryNavigation = [
     { href: "/browse", label: t("explore"), icon: Compass },
     { href: "/search", label: t("search"), icon: Search },
+    { href: "/trending", label: t("trending"), icon: TrendingUp },
     { href: "/collections", label: t("collections"), icon: FolderOpen },
     { href: "/graph", label: t("graph"), icon: GitBranch },
   ];
@@ -112,6 +120,9 @@ export function AppLayout({ children }: AppLayoutProps) {
             </Button>
             <Button variant="ghost" size="icon" className="h-9 w-9 sm:hidden" aria-label="Open command search" onClick={() => setCommandOpen(true)}><Search className="h-4 w-4" /></Button>
             <Button variant="ghost" size="sm" className="h-9 gap-1.5 px-2 text-xs font-semibold text-slate-600 hover:bg-slate-100" onClick={toggleLocale} aria-label={locale === "en" ? "Switch to Arabic" : "Switch to English"}><Languages className="h-4 w-4" />{locale === "en" ? "ع" : "EN"}</Button>
+            <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl text-slate-600 hover:bg-slate-100" onClick={toggleTheme} aria-label={theme === "light" ? t("switchToDark") : t("switchToLight")}>
+              {theme === "light" ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+            </Button>
             {isAuthenticated && user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -124,6 +135,7 @@ export function AppLayout({ children }: AppLayoutProps) {
                   <div className="px-2 py-2"><p className="truncate text-sm font-semibold text-slate-900">{user.name || "NorthStar member"}</p><p className="mt-0.5 text-xs text-slate-500">{user.reputation ?? 0} reputation</p></div>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={() => navigate("/profile")}><UserRound className="mr-2 h-4 w-4" />Profile</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate("/settings")}><Settings className="mr-2 h-4 w-4" />{t("settings")}</DropdownMenuItem>
                   <DropdownMenuItem onClick={() => navigate("/collections")}><FolderOpen className="mr-2 h-4 w-4" />Collections</DropdownMenuItem>
                   {(user.role === "admin" || user.role === "moderator") && <DropdownMenuItem onClick={() => navigate("/admin")}><Network className="mr-2 h-4 w-4" />Moderation</DropdownMenuItem>}
                   {(user.role === "admin" || user.role === "moderator") && <DropdownMenuItem onClick={() => navigate("/admin/reports")}><Flag className="mr-2 h-4 w-4" />Report triage</DropdownMenuItem>}
@@ -149,6 +161,10 @@ export function AppLayout({ children }: AppLayoutProps) {
           <CommandEmpty>No matching actions.</CommandEmpty>
           <CommandGroup heading="Navigate">
             {primaryNavigation.map((item) => { const Icon = item.icon; return <CommandItem key={item.href} value={item.label} onSelect={() => navigate(item.href)}><Icon className="h-4 w-4 text-sky-600" /><span>{item.label}</span>{item.href === "/search" && <CommandShortcut>⌘ K</CommandShortcut>}</CommandItem>; })}
+          </CommandGroup>
+          <CommandGroup heading="Learn">
+            <CommandItem value={t("about")} onSelect={() => navigate("/about")}><Compass className="h-4 w-4 text-violet-600" /><span>{t("about")}</span></CommandItem>
+            <CommandItem value={t("developer")} onSelect={() => navigate("/developer")}><Code2 className="h-4 w-4 text-violet-600" /><span>{t("developer")}</span></CommandItem>
           </CommandGroup>
           <CommandSeparator />
           <CommandGroup heading="Contribute">

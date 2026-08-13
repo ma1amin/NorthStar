@@ -21,6 +21,10 @@ import AdminEditSuggestions from "./pages/AdminEditSuggestions";
 import GraphExplorer from "./pages/GraphExplorer";
 import AdminAIDrafts from "./pages/AdminAIDrafts";
 import Welcome from "./pages/Welcome";
+import Trending from "./pages/Trending";
+import About from "./pages/About";
+import Developer from "./pages/Developer";
+import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
 function Router() {
@@ -36,6 +40,9 @@ function Router() {
         <Route path={"/graph"} component={GraphExplorer} />
         <Route path={"/graph/:slug"} component={GraphExplorer} />
         <Route path={"/search"} component={Search} />
+        <Route path={"/trending"} component={Trending} />
+        <Route path={"/about"} component={About} />
+        <Route path={"/developer"} component={Developer} />
 
         {/* User pages */}
         <Route path={"/submit"} component={Submit} />
@@ -43,6 +50,7 @@ function Router() {
         <Route path={"/profile/:userId"} component={Profile} />
         <Route path={"/collections"} component={Collections} />
         <Route path={"/collection/:id"} component={CollectionDetail} />
+        <Route path={"/settings"} component={Settings} />
 
         {/* Admin pages */}
         <Route path={"/admin"} component={Admin} />
@@ -63,7 +71,7 @@ function Router() {
 function App() {
   return (
     <ErrorBoundary>
-      <ThemeProvider defaultTheme="light">
+      <ThemeProvider defaultTheme="light" switchable>
         <LanguageProvider><TooltipProvider>
           <Toaster />
           <Router />

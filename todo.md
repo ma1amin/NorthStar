@@ -359,9 +359,9 @@
 ## Current Verified Platform Status
 - [x] Core resource intelligence platform: public discovery, filters, fuzzy and relationship-aware search, typed graph edges, bounded graph exploration, collections, votes, bookmarks, reputation, contributions, reporting, and human moderation.
 - [x] Trust and data-quality foundation: attributed sources, public resource history, freshness guidance, canonical duplicate aliases, audit trails, migration verification, and protected source/freshness/duplicate contracts.
-- [x] Critical English/Arabic product flows and RTL-safe layouts across discovery, contribution, collections, reports, Profile, and moderation surfaces.
+- [x] English/Arabic and RTL-safe public UX across Home, Search, Graph Explorer, collections, contribution, reports, Profile, and moderation surfaces; footer remains intentionally untranslated.
 - [x] Policy and release documentation aligned to the active MIT, maintainer-led governance, Manus OAuth, client-rendered SPA, and non-production-published posture.
-- [x] Latest implementation verification: TypeScript passed; 13 Vitest files and 78 tests passed after the data-quality moderation UX slice; checkpoint pending.
+- [x] Latest implementation verification: TypeScript passed; 14 Vitest files and 81 tests passed after the public UX, theme, collection discovery, and route slice; checkpoint pending.
 
 ## Remaining Features — Owner Decision Required
 Any newly proposed product, infrastructure, integration, or UX enhancement is held exclusively in [`suggest.md`](./suggest.md) until the owner explicitly selects it. The comprehensive enhancement programme below captures the previously approved work and must remain evidence-led, incremental, and reversible where data changes are involved.
@@ -372,7 +372,7 @@ Any newly proposed product, infrastructure, integration, or UX enhancement is he
 - [ ] Add contributor-facing source-evidence submission, canonical-alias messaging, and safe record-migration workflow with preview, idempotency, audit, rollback, and collision controls.
 - [x] Add contributor-facing source-evidence submission in Node View trust context, with pending-review expectations and localized feedback.
 - [x] Add canonical-alias messaging when an archived duplicate URL resolves to its verified canonical Node View.
-- [ ] Complete public UX: remaining critical EN/AR content localization excluding the footer, RTL QA, persisted theme preference, richer collection discovery/activity, and dedicated Trending/About/Settings/Developer routes.
+- [x] Complete public UX: remaining critical EN/AR content localization excluding the footer, RTL QA, persisted theme preference, richer collection discovery/activity, and dedicated Trending/About/Settings/Developer routes.
 - [ ] Create versioned public read endpoints, OpenAPI specification, API-key lifecycle, scopes, quotas, revocation, developer portal, and contract tests.
 - [ ] Add privacy-safe search-quality measurement, relevance evaluation, provider abstraction, external lexical benchmark, and semantic/vector readiness behind explicit human-review boundaries.
 - [ ] Add PWA manifest, service worker, offline-safe public routes, cache invalidation, installation checks, and accessible fallback states.

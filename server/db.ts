@@ -603,6 +603,31 @@ export async function getUserCollections(userId: number, limit: number = 50, off
     .offset(offset);
 }
 
+export async function getPublicCollections(limit: number = 50, offset: number = 0) {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select({
+      id: collections.id,
+      ownerId: collections.ownerId,
+      name: collections.name,
+      slug: collections.slug,
+      description: collections.description,
+      createdAt: collections.createdAt,
+      updatedAt: collections.updatedAt,
+      ownerName: users.name,
+      resourceCount: sql<number>`count(${collectionResources.resourceId})`,
+    })
+    .from(collections)
+    .innerJoin(users, eq(collections.ownerId, users.id))
+    .leftJoin(collectionResources, eq(collectionResources.collectionId, collections.id))
+    .where(eq(collections.isPublic, true))
+    .groupBy(collections.id, collections.ownerId, collections.name, collections.slug, collections.description, collections.createdAt, collections.updatedAt, users.name)
+    .orderBy(desc(collections.updatedAt), desc(collections.createdAt))
+    .limit(Math.min(Math.max(limit, 1), 100))
+    .offset(Math.max(offset, 0));
+}
+
 export async function getCollectionBySlug(ownerId: number, slug: string) {
   const db = await getDb();
   if (!db) return undefined;
