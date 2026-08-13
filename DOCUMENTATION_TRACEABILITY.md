@@ -1,14 +1,14 @@
 # NorthStar Documentation-to-Implementation Traceability
 
-**Last reconciled:** 12 August 2026
+**Last reconciled:** 13 August 2026
 **Author:** Manus AI  
 **Evidence rule:** A capability is marked **implemented** only when current code plus tests or documented browser/migration evidence establish it. Planning text, old release claims, and unchecked roadmap entries are not evidence.
 
 ## Current Conclusion
 
-NorthStar has a complete **core resource-intelligence platform**: public discovery, structured/fuzzy/relationship-aware search, ten relationship types, bounded graph exploration, contributions, collections, votes, reputation, human moderation, audit history, bilingual critical flows, and evidence-led data-quality workflows. [1] [2] [3]
+NorthStar has a complete **core resource-intelligence platform**: public discovery, structured/fuzzy/relationship-aware search, ten relationship types, bounded graph exploration, contributions, collections, votes, reputation, human moderation, audit history, bilingual critical flows, evidence-led data-quality workflows, consent-first resource capture, and governed verified-contributor workflows. [1] [2] [3] [10]
 
-The primary remaining work is not core directory functionality. It is public-developer API work, measured search quality, delivery/observability maturity, PWA/offline decisions, governed ingestion, record-migration safeguards, and scale experiments. These approved workstreams are sequenced in [`todo.md`](./todo.md) and retain their fuller acceptance criteria in [`suggest.md`](./suggest.md). [4]
+The primary remaining approved work is staged, non-blocking value experimentation for professional research workspaces, organization verification/management, and governed API capacity. These experiments must not restrict access to public knowledge and remain explicitly pending in [`todo.md`](./todo.md). New ideas remain in [`suggest.md`](./suggest.md) until the owner selects them. [4]
 
 ## Evidence Matrix
 
@@ -18,6 +18,8 @@ The primary remaining work is not core directory functionality. It is public-dev
 | Exact, fuzzy, faceted, and relationship-aware search | **Implemented** | Database-backed search provider and search tests. [1] [5] | Latency/relevance measurement and any external provider are held decisions. |
 | Typed relationships, evidence, moderation, and graph explorer | **Implemented with provider boundary** | Schema, tRPC contracts, graph helper, Node View, tests, and the relational `GraphProvider` adapter. [1] [2] | Traversal is intentionally bounded; external graph stores, queues, and caches are not configured. |
 | Community submissions, duplicate detection, edit suggestions, collections, votes, reputation, reports | **Implemented** | Schema, protected contracts, and integration tests. [1] [2] | Social curation expansion remains held. |
+| Consent-first resource capture from pasted text, links, and accepted text exports | **Implemented** | `RESOURCE_INTAKE_CONTRACT.md`, `server/intake.ts`, Capture Resources UI, intake schema/migration, and focused unit/integration tests. [1] [3] [10] | No automatic publication, background fetching, or external message ingestion is enabled. Files remain a user-directed local input. |
+| Hybrid verified-contributor programme | **Implemented with human-review guardrail** | `CONTRIBUTOR_MODEL.md`, manual portfolio application/review, accepted-work history, appeal records, daily allowance enforcement, verified-first sampled queue ordering, Profile status UI, Admin Contributors workspace, and 101-test validation. [1] [3] [10] | Verified status does not authorize automatic publishing; proposed commercial value experiments remain separate and unimplemented. |
 | Human oversight, RBAC, audits, bulk moderation, roles, AI drafts | **Implemented** | Role-gated router contracts and audit test coverage. [1] [3] | Privileged browser walkthrough is CAPTCHA-limited. |
 | EN/AR critical product flows, RTL layouts, and local theme preference | **Implemented with intentional footer exception** | Locale catalog, public Home/Search/Graph/collection/route UI, RTL browser QA, locale tests, and theme-persistence tests. [3] [6] | Footer copy remains intentionally English; broader documentation localization remains a separate decision. |
 | Public discovery routes and collection curation | **Implemented** | Trending uses live public resource momentum; About and Developer state current platform boundaries; Settings stores local theme/locale preferences; public collections expose only shareable stacks, owner attribution, and aggregate resource counts. [1] [3] | Public developer API capability is delivered through the versioned API boundary below. |
@@ -26,8 +28,8 @@ The primary remaining work is not core directory functionality. It is public-dev
 | Semantic/vector search and external search provider | **Not implemented** | Search capability documentation and current dependencies. [5] | Held as `S-09` and `S-10`. |
 | Search quality analytics, evaluation, and provider boundary | **Implemented with governed external boundary** | Privacy-filtered latency, zero-result, click, and reformulation signals; moderator relevance cases; ranking metrics; relational provider adapter; Search Quality workspace; and benchmark license gate. [1] [5] | No external lexical/semantic provider, imported benchmark corpus, or reported external benchmark score is configured. |
 | PWA/offline experience | **Implemented with safe cache boundary** | Manifest, service worker, installation control, public shell/static cache, cache invalidation, production-only registration, and explicit offline fallback. [1] [9] | No background sync, offline write queue, or cache of live/protected data. |
-| CI/CD, backups, metrics, traces, alerts, load evidence | **Not implemented / not verifiable** | No checked-in operational stack or CI evidence. [1] | Held as `S-11`. |
-| External-source ingestion and ecosystem integrations | **Not implemented** | No ingestion worker/adapter evidence. [1] | Held as `S-13` and `S-16`. |
+| CI/CD and operations baseline | **Implemented with bounded operating maturity** | GitHub Actions verification gate and `OPERATIONS.md`. [1] [3] | No claim of distributed tracing, uptime alerts, automated production backups, or a load-test baseline. |
+| Governed ingestion and ecosystem-integration foundations | **Implemented with inactive-provider boundary** | Review-only freshness callback, provenance scoring adapter, consent/configuration guard, and associated governance documents. [1] [3] | No external provider credential, connector, webhook, message transfer, or automatic data ingestion is active. |
 | Graph scale architecture and asynchronous jobs | **Deferred by design** | Relational graph boundary isolates future providers. [2] | Held as `S-15`; no premature infrastructure commitment. |
 | SSR | **Deferred by design** | Current SPA with injected metadata and fallback content is documented accurately. [2] [3] | Revisit only with crawler/performance evidence. |
 | Open-source policy, governance, and identity posture | **Implemented** | MIT license, project policy, governance, contribution, and security documents. [8] | Auth-provider expansion remains a separate decision. |
@@ -47,3 +49,4 @@ The currently approved capability work is sequenced in [`todo.md`](./todo.md). A
 [6]: [Language context](./client/src/contexts/LanguageContext.tsx)
 [7]: [API boundary](./API.md)
 [8]: [Project policy](./PROJECT_POLICY.md)
+[10]: [Contributor model](./CONTRIBUTOR_MODEL.md)

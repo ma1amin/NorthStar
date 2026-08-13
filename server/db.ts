@@ -27,6 +27,10 @@ import {
   resourceDuplicateResolutions,
   apiKeys,
   apiKeyDailyUsage,
+  resourceIntakes,
+  intakeCandidates,
+  contributorVerificationApplications,
+  contributorAppeals,
 } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
@@ -1145,4 +1149,174 @@ export async function checkDuplicateByTitle(title: string, categoryId: number, e
     .from(resources)
     .where(and(...conditions))
     .limit(5);
+}
+
+// Consent-first resource intake and verified contributor workflows
+export type IntakeDraftCandidate = {
+  candidateType: "resource" | "source" | "relationship";
+  title?: string;
+  url?: string;
+  description?: string;
+  sourceContext?: string;
+  extractionMetadata?: Record<string, unknown>;
+  confidence?: string;
+};
+
+export async function createTextIntake(input: {
+  ownerId: number;
+  inputType: "pasted_text" | "links" | "text_export";
+  inputName?: string;
+  retentionMode: "minimized" | "review_evidence";
+  consentConfirmed: boolean;
+  candidates: IntakeDraftCandidate[];
+}) {
+  const db = await getDb();
+  if (!db || !input.consentConfirmed) return undefined;
+  const created = await db.insert(resourceIntakes).values({
+    ownerId: input.ownerId,
+    inputType: input.inputType,
+    inputName: input.inputName || null,
+    retentionMode: input.retentionMode,
+    consentConfirmed: true,
+    status: "ready_for_review",
+    candidateCount: input.candidates.length,
+  });
+  const intakeId = Number(created[0].insertId);
+  if (input.candidates.length) {
+    await db.insert(intakeCandidates).values(input.candidates.map((candidate) => ({
+      intakeId,
+      candidateType: candidate.candidateType,
+      title: candidate.title || null,
+      url: candidate.url || null,
+      description: candidate.description || null,
+      sourceContext: candidate.sourceContext || null,
+      extractionMetadata: candidate.extractionMetadata,
+      confidence: candidate.confidence || null,
+    })));
+  }
+  return intakeId;
+}
+
+export async function getContributorIntakeAllowance(userId: number) {
+  const db = await getDb();
+  if (!db) return { limit: 0, used: 0, verified: false };
+  const verifiedRows = await db.select({ id: contributorVerificationApplications.id })
+    .from(contributorVerificationApplications)
+    .where(and(eq(contributorVerificationApplications.userId, userId), eq(contributorVerificationApplications.status, "approved"))).limit(1);
+  const verified = Boolean(verifiedRows[0]);
+  const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const usage = await db.select({ count: sql<number>`count(*)` }).from(resourceIntakes)
+    .where(and(eq(resourceIntakes.ownerId, userId), gte(resourceIntakes.createdAt, since)));
+  return { limit: verified ? 30 : 10, used: Number(usage[0]?.count ?? 0), verified };
+}
+
+export async function getIntakesForOwner(ownerId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(resourceIntakes).where(eq(resourceIntakes.ownerId, ownerId)).orderBy(desc(resourceIntakes.createdAt)).limit(50);
+}
+
+export async function getIntakeForOwner(ownerId: number, intakeId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const intakeRows = await db.select().from(resourceIntakes).where(and(eq(resourceIntakes.id, intakeId), eq(resourceIntakes.ownerId, ownerId))).limit(1);
+  const intake = intakeRows[0];
+  if (!intake) return undefined;
+  const candidates = await db.select().from(intakeCandidates).where(eq(intakeCandidates.intakeId, intakeId)).orderBy(desc(intakeCandidates.createdAt));
+  return { intake, candidates };
+}
+
+export async function submitIntakeForOwner(ownerId: number, intakeId: number) {
+  const db = await getDb();
+  if (!db) return false;
+  const owned = await db.select({ id: resourceIntakes.id }).from(resourceIntakes)
+    .where(and(eq(resourceIntakes.id, intakeId), eq(resourceIntakes.ownerId, ownerId), eq(resourceIntakes.status, "ready_for_review"))).limit(1);
+  if (!owned[0]) return false;
+  await db.update(intakeCandidates).set({ status: "submitted" })
+    .where(and(eq(intakeCandidates.intakeId, intakeId), eq(intakeCandidates.status, "draft")));
+  const result = await db.update(resourceIntakes).set({ status: "submitted", submittedAt: new Date() })
+    .where(and(eq(resourceIntakes.id, intakeId), eq(resourceIntakes.ownerId, ownerId), eq(resourceIntakes.status, "ready_for_review")));
+  return Number((result as any)[0]?.affectedRows ?? 0) > 0;
+}
+
+export async function listIntakeCandidatesForModeration(limit: number = 50) {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select({
+      id: intakeCandidates.id,
+      intakeId: intakeCandidates.intakeId,
+      candidateType: intakeCandidates.candidateType,
+      title: intakeCandidates.title,
+      url: intakeCandidates.url,
+      description: intakeCandidates.description,
+      sourceContext: intakeCandidates.sourceContext,
+      confidence: intakeCandidates.confidence,
+      status: intakeCandidates.status,
+      createdAt: intakeCandidates.createdAt,
+      contributorId: users.id,
+      contributorName: users.name,
+      contributorVerified: contributorVerificationApplications.status,
+    })
+    .from(intakeCandidates)
+    .innerJoin(resourceIntakes, eq(intakeCandidates.intakeId, resourceIntakes.id))
+    .innerJoin(users, eq(resourceIntakes.ownerId, users.id))
+    .leftJoin(contributorVerificationApplications, and(eq(contributorVerificationApplications.userId, users.id), eq(contributorVerificationApplications.status, "approved")))
+    .where(eq(intakeCandidates.status, "submitted"))
+    .orderBy(sql`case when ${contributorVerificationApplications.status} = 'approved' then 1 else 0 end desc`, desc(intakeCandidates.createdAt))
+    .limit(Math.min(Math.max(limit, 1), 100));
+}
+
+export async function reviewIntakeCandidate(input: { candidateId: number; reviewerId: number; status: "accepted" | "rejected" | "duplicate"; reviewNote?: string }) {
+  const db = await getDb();
+  if (!db) return false;
+  const result = await db.update(intakeCandidates).set({ status: input.status, reviewedBy: input.reviewerId, reviewNote: input.reviewNote || null, reviewedAt: new Date() })
+    .where(and(eq(intakeCandidates.id, input.candidateId), eq(intakeCandidates.status, "submitted")));
+  return Number((result as any)[0]?.affectedRows ?? 0) > 0;
+}
+
+export async function createVerificationApplication(input: { userId: number; portfolioUrl?: string; rationale: string }) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const open = await db.select({ id: contributorVerificationApplications.id }).from(contributorVerificationApplications)
+    .where(and(eq(contributorVerificationApplications.userId, input.userId), eq(contributorVerificationApplications.status, "pending"))).limit(1);
+  if (open[0]) return undefined;
+  const result = await db.insert(contributorVerificationApplications).values({ userId: input.userId, portfolioUrl: input.portfolioUrl || null, rationale: input.rationale });
+  return Number(result[0].insertId);
+}
+
+export async function getVerificationForUser(userId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const rows = await db.select().from(contributorVerificationApplications).where(eq(contributorVerificationApplications.userId, userId)).orderBy(desc(contributorVerificationApplications.createdAt)).limit(1);
+  return rows[0];
+}
+
+export async function listVerificationApplications(status: "pending" | "approved" | "rejected" | "suspended" = "pending") {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select({ application: contributorVerificationApplications, contributorName: users.name, contributorEmail: users.email })
+    .from(contributorVerificationApplications).innerJoin(users, eq(contributorVerificationApplications.userId, users.id))
+    .where(eq(contributorVerificationApplications.status, status)).orderBy(desc(contributorVerificationApplications.createdAt)).limit(100);
+}
+
+export async function reviewVerificationApplication(input: { applicationId: number; reviewerId: number; status: "approved" | "rejected" | "suspended"; reviewNote?: string }) {
+  const db = await getDb();
+  if (!db) return false;
+  const result = await db.update(contributorVerificationApplications).set({ status: input.status, reviewedBy: input.reviewerId, reviewNote: input.reviewNote || null, reviewedAt: new Date() })
+    .where(and(eq(contributorVerificationApplications.id, input.applicationId), eq(contributorVerificationApplications.status, "pending")));
+  return Number((result as any)[0]?.affectedRows ?? 0) > 0;
+}
+
+export async function createContributorAppeal(input: { userId: number; targetType: "verification" | "intake_candidate" | "submission" | "account_action"; targetId: number; rationale: string }) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.insert(contributorAppeals).values(input);
+  return Number(result[0].insertId);
+}
+
+export async function getContributorAppeals(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(contributorAppeals).where(eq(contributorAppeals.userId, userId)).orderBy(desc(contributorAppeals.createdAt)).limit(50);
 }

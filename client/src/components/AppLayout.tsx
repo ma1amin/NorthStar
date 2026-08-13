@@ -18,7 +18,9 @@ import {
   Plus,
   Search,
   Settings,
+  ShieldCheck,
   TrendingUp,
+  Upload,
   UserRound,
   Users,
   X,
@@ -138,9 +140,11 @@ export function AppLayout({ children }: AppLayoutProps) {
                   <div className="px-2 py-2"><p className="truncate text-sm font-semibold text-slate-900">{user.name || "NorthStar member"}</p><p className="mt-0.5 text-xs text-slate-500">{user.reputation ?? 0} reputation</p></div>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={() => navigate("/profile")}><UserRound className="mr-2 h-4 w-4" />Profile</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate("/capture")}><Plus className="mr-2 h-4 w-4" />{t("captureResources")}</DropdownMenuItem>
                   <DropdownMenuItem onClick={() => navigate("/settings")}><Settings className="mr-2 h-4 w-4" />{t("settings")}</DropdownMenuItem>
                   <DropdownMenuItem onClick={() => navigate("/collections")}><FolderOpen className="mr-2 h-4 w-4" />Collections</DropdownMenuItem>
                   {(user.role === "admin" || user.role === "moderator") && <DropdownMenuItem onClick={() => navigate("/admin")}><Network className="mr-2 h-4 w-4" />Moderation</DropdownMenuItem>}
+                  {(user.role === "admin" || user.role === "moderator") && <DropdownMenuItem onClick={() => navigate("/admin/contributors")}><ShieldCheck className="mr-2 h-4 w-4" />Contributor review</DropdownMenuItem>}
                   {(user.role === "admin" || user.role === "moderator") && <DropdownMenuItem onClick={() => navigate("/admin/search-quality")}><BarChart3 className="mr-2 h-4 w-4" />{t("searchQuality")}</DropdownMenuItem>}
                   {(user.role === "admin" || user.role === "moderator") && <DropdownMenuItem onClick={() => navigate("/admin/reports")}><Flag className="mr-2 h-4 w-4" />Report triage</DropdownMenuItem>}
                   {(user.role === "admin" || user.role === "moderator") && <DropdownMenuItem onClick={() => navigate("/admin/bulk")}><ListChecks className="mr-2 h-4 w-4" />Bulk rejection</DropdownMenuItem>}
@@ -172,6 +176,7 @@ export function AppLayout({ children }: AppLayoutProps) {
           </CommandGroup>
           <CommandSeparator />
           <CommandGroup heading="Contribute">
+            <CommandItem value={t("captureResources")} onSelect={() => { if (isAuthenticated) navigate("/capture"); else startLogin(); }}><Upload className="h-4 w-4 text-violet-600" /><span>{t("captureResources")}</span></CommandItem>
             <CommandItem value="Submit a resource" onSelect={() => { if (isAuthenticated) navigate("/submit"); else startLogin(); }}><Plus className="h-4 w-4 text-violet-600" /><span>Submit a resource</span></CommandItem>
             {isAuthenticated && <CommandItem value="My profile" onSelect={() => navigate("/profile")}><UserRound className="h-4 w-4 text-violet-600" /><span>My profile</span></CommandItem>}
           </CommandGroup>

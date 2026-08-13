@@ -620,6 +620,124 @@ export type Submission = typeof submissions.$inferSelect;
 export type InsertSubmission = typeof submissions.$inferInsert;
 
 /**
+ * Registered contributor-owned material intake. Raw material is optional and
+ * retained only when the contributor expressly selects review-evidence storage.
+ */
+export const resourceIntakes = mysqlTable(
+  "resource_intakes",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    ownerId: int("ownerId").notNull(),
+    inputType: mysqlEnum("inputType", ["pasted_text", "links", "text_export"]).notNull(),
+    inputName: varchar("inputName", { length: 255 }),
+    storageKey: varchar("storageKey", { length: 512 }),
+    retentionMode: mysqlEnum("retentionMode", ["minimized", "review_evidence"]).notNull().default("minimized"),
+    consentConfirmed: boolean("consentConfirmed").notNull().default(false),
+    status: mysqlEnum("status", ["draft", "processing", "ready_for_review", "submitted", "closed"]).notNull().default("draft"),
+    candidateCount: int("candidateCount").notNull().default(0),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+    submittedAt: timestamp("submittedAt"),
+  },
+  (table) => ({
+    ownerStatusIdx: index("intake_owner_status_idx").on(table.ownerId, table.status),
+    statusCreatedIdx: index("intake_status_created_idx").on(table.status, table.createdAt),
+    ownerFk: foreignKey({ columns: [table.ownerId], foreignColumns: [users.id] }).onDelete("restrict"),
+  })
+);
+
+export type ResourceIntake = typeof resourceIntakes.$inferSelect;
+export type InsertResourceIntake = typeof resourceIntakes.$inferInsert;
+
+/**
+ * Extracted draft candidates remain private until their owner submits them and
+ * a moderator makes a separate decision. They never publish directly.
+ */
+export const intakeCandidates = mysqlTable(
+  "intake_candidates",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    intakeId: int("intakeId").notNull(),
+    candidateType: mysqlEnum("candidateType", ["resource", "source", "relationship"]).notNull(),
+    title: varchar("title", { length: 255 }),
+    url: varchar("url", { length: 2048 }),
+    description: text("description"),
+    sourceContext: varchar("sourceContext", { length: 500 }),
+    extractionMetadata: json("extractionMetadata"),
+    confidence: decimal("confidence", { precision: 3, scale: 2 }),
+    status: mysqlEnum("status", ["draft", "submitted", "accepted", "rejected", "duplicate"]).notNull().default("draft"),
+    submissionId: int("submissionId"),
+    reviewedBy: int("reviewedBy"),
+    reviewNote: text("reviewNote"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    reviewedAt: timestamp("reviewedAt"),
+  },
+  (table) => ({
+    intakeStatusIdx: index("intake_candidate_status_idx").on(table.intakeId, table.status),
+    statusCreatedIdx: index("intake_candidate_created_idx").on(table.status, table.createdAt),
+    urlIdx: index("intake_candidate_url_idx").on(table.url),
+    intakeFk: foreignKey({ columns: [table.intakeId], foreignColumns: [resourceIntakes.id] }).onDelete("cascade"),
+    submissionFk: foreignKey({ columns: [table.submissionId], foreignColumns: [submissions.id] }).onDelete("set null"),
+    reviewerFk: foreignKey({ columns: [table.reviewedBy], foreignColumns: [users.id] }).onDelete("set null"),
+  })
+);
+
+export type IntakeCandidate = typeof intakeCandidates.$inferSelect;
+export type InsertIntakeCandidate = typeof intakeCandidates.$inferInsert;
+
+/** Manual, auditable verified-contributor applications; no status is inferred from AI or payment. */
+export const contributorVerificationApplications = mysqlTable(
+  "contributor_verification_applications",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    userId: int("userId").notNull(),
+    portfolioUrl: varchar("portfolioUrl", { length: 2048 }),
+    rationale: text("rationale").notNull(),
+    status: mysqlEnum("status", ["pending", "approved", "rejected", "suspended"]).notNull().default("pending"),
+    reviewedBy: int("reviewedBy"),
+    reviewNote: text("reviewNote"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    reviewedAt: timestamp("reviewedAt"),
+  },
+  (table) => ({
+    userStatusIdx: index("contrib_verify_user_status_idx").on(table.userId, table.status),
+    statusCreatedIdx: index("contrib_verify_status_created_idx").on(table.status, table.createdAt),
+    userFk: foreignKey({ columns: [table.userId], foreignColumns: [users.id] }).onDelete("restrict"),
+    reviewerFk: foreignKey({ columns: [table.reviewedBy], foreignColumns: [users.id] }).onDelete("set null"),
+  })
+);
+
+export type ContributorVerificationApplication = typeof contributorVerificationApplications.$inferSelect;
+export type InsertContributorVerificationApplication = typeof contributorVerificationApplications.$inferInsert;
+
+/** Appeals are limited to verification and high-impact contributor decisions. */
+export const contributorAppeals = mysqlTable(
+  "contributor_appeals",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    userId: int("userId").notNull(),
+    targetType: mysqlEnum("targetType", ["verification", "intake_candidate", "submission", "account_action"]).notNull(),
+    targetId: int("targetId").notNull(),
+    rationale: text("rationale").notNull(),
+    status: mysqlEnum("status", ["open", "upheld", "overturned", "withdrawn"]).notNull().default("open"),
+    reviewedBy: int("reviewedBy"),
+    reviewNote: text("reviewNote"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    reviewedAt: timestamp("reviewedAt"),
+  },
+  (table) => ({
+    userStatusIdx: index("contrib_appeal_user_status_idx").on(table.userId, table.status),
+    targetIdx: index("contrib_appeal_target_idx").on(table.targetType, table.targetId),
+    statusCreatedIdx: index("contrib_appeal_status_created_idx").on(table.status, table.createdAt),
+    userFk: foreignKey({ columns: [table.userId], foreignColumns: [users.id] }).onDelete("restrict"),
+    reviewerFk: foreignKey({ columns: [table.reviewedBy], foreignColumns: [users.id] }).onDelete("set null"),
+  })
+);
+
+export type ContributorAppeal = typeof contributorAppeals.$inferSelect;
+export type InsertContributorAppeal = typeof contributorAppeals.$inferInsert;
+
+/**
  * Audit log for tracking changes and moderation actions.
  */
 export const auditLogs = mysqlTable(
