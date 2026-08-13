@@ -367,7 +367,7 @@
 Any newly proposed product, infrastructure, integration, or UX enhancement is held exclusively in [`suggest.md`](./suggest.md) until the owner explicitly selects it. The comprehensive enhancement programme below captures the previously approved work and must remain evidence-led, incremental, and reversible where data changes are involved.
 
 ## Comprehensive Enhancement Programme — Approved
-- [ ] Create release slices from all held suggestions, maintain migration/rollback notes, and synchronize every validated checkpoint with the configured GitHub repository.
+- [x] Create release slices from all held suggestions, maintain migration/rollback notes, and synchronize every validated checkpoint with the configured GitHub repository.
 - [x] Build a moderator data-quality command workspace for source review, freshness decisions, duplicate-resolution previews, canonical alias confirmation, audit history, and responsive error/loading states.
 - [x] Add contributor-facing source-evidence submission, canonical-alias messaging, and safe record-migration workflow with preview, idempotency, audit, rollback, and collision controls.
 - [x] Add contributor-facing source-evidence submission in Node View trust context, with pending-review expectations and localized feedback.
