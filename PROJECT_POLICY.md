@@ -10,7 +10,7 @@ Contributors must not add third-party trademarks, endorsements, customer claims,
 
 ## Governance and Moderation
 
-NorthStar follows the maintainer-led model described in [GOVERNANCE.md](./GOVERNANCE.md). Maintainers are responsible for release decisions, data-quality policy, security response, and assignment of moderator or administrator roles. Human moderation is final for public resource records, relationship edges, edit suggestions, duplicate decisions, reports, and AI-assisted drafts.
+NorthStar follows the maintainer-led model described in [GOVERNANCE.md](./GOVERNANCE.md). Maintainers are responsible for release decisions, data-quality policy, security response, and assignment of moderator or administrator roles. Human moderation is final for public resource records, relationship edges, evidence sources, edit suggestions, duplicate decisions, reports, freshness reviews, and AI-assisted drafts.
 
 Contributors may request reconsideration by submitting new, relevant evidence through the same contribution channel or a maintainer-approved private contact route. Appeals are evidence reviews, not an entitlement to publication or reversal. The project will document the final escalation contact before inviting broad public moderation participation.
 
@@ -22,14 +22,14 @@ Product copy, contributor documentation, and future API documentation must descr
 
 ## Resource Data, Provenance, and Retention
 
-Resources and relationships are treated as reviewable claims rather than unquestioned facts. Approved public data may be displayed while it remains relevant and policy-compliant. Relationship evidence, contributor suggestions, reports, and moderation outcomes remain subject to access controls and are not automatically published in full.
+Resources and relationships are treated as reviewable claims rather than unquestioned facts. The active release supports attributed resource sources, public history events, freshness guidance, and canonical duplicate aliases. Only approved sources and intentionally public history events may be shown in public trust context. Private reports, reviewer notes, unapproved evidence, and audit details remain restricted.
 
-The active release does not yet provide a complete public history, source-retention, data-export, anonymisation, or duplicate-merge system. Until those workflows are implemented, maintainers must avoid making retention or deletion promises that the code cannot honor. New provenance and freshness features must include an explicit retention decision, safe access boundaries, auditability, and a migration/rollback plan.
+A confirmed duplicate resolution preserves the original resource and its linked community records as a canonical alias; it is not a destructive merge or blanket record rewrite. The application does not yet provide a complete retention schedule, data export, anonymisation, source scoring programme, automatic freshness workflow, or rollbackable record-migration system. Maintainers must avoid promises that the code cannot honor.
 
 ## Release Truthfulness
 
-NorthStar is a client-rendered React application with server-injected public metadata and fallback content. It is not full server-side rendering, does not currently provide a stable public REST API, does not enable semantic/vector search, and is not verified as published to the configured GitHub remote from this environment. Release notes must retain these distinctions.
+NorthStar is a client-rendered React application with server-injected public metadata and fallback content. It is not full server-side rendering, does not currently provide a stable public REST API, does not enable semantic/vector search, and is not verified as published to the configured GitHub remote from this environment. Privileged browser QA remains CAPTCHA-limited; automated authorization and integration tests are the current evidence for those operations.
 
 ## Change-Control Requirements
 
-The following changes require a written proposal and maintainer approval: schema migrations, authorization, moderation policy, public API contracts, data retention, source ingestion, AI publication boundaries, identity flows, and legal/governance wording. Each proposal must identify user impact, Arabic/RTL implications, security and privacy impact, tests, documentation updates, and rollback conditions.
+The following changes require a written proposal and maintainer approval: schema migrations, authorization, moderation policy, public API contracts, data retention, source ingestion, AI publication boundaries, identity flows, and legal/governance wording. Each proposal must identify user impact, Arabic/RTL implications, security and privacy impact, tests, documentation updates, and rollback conditions. Deferred proposals belong in [`suggest.md`](./suggest.md) until the owner explicitly approves implementation.

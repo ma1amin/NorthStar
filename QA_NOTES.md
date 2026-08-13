@@ -16,11 +16,11 @@ The refreshed public shell loaded successfully at the active preview URL. The la
 
 The unauthenticated `/profile` route rendered the localized sign-in guard in Arabic, including a clear sign-in action and an escape route back to resource discovery. The route remained available without authentication and did not redirect unexpectedly. Privileged moderation QA is still pending because the current browser session is unauthenticated; no claim is made about authenticated admin rendering until a valid moderator/admin session is available.
 
-Automated verification after the refinement changes: `pnpm check` passed and `pnpm test` passed with 13 test files and 73 tests.
+Historical automated verification after the refinement changes: `pnpm check` passed and `pnpm test` passed with 13 test files and 73 tests. The latest remediation verification is 13 test files and 77 tests; see [VERIFICATION.md](./VERIFICATION.md).
 
 ## Privileged Browser QA and CAPTCHA Limitation — 2026-08-12
 
-Privileged moderation browser QA for `/admin` could not be completed because the preview session encountered a CAPTCHA and lacked an authenticated administrator session. In accordance with honest release practices, this limitation is documented explicitly rather than fabricating visual inspection. Authorization security, role checks, and command-center procedures remain fully covered by automated Vitest integration tests (13 test files, 73 tests passing) and TypeScript checks (`pnpm check` clean).
+Privileged moderation browser QA for `/admin` could not be completed because the preview session encountered a CAPTCHA and lacked an authenticated administrator session. In accordance with honest release practices, this limitation is documented explicitly rather than fabricating visual inspection. Authorization security, role checks, and command-center procedures are covered by automated Vitest integration tests; the current count is recorded in [VERIFICATION.md](./VERIFICATION.md).
 
 ## UI/UX Refinement Browser Verification — 2026-08-12
 

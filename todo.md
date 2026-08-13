@@ -349,3 +349,19 @@
 - [x] Add resource provenance, public change-history, and freshness-review data foundations with safe moderator workflows.
 - [x] Design and implement a previewable, auditable duplicate-resolution workflow without destructive silent deletion.
 - [x] Add migration, policy, locale, provenance, freshness, duplicate-resolution, and responsive QA coverage; save a verified remediation checkpoint.
+
+## Documentation and Backlog Reconciliation
+- [x] Create `suggest.md` as the owner-controlled register for all deferred recommendations and decision-required initiatives.
+- [x] Reconcile README, policy, architecture, API, search, security, data-handling, verification, traceability, roadmap, and release documents with current verified implementation evidence.
+- [x] Preserve todo history while replacing stale active planning sections with an accurate completed-versus-remaining roadmap linked to `suggest.md`.
+- [x] Validate documentation cross-references, current checkpoint/test claims, and preserve known CAPTCHA/GitHub verification limitations.
+
+## Current Verified Platform Status
+- [x] Core resource intelligence platform: public discovery, filters, fuzzy and relationship-aware search, typed graph edges, bounded graph exploration, collections, votes, bookmarks, reputation, contributions, reporting, and human moderation.
+- [x] Trust and data-quality foundation: attributed sources, public resource history, freshness guidance, canonical duplicate aliases, audit trails, migration verification, and protected source/freshness/duplicate contracts.
+- [x] Critical English/Arabic product flows and RTL-safe layouts across discovery, contribution, collections, reports, Profile, and moderation surfaces.
+- [x] Policy and release documentation aligned to the active MIT, maintainer-led governance, Manus OAuth, client-rendered SPA, and non-production-published posture.
+- [x] Latest implementation verification: TypeScript passed; 13 Vitest files and 77 tests passed at checkpoint `4b843044`.
+
+## Remaining Features — Owner Decision Required
+All product, infrastructure, integration, and UX enhancements that are not currently approved are held exclusively in [`suggest.md`](./suggest.md). They are **not** active execution items until the owner explicitly selects them. The register includes data-quality moderator queues, source-contribution UI, alias messaging/record migration, full documentation localization, theme preferences, richer collections, public API/OpenAPI, search quality/provider work, CI/operations, PWA, ingestion, AI enrichment, graph-scale architecture, integrations, additional routes, privileged QA, and GitHub publication verification.

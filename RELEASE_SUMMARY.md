@@ -1,22 +1,30 @@
 # NorthStar (ORIG) Release Summary
 
-## Open-Source Release Finalized
+## Current Verified Release State
 
-The NorthStar Resource Intelligence Platform is complete, verified, and prepared for its open-source release. The implementation fulfills the product specification, data-quality directives, relationship-aware navigation requirements, and community-driven moderation guardrails.
+NorthStar is a verified **Resource Intelligence Platform** with public discovery, structured and relationship-aware search, ten graph relationship types, bounded graph exploration, community contributions, human moderation, collections, bookmarks, votes, reputation, EN/AR critical flows, and evidence-led resource trust context.
 
-### Experience Refinement and Localization
-- **Authentication Resilience:** Replaced render-time OAuth URL generation with an event-driven `startLogin` action to ensure stable, secure onboarding and unauthenticated redirect flows.
-- **Bilingual Interface:** Extended the active Arabic (`ar`) localization and RTL layout support beyond the welcome shell to include the Profile and Moderation command-center workspaces.
-- **Automated Localization Coverage:** Added focused, deterministic tests to verify locale persistence, document-direction synchronization, and fallback behaviors.
-- **Lobe UI-Inspired Polish:** The application shell, public resource discovery, and protected dashboards were refined with subtle gradients, structural cards, dense typography, and clear intent actions inspired by transferable, high-quality interface patterns.
+This repository is a managed project checkpoint, not a claim of published production deployment. The authoritative scope and remaining decisions are documented in [PROJECT_POLICY.md](./PROJECT_POLICY.md), [DOCUMENTATION_TRACEABILITY.md](./DOCUMENTATION_TRACEABILITY.md), and [suggest.md](./suggest.md).
 
-### Verification and Limitations
-- **Automated Quality:** The repository is fully verified with 73 passing tests across 13 test files (`pnpm test`) and zero TypeScript compilation errors (`pnpm check`).
-- **CAPTCHA Limitation Documented:** Privileged browser QA for the `/admin` moderation workspace could not be completed because the sandbox browser encountered a CAPTCHA and lacked an authenticated moderator session. This limitation is honestly documented in `QA_NOTES.md`. The route’s security and operations are fully verified by automated authorization tests.
+## Latest Delivered Remediation
 
-### GitHub Publication Readiness
-The repository is prepared for publication with sanitized seed data and comprehensive open-source documentation (`README.md`, `LICENSE`, `CONTRIBUTING.md`, etc.). The GitHub remote `https://github.com/ma1amin/NorthStar.git` has been added. 
+| Area | Verified change |
+| --- | --- |
+| Identity and policy | The active Manus OAuth flow, MIT license, maintainer governance, moderation boundaries, and truthful release claims are documented consistently. |
+| Bilingual UX | Critical discovery, contribution, collection, report, Profile, and moderation flows have English/Arabic copy and RTL-safe layouts. |
+| Resource trust | Attributed evidence sources, public resource history, freshness guidance, and canonical duplicate aliases are modeled and protected. |
+| Duplicate safety | Moderators can preview/propose resolutions; only administrators can confirm an alias. Confirmation preserves the original resource and linked community records rather than deleting or silently rewriting them. |
+| Public detail context | Resource Detail shows approved evidence, public history, and freshness guidance without exposing private reports or reviewer notes. |
+| Verification | TypeScript passed; 13 Vitest files and 77 tests passed after the priority remediation release. |
 
-The automated push command was blocked by GitHub’s authentication prompt. The repository is ready to be exported directly via the **Management UI Settings > GitHub** panel, or you can push it manually from the terminal after supplying a personal access token.
+## Known Limits
 
-*Verified Checkpoint: `6e2f8f0f`*
+The current release is a client-rendered SPA with injected metadata and fallback content, not SSR. It has no stable public REST/OpenAPI API, semantic/vector search, external search provider, PWA, operational CI/observability stack, external ingestion framework, or verified GitHub publication from this environment. These are held recommendations and require explicit owner selection in [`suggest.md`](./suggest.md).
+
+Privileged browser QA remains CAPTCHA-limited in the available sandbox session. Automated authorization and integration coverage is the current verification evidence for protected moderation/data-quality operations.
+
+## GitHub Publication Status
+
+The GitHub remote `https://github.com/ma1amin/NorthStar.git` is configured. A sandbox push previously stopped at GitHub authentication; publication should be independently verified only after an approved authenticated method is available. The project can be exported through the Management UI GitHub panel or pushed manually by an authorized maintainer.
+
+*Latest verified implementation checkpoint: `4b843044`.*

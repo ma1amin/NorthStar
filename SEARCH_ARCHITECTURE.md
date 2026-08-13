@@ -24,3 +24,7 @@ Future adapters should preserve NorthStar’s normalized search result and filte
 3. **Semantic provider** — opt-in only, using a versioned embedding field, provenance-aware reindex jobs, and similarity scores clearly labelled as recommendations rather than verified relationships.
 
 Any semantic result must remain distinct from approved graph edges. AI may suggest candidates, but a human moderator must validate and publish graph relationships.
+
+## Decision Boundary
+
+Search-quality measurement, provider benchmarking, external lexical search, semantic/vector retrieval, and embedding jobs are preserved as held recommendations in [`suggest.md`](./suggest.md). They are not active implementation commitments until the owner selects the relevant suggestion IDs and approves their privacy, cost, retention, and operational boundaries.

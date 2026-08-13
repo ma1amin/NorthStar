@@ -13,9 +13,9 @@ NorthStar delivers a resource-intelligence platform where resources are treated 
 | SEO and accessibility | Route-specific server-injected public metadata, Open Graph, JSON-LD, canonical data, public fallback content, skip navigation, responsive layouts, and keyboard-aware navigation. |
 | Architecture | Client-rendered React SPA with server-injected metadata and public fallback content. This is not presented as full server-side rendering or as an external search-engine integration. |
 
-## Verification Evidence
+## Historical Verification Evidence
 
-The verified platform checkpoint is **d3aebd72**. The final technical pass completed `pnpm check` and `pnpm test` successfully: **9 Vitest files and 58 tests passed**. Public Browse and Figma Node View routes were also reviewed in the active preview. The detailed evidence, architecture boundaries, and corrections to earlier overstatements are retained in [VERIFICATION.md](./VERIFICATION.md).
+This report records the earlier verified platform checkpoint **d3aebd72**. At that point, `pnpm check` and `pnpm test` passed with **9 Vitest files and 58 tests**; Public Browse and Figma Node View routes were also reviewed in the active preview. It is retained as historical delivery evidence, not the current release baseline. The latest verification, including the 13-file/77-test priority-remediation release, is recorded in [VERIFICATION.md](./VERIFICATION.md) and [RELEASE_SUMMARY.md](./RELEASE_SUMMARY.md).
 
 ## Publication
 
