@@ -16,4 +16,4 @@ Activity volume, paid status, and AI confidence do not prove contributor trust. 
 
 ## Staged Value Experiments
 
-NorthStar may later test a professional research workspace, verified organization management, and governed API capacity. Each experiment requires a separate written hypothesis, success metric, privacy assessment, and owner approval before it changes a user-facing offer or any billing behavior.
+NorthStar may later test a professional research workspace, verified organization management, and governed API capacity. Each experiment requires a separate written hypothesis, success metric, privacy assessment, and owner approval before it changes a user-facing offer or any billing behavior. The approved stage definitions, access controls, required experiment brief, stop rules, and current inactive state are documented in [`VALUE_EXPERIMENTS.md`](./VALUE_EXPERIMENTS.md).

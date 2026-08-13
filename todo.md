@@ -361,7 +361,7 @@
 - [x] Trust and data-quality foundation: attributed sources, public resource history, freshness guidance, canonical duplicate aliases, audit trails, migration verification, and protected source/freshness/duplicate contracts.
 - [x] English/Arabic and RTL-safe public UX across Home, Search, Graph Explorer, collections, contribution, reports, Profile, and moderation surfaces; footer remains intentionally untranslated.
 - [x] Policy and release documentation aligned to the active MIT, maintainer-led governance, Manus OAuth, client-rendered SPA, and non-production-published posture.
-- [x] Latest implementation verification: TypeScript passed; 22 Vitest files and 101 tests passed after the consent-first intake and verified-contributor programme; contributor-programme checkpoint pending.
+- [x] Latest implementation verification: TypeScript passed; 22 Vitest files and 101 tests passed after the consent-first intake and verified-contributor programme; the completed approved programme checkpoint and GitHub synchronization are pending.
 
 ## Remaining Features — Owner Decision Required
 Any newly proposed product, infrastructure, integration, or UX enhancement is held exclusively in [`suggest.md`](./suggest.md) until the owner explicitly selects it. The comprehensive enhancement programme below captures the previously approved work and must remain evidence-led, incremental, and reversible where data changes are involved.
@@ -390,4 +390,4 @@ Any newly proposed product, infrastructure, integration, or UX enhancement is he
 - [x] Build a secure resource-capture journey with drag-and-drop/paste support, candidate review, contributor feedback, and moderator intake review without automatic publication.
 - [x] Improve public UI/UX and onboarding so first-time discovery, account registration, contribution, and verification pathways are clear, joyful, bilingual, and mobile-first.
 - [x] Apply the approved hybrid model: accepted-work plus manual portfolio verification; a verified faster lane with sampled human review alongside the standard queue; badge, history, intake allowances, and curator tools; appeals for verification and high-impact decisions.
-- [ ] Define staged, non-blocking experiments for professional research workspaces, organization verification/management, and governed API capacity without restricting public knowledge access.
+- [x] Define staged, non-blocking experiments for professional research workspaces, organization verification/management, and governed API capacity without restricting public knowledge access.
