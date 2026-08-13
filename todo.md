@@ -361,7 +361,7 @@
 - [x] Trust and data-quality foundation: attributed sources, public resource history, freshness guidance, canonical duplicate aliases, audit trails, migration verification, and protected source/freshness/duplicate contracts.
 - [x] English/Arabic and RTL-safe public UX across Home, Search, Graph Explorer, collections, contribution, reports, Profile, and moderation surfaces; footer remains intentionally untranslated.
 - [x] Policy and release documentation aligned to the active MIT, maintainer-led governance, Manus OAuth, client-rendered SPA, and non-production-published posture.
-- [x] Latest implementation verification: TypeScript passed; 24 Vitest files and 106 tests passed after the Atlas 2 visual system, live curated directory expansion, bounded filterable Graph Explorer, relationship-rich sanitized fixture, and contributor-allowance feedback; current release checkpoint and GitHub synchronization are pending.
+- [x] Latest implementation verification: TypeScript passed; 24 Vitest files and 106 tests passed after the Atlas 2 visual system, live curated directory expansion, bounded filterable Graph Explorer, relationship-rich sanitized fixture, and contributor-allowance feedback; release checkpoint (`4c18face`) and GitHub main synchronization are complete.
 
 ## Remaining Features — Owner Decision Required
 Any newly proposed product, infrastructure, integration, or UX enhancement is held exclusively in [`suggest.md`](./suggest.md) until the owner explicitly selects it. The comprehensive enhancement programme below captures the previously approved work and must remain evidence-led, incremental, and reversible where data changes are involved.
@@ -399,4 +399,4 @@ Any newly proposed product, infrastructure, integration, or UX enhancement is he
 - [x] Upgrade Graph Explorer and public discovery surfaces so relationship filtering, graph context, data density, accessible list fallback, and mobile interaction make the platform practically testable.
 - [x] Refine onboarding, contributor capture/verification, profile, and moderation command-center journeys around clear next actions, real status feedback, and EN/AR localization without translating the footer.
 - [x] Implement every remaining approved, non-conflicting documented feature in scoped, testable releases; document exact external credential, consent, owner-decision, or authentication blockers without falsely marking them complete.
-- [ ] Complete cross-route browser QA, seed/migration validation, TypeScript and full test verification; update evidence records, checkpoint every validated slice, and synchronize GitHub `main`.
+- [x] Complete cross-route browser QA, seed/migration validation, TypeScript and full test verification; update evidence records, checkpoint every validated slice, and synchronize GitHub `main`.
