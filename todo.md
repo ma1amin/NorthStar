@@ -416,3 +416,6 @@ Any newly proposed product, infrastructure, integration, or UX enhancement is he
 - [x] Add an accessible EN/AR multi-format drag-and-drop contribution workflow for chat exports, text, PDFs, Office documents, spreadsheets, presentations, and images, with ephemeral processing and PII-free candidate review.
 - [x] Process the supplied archive into validated, enriched moderation candidates without automatic publication; record only aggregate PII-free import outcomes.
 - [x] Add and run unit, integration, security, accessibility, responsive, browser, type, production-build, and migration verification; document privacy guarantees, checkpoint, and synchronize GitHub.
+
+## Archive Import Transparency Record
+- [x] Explain the aggregate WhatsApp-import counts and generate a PII-screened Markdown inventory of all stored review candidates with their original public-page source URLs and enrichment status.
