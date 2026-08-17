@@ -3,6 +3,21 @@ import { getResourceBySlug } from "./db";
 const SITE_NAME = "NorthStar";
 const DEFAULT_TITLE = "NorthStar — Resource Intelligence Platform";
 const DEFAULT_DESCRIPTION = "Discover, compare, and organize digital resources through verified knowledge-graph relationships.";
+const SERVER_FALLBACK_STYLE_ID = "northstar-server-fallback-styles";
+const SERVER_FALLBACK_STYLES = `<style id="${SERVER_FALLBACK_STYLE_ID}">
+  [data-server-content] { box-sizing: border-box; max-width: 1180px; margin: 0 auto; padding: clamp(3rem, 8vw, 8rem) clamp(1.5rem, 5vw, 3.5rem); color: #0f172a; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+  [data-server-content] header, [data-server-content] article { max-width: 760px; }
+  [data-server-content] header > p:first-child, [data-server-content] article > p:first-child { color: #0369a1; font-size: .76rem; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; }
+  [data-server-content] h1 { max-width: 720px; margin: .7rem 0 1.25rem; font-size: clamp(2.4rem, 6vw, 5.2rem); line-height: 1.02; letter-spacing: -.055em; }
+  [data-server-content] h2 { margin: 2.5rem 0 .65rem; font-size: clamp(1.45rem, 3vw, 2rem); letter-spacing: -.025em; }
+  [data-server-content] p, [data-server-content] dd { max-width: 720px; color: #475569; font-size: 1.05rem; line-height: 1.75; }
+  [data-server-content] a { display: inline-flex; margin: .4rem .65rem .4rem 0; border: 1px solid #bae6fd; border-radius: .8rem; background: #f0f9ff; padding: .65rem .9rem; color: #0369a1; font-weight: 700; text-decoration: none; }
+  [data-server-content] section { margin-top: 2.8rem; border: 1px solid #e2e8f0; border-radius: 1.25rem; background: linear-gradient(135deg, #f8fafc, #f0f9ff); padding: 1.5rem; box-shadow: 0 16px 38px rgba(15, 23, 42, .07); }
+  [data-server-content] dl { display: grid; gap: .75rem; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); margin: 1.5rem 0; }
+  [data-server-content] dl > div { border: 1px solid #e2e8f0; border-radius: .9rem; background: #fff; padding: 1rem; }
+  [data-server-content] dt { color: #64748b; font-size: .72rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+  [data-server-content] dd { margin: .35rem 0 0; color: #0f172a; font-size: .95rem; font-weight: 700; }
+</style>`;
 
 export type PublicSeoMetadata = {
   title: string;
@@ -147,5 +162,6 @@ export async function renderPublicFallback(pathname: string) {
 }
 
 export function injectPublicFallback(template: string, content: string) {
-  return template.replace('<div id="root"></div>', `<div id="root">${content}</div>`);
+  if (!content) return template;
+  return template.replace('<div id="root"></div>', `${SERVER_FALLBACK_STYLES}<div id="root">${content}</div>`);
 }

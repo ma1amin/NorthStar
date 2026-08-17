@@ -389,3 +389,6 @@ Any newly proposed product, infrastructure, integration, or UX enhancement is he
 
 ## Active Startup Rendering Repair
 - [x] Diagnose and repair preview startup when only unstyled server-rendered fallback content is visible because CSS or client JavaScript does not complete loading; add regression coverage, validate preview and published rendering, checkpoint, and synchronize GitHub.
+
+## Active Public Preview Rendering Incident
+- [x] Reproduce the user-visible unstyled fallback on the exact public preview endpoint in a fresh browser state; capture client-module and stylesheet responses, repair the confirmed fault, and verify the same public path before closing the incident.

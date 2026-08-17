@@ -32,6 +32,7 @@ describe("NorthStar public SEO helpers", () => {
   it("injects semantic public fallback content into the mount point", async () => {
     const fallback = await renderPublicFallback("/search");
     const result = injectPublicFallback('<div id="root"></div>', fallback);
+    expect(result).toContain('id="northstar-server-fallback-styles"');
     expect(result).toContain('data-server-content="search"');
     expect(result).toContain("Relationship-aware resource search");
   });
