@@ -386,3 +386,6 @@ Any newly proposed product, infrastructure, integration, or UX enhancement is he
 
 ## Active Regression Repair
 - [x] Diagnose and repair the authenticated Home-page tRPC response that returns non-JSON content and triggers `JSON.parse: unexpected character`; add regression coverage, validate the signed-in flow, checkpoint, and synchronize GitHub.
+
+## Active Startup Rendering Repair
+- [x] Diagnose and repair preview startup when only unstyled server-rendered fallback content is visible because CSS or client JavaScript does not complete loading; add regression coverage, validate preview and published rendering, checkpoint, and synchronize GitHub.
