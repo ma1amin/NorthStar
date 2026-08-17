@@ -20,6 +20,6 @@ All candidates remain in a review-only state. Importing a candidate batch cannot
 
 ## Supplied Archive Outcome
 
-The owner-supplied WhatsApp export was processed once through the bounded importer. The final PII-free batch retains **500** unique resource candidates from **697** URL mentions, with **156** rejected mentions and **98** metadata retrieval failures recorded as non-identifying aggregate outcomes. Contact-bearing candidate URLs and metadata discovered during the first pass were purged, and the final aggregate verification found zero URLs or metadata values containing an at-sign marker.
+The owner-supplied WhatsApp export was processed once through the bounded importer. The initial processing report recorded **98** metadata retrieval failures. After the strict privacy scrub removed contact-bearing candidates and metadata, the final PII-free batch retained **500** unique resource candidates from **697** URL mentions, with **156** rejected mentions and **97** remaining metadata-unavailable candidates. Final aggregate verification found zero URLs or metadata values containing an at-sign marker.
 
 The original archive, its contact-card entry, message text, sender identity, phone data, timestamps, and filenames were not stored by NorthStar’s archive-intake tables.
