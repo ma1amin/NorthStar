@@ -9,6 +9,7 @@ import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { registerPublicApi } from "../publicApi";
 import { runScheduledFreshnessSweep } from "../freshnessSchedule";
+import { shouldServeStaticClient } from "../previewMode";
 
 async function startServer() {
   const app = express();
@@ -28,11 +29,13 @@ async function startServer() {
   );
   registerPublicApi(app);
   app.post("/api/scheduled/freshness-review", runScheduledFreshnessSweep);
-  // development mode uses Vite, production mode uses static files
-  if (process.env.NODE_ENV === "development") {
-    await setupVite(app, server);
-  } else {
+  // The managed browser preview uses a built bundle to avoid first-load Vite
+  // transformation stalls. Vite middleware remains available for local work
+  // only when PREVIEW_STATIC_CLIENT is not enabled.
+  if (shouldServeStaticClient(process.env.NODE_ENV, process.env.PREVIEW_STATIC_CLIENT)) {
     serveStatic(app);
+  } else {
+    await setupVite(app, server);
   }
 
   const port = parseInt(process.env.PORT || "3000");

@@ -395,3 +395,6 @@ Any newly proposed product, infrastructure, integration, or UX enhancement is he
 
 ## Active Permanent Preview Startup Repair
 - [x] Replace delayed development-module hydration for normal preview browsers with stable client-bundle delivery, reserve server fallback for crawlers/no-JavaScript cases, and verify a fresh public preview startup before closing the incident.
+
+## Active Static Preview Bundle Repair
+- [x] Replace the preview’s runtime Vite module delivery with a prebuilt static client bundle, retain API and SEO fallback routes, verify the actual user-facing preview startup, and synchronize the fix only after it eliminates the stalled fallback.
