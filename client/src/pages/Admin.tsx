@@ -71,6 +71,7 @@ export default function Admin() {
     ...(isAdministrator ? [
       { label: t("editSuggestions"), detail: t("editSuggestionsDetail"), icon: Pencil, href: "/admin/edit-suggestions" },
       { label: t("aiReviewDrafts"), detail: t("aiReviewDraftsDetail"), icon: Sparkles, href: "/admin/ai-drafts" },
+      { label: "Archive Imports", detail: "Review privacy-screened candidates and send approved selections to moderation.", icon: FileCheck2, href: "/admin/archive-imports" },
       { label: t("userManagement"), detail: t("userManagementDetail"), icon: Users, href: "/admin/users" },
     ] : []),
   ];

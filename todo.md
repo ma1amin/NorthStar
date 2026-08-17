@@ -419,3 +419,9 @@ Any newly proposed product, infrastructure, integration, or UX enhancement is he
 
 ## Archive Import Transparency Record
 - [x] Explain the aggregate WhatsApp-import counts and generate a PII-screened Markdown inventory of all stored review candidates with their original public-page source URLs and enrichment status.
+
+## Governed Archive Review and Content Exclusions
+- [x] Add an administrator Archive Imports review screen for batch filtering, source inspection, reviewer-confirmed category/tag suggestions, and deliberate submission to the normal moderation queue.
+- [x] Add automated but non-publishing category/tag suggestions; require a reviewer to explicitly confirm or revise them before creating a pending resource submission.
+- [x] Add a contributor-visible, aggregate-only import history with non-identifying batch status and deletion-safe retention controls.
+- [x] Exclude YouTube, video-hosting, blogs, articles, and editorial/news-style URLs from new intake and apply the exclusion policy to the existing review batch without deleting auditability.

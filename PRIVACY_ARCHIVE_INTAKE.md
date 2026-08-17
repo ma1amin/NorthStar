@@ -18,8 +18,14 @@ The parser accepts bounded inputs, rejects unsafe archive paths and unsupported 
 
 All candidates remain in a review-only state. Importing a candidate batch cannot publish a resource, create a graph edge, or establish a relationship. A moderator must continue through the existing human approval workflow before any public record changes.
 
+## Resource-Type Exclusions
+
+NorthStar’s archive workflow is a **resource directory**, not a video or editorial archive. Video-hosting links, YouTube URLs, blog/article/news paths, editorial domains, social posts, and personal-profile pages are excluded before any candidate can enter normal moderation. Excluded candidates remain as non-public, non-publishable audit records with a policy reason; they are not deleted silently and cannot be handed to the resource moderation queue.
+
 ## Supplied Archive Outcome
 
 The owner-supplied WhatsApp export was processed once through the bounded importer. The initial processing report recorded **98** metadata retrieval failures. After the strict privacy scrub removed contact-bearing candidates and metadata, the final PII-free batch retained **500** unique resource candidates from **697** URL mentions, with **156** rejected mentions and **97** remaining metadata-unavailable candidates. Final aggregate verification found zero URLs or metadata values containing an at-sign marker.
 
 The original archive, its contact-card entry, message text, sender identity, phone data, timestamps, and filenames were not stored by NorthStar’s archive-intake tables.
+
+After the content-policy sweep, batch #1 contains **360** review-ready resource candidates, **70** excluded video-hosting candidates, **14** excluded editorial/blog candidates, **12** excluded social/profile candidates, and **44** metadata-unavailable candidates. No excluded candidate is eligible for moderation handoff.

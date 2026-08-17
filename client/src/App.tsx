@@ -20,6 +20,7 @@ import AdminBulk from "./pages/AdminBulk";
 import AdminEditSuggestions from "./pages/AdminEditSuggestions";
 import GraphExplorer from "./pages/GraphExplorer";
 import AdminAIDrafts from "./pages/AdminAIDrafts";
+import AdminArchiveImports from "./pages/AdminArchiveImports";
 import Welcome from "./pages/Welcome";
 import Trending from "./pages/Trending";
 import About from "./pages/About";
@@ -61,6 +62,7 @@ function Router() {
         <Route path={"/admin/bulk"} component={AdminBulk} />
         <Route path={"/admin/edit-suggestions"} component={AdminEditSuggestions} />
         <Route path={"/admin/ai-drafts"} component={AdminAIDrafts} />
+        <Route path={"/admin/archive-imports"} component={AdminArchiveImports} />
 
         {/* 404 */}
         <Route path={"/404"} component={NotFound} />

@@ -1,6 +1,7 @@
 import * as yauzl from "yauzl";
 import { OfficeParser } from "officeparser";
 import { assertSafePublicUrl } from "./urlMetadata";
+import { getArchiveContentExclusion } from "./archiveReview";
 
 const MAX_UPLOAD_BYTES = 8 * 1024 * 1024;
 const MAX_ZIP_ENTRIES = 12;
@@ -82,6 +83,10 @@ export function extractPiiFreeResourceUrls(text: string) {
   for (const rawUrl of rawUrls) {
     const normalized = normalizeIntakeUrl(rawUrl);
     if (!normalized) {
+      rejectedUrlMentions += 1;
+      continue;
+    }
+    if (getArchiveContentExclusion(normalized)) {
       rejectedUrlMentions += 1;
       continue;
     }

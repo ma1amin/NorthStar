@@ -89,11 +89,12 @@ import {
   getPiiFreeArchiveImportBatch,
   updatePiiFreeArchiveCandidateEnrichment,
   listPiiFreeArchiveImportBatches,
+  excludePiiFreeArchiveCandidate,
 } from "./db";
 import { getDb } from "./db";
 import { TRPCError } from "@trpc/server";
-import { eq } from "drizzle-orm";
-import { submissions } from "../drizzle/schema";
+import { and, eq } from "drizzle-orm";
+import { archiveImportCandidates, submissions } from "../drizzle/schema";
 import { searchService } from "./search";
 import { assertSafePublicUrl, fetchResourceMetadata } from "./urlMetadata";
 import { canViewCollection, collectionSlug, normalizeProfileUpdate } from "./community";
@@ -101,6 +102,7 @@ import { draftResourceReview } from "./aiReview";
 import { getSearchCapabilities } from "./searchCapabilities";
 import { createHash, randomBytes } from "crypto";
 import { extractResourceCandidatesFromArtifact, sanitizePublicResourceMetadata } from "./resourceIntake";
+import { getArchiveContentExclusion, suggestArchiveClassification } from "./archiveReview";
 
 export const appRouter = router({
   system: systemRouter,
@@ -156,12 +158,68 @@ export const appRouter = router({
       .query(async ({ input }) => {
         const result = await getPiiFreeArchiveImportBatch(input.batchId);
         if (!result) throw new TRPCError({ code: "NOT_FOUND", message: "Archive import batch not found" });
-        return result;
+        const categories = await getCategories();
+        const categoryIds = new Map(categories.map((category) => [category.slug, category.id]));
+        return {
+          ...result,
+          candidates: result.candidates.map((candidate) => {
+            const suggestion = suggestArchiveClassification(candidate);
+            return { ...candidate, suggestedCategoryId: categoryIds.get(suggestion.categorySlug), suggestedTags: candidate.suggestedTags ?? suggestion.tags };
+          }),
+        };
       }),
 
     listBatches: adminProcedure
       .input(z.object({ limit: z.number().int().min(1).max(100).default(20) }))
       .query(({ input }) => listPiiFreeArchiveImportBatches(input.limit)),
+
+    /** Aggregate-only history intentionally has no contributor identity or source-artifact link. */
+    contributorHistory: contributionProcedure
+      .input(z.object({ limit: z.number().int().min(1).max(50).default(20) }))
+      .query(({ input }) => listPiiFreeArchiveImportBatches(input.limit)),
+
+    excludeCandidate: adminProcedure
+      .input(z.object({ candidateId: z.number().int().positive(), reason: z.enum(["video_host", "editorial_content", "social_or_profile"]) }))
+      .mutation(async ({ input, ctx }) => {
+        const updated = await excludePiiFreeArchiveCandidate(input);
+        if (!updated) throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Candidate is no longer review-ready" });
+        await createAuditLog(ctx.user.id, "exclude_archive_candidate", "archive_import_candidate", input.candidateId, { reason: input.reason });
+        return { status: "excluded" as const };
+      }),
+
+    submitCandidateToModeration: adminProcedure
+      .input(z.object({
+        batchId: z.number().int().positive(),
+        candidateId: z.number().int().positive(),
+        title: z.string().trim().min(1).max(255),
+        description: z.string().trim().max(5000).optional(),
+        categoryId: z.number().int().positive(),
+        pricing: z.enum(["free", "freemium", "paid", "open_source", "enterprise"]),
+        tags: z.array(z.string().trim().min(1).max(64)).max(12).default([]),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const result = await getPiiFreeArchiveImportBatch(input.batchId);
+        const candidate = result?.candidates.find((item) => item.id === input.candidateId);
+        if (!candidate || candidate.status !== "review_ready") throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Candidate is not ready for moderation handoff" });
+        const excluded = getArchiveContentExclusion(candidate.url);
+        if (excluded) {
+          await excludePiiFreeArchiveCandidate({ candidateId: candidate.id, reason: excluded });
+          throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Video and editorial content cannot enter resource moderation" });
+        }
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        const safeUrl = assertSafePublicUrl(candidate.canonicalUrl ?? candidate.url).toString();
+        if (await checkDuplicateByUrl(safeUrl) || await checkPendingSubmissionByUrl(safeUrl)) throw new TRPCError({ code: "CONFLICT", message: "This resource is already public or awaiting moderation" });
+        const submissionId = await db.transaction(async (tx) => {
+          const submission = await tx.insert(submissions).values({ submittedBy: ctx.user.id, title: input.title, url: safeUrl, description: input.description, categoryId: input.categoryId, pricing: input.pricing, tags: input.tags, suggestedRelationships: [], status: "pending" });
+          const id = submission[0].insertId;
+          const claimed = await tx.update(archiveImportCandidates).set({ status: "submitted", submissionId: id }).where(and(eq(archiveImportCandidates.id, candidate.id), eq(archiveImportCandidates.status, "review_ready")));
+          if ((claimed[0] as { affectedRows?: number } | undefined)?.affectedRows !== 1) throw new TRPCError({ code: "CONFLICT", message: "Candidate was already handled" });
+          return id;
+        });
+        await createAuditLog(ctx.user.id, "submit_archive_candidate_to_moderation", "archive_import_candidate", candidate.id, { submissionId, categoryId: input.categoryId, tags: input.tags });
+        return { submissionId, status: "pending" as const };
+      }),
 
     /** Fetches bounded public-page metadata for candidates; it never sends source-chat content anywhere. */
     enrichBatch: adminProcedure
@@ -175,6 +233,11 @@ export const appRouter = router({
         let failed = 0;
         for (const candidate of candidates) {
           try {
+            const excluded = getArchiveContentExclusion(candidate.url);
+            if (excluded) {
+              await updatePiiFreeArchiveCandidateEnrichment({ candidateId: candidate.id, status: "excluded", failureCode: excluded });
+              continue;
+            }
             const duplicate = await checkDuplicateByUrl(candidate.url);
             if (duplicate) {
               await updatePiiFreeArchiveCandidateEnrichment({ candidateId: candidate.id, duplicateResourceId: duplicate.id, status: "duplicate" });

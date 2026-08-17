@@ -29,4 +29,10 @@ describe("PII-free resource intake", () => {
     expect(sanitizePublicResourceMetadata("Contact person@example.com", 255)).toBeUndefined();
     expect(sanitizePublicResourceMetadata("Follow @person for updates", 255)).toBeUndefined();
   });
+
+  it("excludes video and editorial URLs from extracted resource candidates", () => {
+    const result = extractPiiFreeResourceUrls("https://youtu.be/example https://medium.com/example https://github.com/org/repository");
+    expect(result.candidates).toEqual(["https://github.com/org/repository"]);
+    expect(result.rejectedUrlMentions).toBe(2);
+  });
 });

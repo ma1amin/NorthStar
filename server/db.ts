@@ -182,6 +182,15 @@ export async function markPiiFreeArchiveCandidateSubmitted(input: { candidateId:
   return (result[0] as { affectedRows?: number } | undefined)?.affectedRows === 1;
 }
 
+export async function excludePiiFreeArchiveCandidate(input: { candidateId: number; reason: "video_host" | "editorial_content" | "social_or_profile" }) {
+  const db = await getDb();
+  if (!db) return false;
+  const result = await db.update(archiveImportCandidates)
+    .set({ status: "excluded", failureCode: input.reason })
+    .where(and(eq(archiveImportCandidates.id, input.candidateId), eq(archiveImportCandidates.status, "review_ready")));
+  return (result[0] as { affectedRows?: number } | undefined)?.affectedRows === 1;
+}
+
 export async function updatePiiFreeArchiveCandidateEnrichment(input: {
   candidateId: number;
   canonicalUrl?: string;
@@ -189,7 +198,7 @@ export async function updatePiiFreeArchiveCandidateEnrichment(input: {
   description?: string;
   officialSourceUrl?: string;
   duplicateResourceId?: number;
-  status: "review_ready" | "duplicate" | "failed";
+  status: "review_ready" | "duplicate" | "excluded" | "failed";
   failureCode?: string;
 }) {
   const db = await getDb();
