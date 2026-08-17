@@ -1,6 +1,7 @@
 import { jsxLocPlugin } from "@builder.io/vite-plugin-jsx-loc";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
+import { prioritizeStylesheetLinks } from "./build/stylesheetPriority";
 import fs from "node:fs";
 import path from "node:path";
 import { defineConfig, type Plugin, type ViteDevServer } from "vite";
@@ -150,7 +151,24 @@ function vitePluginManusDebugCollector(): Plugin {
   };
 }
 
-const plugins = [react(), tailwindcss(), jsxLocPlugin(), vitePluginManusRuntime(), vitePluginManusDebugCollector()];
+function vitePluginStylesheetPriority(): Plugin {
+  return {
+    name: "northstar-stylesheet-priority",
+    apply: "build",
+    closeBundle() {
+      const indexPath = path.join(PROJECT_ROOT, "dist", "public", "index.html");
+      if (!fs.existsSync(indexPath)) return;
+
+      const html = fs.readFileSync(indexPath, "utf-8");
+      const prioritizedHtml = prioritizeStylesheetLinks(html);
+      if (prioritizedHtml !== html) {
+        fs.writeFileSync(indexPath, prioritizedHtml, "utf-8");
+      }
+    },
+  };
+}
+
+const plugins = [react(), tailwindcss(), jsxLocPlugin(), vitePluginManusRuntime(), vitePluginManusDebugCollector(), vitePluginStylesheetPriority()];
 
 export default defineConfig({
   plugins,

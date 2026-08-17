@@ -401,3 +401,6 @@ Any newly proposed product, infrastructure, integration, or UX enhancement is he
 
 ## Initial Loading Experience
 - [x] Add a smooth, non-blocking initial loading animation that transitions into the static-bundle application, does not delay hydration, and honors `prefers-reduced-motion`; verify, checkpoint, and synchronize GitHub.
+
+## Active Forced-Layout Warning Repair
+- [x] Prevent the initial document from forcing layout before the emitted application stylesheet is ready; preserve visible, accessible fallback content, add regression coverage, verify the preview console, checkpoint, and synchronize GitHub.
