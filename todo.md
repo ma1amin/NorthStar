@@ -404,3 +404,7 @@ Any newly proposed product, infrastructure, integration, or UX enhancement is he
 
 ## Active Forced-Layout Warning Repair
 - [x] Prevent the initial document from forcing layout before the emitted application stylesheet is ready; preserve visible, accessible fallback content, add regression coverage, verify the preview console, checkpoint, and synchronize GitHub.
+
+## Active Deployment Recovery and Privileged QA Setup
+- [ ] Repair the production deployment build failure introduced by the stylesheet-priority safeguard, add production-build regression validation, and restore the published release.
+- [ ] Prepare a legitimate, user-controlled browser session path for privileged QA; require the owner to complete any CAPTCHA and sign-in interaction, then perform only authorized administrator walkthroughs.
