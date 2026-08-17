@@ -170,6 +170,12 @@ export default defineConfig({
   },
   server: {
     host: true,
+    // The managed preview can receive its first browser navigation before Vite
+    // has transformed the application graph. Warming the client entry prevents
+    // a normal user from being left on the server fallback during that cold start.
+    warmup: {
+      clientFiles: ["./src/main.tsx"],
+    },
     allowedHosts: [
       ".manuspre.computer",
       ".manus.computer",

@@ -392,3 +392,6 @@ Any newly proposed product, infrastructure, integration, or UX enhancement is he
 
 ## Active Public Preview Rendering Incident
 - [x] Reproduce the user-visible unstyled fallback on the exact public preview endpoint in a fresh browser state; capture client-module and stylesheet responses, repair the confirmed fault, and verify the same public path before closing the incident.
+
+## Active Permanent Preview Startup Repair
+- [x] Replace delayed development-module hydration for normal preview browsers with stable client-bundle delivery, reserve server fallback for crawlers/no-JavaScript cases, and verify a fresh public preview startup before closing the incident.
