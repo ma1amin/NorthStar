@@ -18,9 +18,15 @@ The parser accepts bounded inputs, rejects unsafe archive paths and unsupported 
 
 All candidates remain in a review-only state. Importing a candidate batch cannot publish a resource, create a graph edge, or establish a relationship. A moderator must continue through the existing human approval workflow before any public record changes.
 
-## Resource-Type Exclusions
+## Resource-Type and Root-Domain Exclusions
 
-NorthStar’s archive workflow is a **resource directory**, not a video or editorial archive. Video-hosting links, YouTube URLs, blog/article/news paths, editorial domains, social posts, and personal-profile pages are excluded before any candidate can enter normal moderation. Excluded candidates remain as non-public, non-publishable audit records with a policy reason; they are not deleted silently and cannot be handed to the resource moderation queue.
+NorthStar’s archive workflow is a **resource directory**, not a video, editorial, document, event, or meeting archive. Video-hosting links, YouTube URLs, blog/article/news paths, editorial domains, social posts, personal-profile pages, Google Drive/Docs/Sheets/Slides links, Luma events, meeting links, and direct document downloads are excluded before any candidate can enter normal moderation.
+
+The workflow also applies strict public-suffix-aware **registrable-domain deduplication**. Only one eligible candidate per root domain can remain review-ready. Subdomain and path variants are retained only as non-public `root_domain_duplicate` audit records. Excluded candidates remain non-public and non-publishable; they are never deleted silently and cannot be handed to the resource moderation queue.
+
+## Human Governance Controls
+
+Bulk handoff is explicitly reviewer-confirmed and limited to **25 review-ready candidates** per action. The handoff creates ordinary **pending** moderation submissions only; it does not approve or publish a resource. Metadata-unavailable candidates can be retried only while failed and for at most **three** attempts. Trusted source domains are an owner-managed, root-domain-normalized advisory signal only: they never bypass an exclusion, deduplication rule, or human moderation decision.
 
 ## Supplied Archive Outcome
 
@@ -28,4 +34,4 @@ The owner-supplied WhatsApp export was processed once through the bounded import
 
 The original archive, its contact-card entry, message text, sender identity, phone data, timestamps, and filenames were not stored by NorthStar’s archive-intake tables.
 
-After the content-policy sweep, batch #1 contains **360** review-ready resource candidates, **70** excluded video-hosting candidates, **14** excluded editorial/blog candidates, **12** excluded social/profile candidates, and **44** metadata-unavailable candidates. No excluded candidate is eligible for moderation handoff.
+After final reconciliation under the expanded policy and strict root-domain rule, batch #1 contains **248** review-ready candidates, **101** root-domain duplicate audit records, **70** excluded video-hosting candidates, **14** excluded editorial/blog candidates, **12** excluded social/profile candidates, **7** excluded Google Workspace candidates, **2** excluded Luma candidates, **1** excluded direct-document candidate, **43** metadata-unavailable candidates, and **2** pending moderation submissions. No excluded candidate is eligible for moderation handoff, no review-ready candidate has an exclusion reason, and no root domain has more than one review-ready candidate.

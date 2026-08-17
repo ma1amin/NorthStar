@@ -43,6 +43,7 @@ const mocks = vi.hoisted(() => ({
   listSearchEvaluationCases: vi.fn(),
   reviewSearchEvaluationCase: vi.fn(),
   runFreshnessReviewSweep: vi.fn(),
+  getPiiFreeArchiveImportBatch: vi.fn(),
 }));
 
 vi.mock("./search", () => ({ searchService: { advancedSearch: mocks.advancedSearch, getSuggestions: vi.fn(), getTrending: vi.fn() } }));
@@ -85,6 +86,7 @@ vi.mock("./db", () => ({
   listSearchEvaluationCases: mocks.listSearchEvaluationCases,
   reviewSearchEvaluationCase: mocks.reviewSearchEvaluationCase,
   runFreshnessReviewSweep: mocks.runFreshnessReviewSweep,
+  getPiiFreeArchiveImportBatch: mocks.getPiiFreeArchiveImportBatch,
 }));
 
 import { appRouter } from "./routers";
@@ -213,6 +215,24 @@ describe("core tRPC workflows", () => {
     expect(result).toEqual({ rejectedIds: [2], skippedIds: [3] });
     expect(mocks.createAuditLog).toHaveBeenCalledWith(7, "bulk_reject", "submission", 2, { reason: "Duplicate campaign", batchSize: 2 });
     expect(mocks.createAuditLog).not.toHaveBeenCalledWith(7, "bulk_reject", "submission", 3, expect.anything());
+  });
+
+  it("reserves archive governance for administrators, caps bulk handoff at 25, and creates pending submissions rather than public resources", async () => {
+    await expect(appRouter.createCaller(context()).archiveIntake.listRetryQueue({ limit: 25 })).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await expect(appRouter.createCaller(context()).archiveIntake.addTrustedDomain({ domain: "example.org" })).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await expect(appRouter.createCaller(context("admin")).archiveIntake.bulkSubmitCandidatesToModeration({ batchId: 1, candidateIds: Array.from({ length: 26 }, (_, index) => index + 1), categoryId: 2, pricing: "free", tags: [] })).rejects.toMatchObject({ code: "BAD_REQUEST" });
+
+    mocks.getPiiFreeArchiveImportBatch.mockResolvedValue({ candidates: [{ id: 1, status: "review_ready", url: "https://github.com/org/repository", canonicalUrl: null, title: "Repository", description: "Public developer repository" }] });
+    mocks.checkDuplicateByUrl.mockResolvedValue(undefined);
+    mocks.checkPendingSubmissionByUrl.mockResolvedValue(undefined);
+    const submissionValues = vi.fn().mockResolvedValue([{ insertId: 64 }]);
+    const claimed = vi.fn().mockResolvedValue([{ affectedRows: 1 }]);
+    const tx = { insert: vi.fn().mockReturnValue({ values: submissionValues }), update: vi.fn().mockReturnValue({ set: vi.fn().mockReturnValue({ where: claimed }) }) };
+    mocks.getDb.mockResolvedValue({ transaction: async (callback: (transaction: typeof tx) => Promise<number>) => callback(tx) });
+
+    await expect(appRouter.createCaller(context("admin")).archiveIntake.bulkSubmitCandidatesToModeration({ batchId: 1, candidateIds: [1], categoryId: 2, pricing: "free", tags: ["engineering"] })).resolves.toEqual({ submittedCount: 1, skippedCount: 0 });
+    expect(submissionValues).toHaveBeenCalledWith(expect.objectContaining({ status: "pending", url: "https://github.com/org/repository", tags: ["engineering"] }));
+    expect(mocks.createAuditLog).toHaveBeenCalledWith(7, "bulk_submit_archive_candidate_to_moderation", "archive_import_candidate", 1, expect.objectContaining({ submissionId: 64 }));
   });
 
   it("rejects missing or blank reasons before a bulk moderation action reaches storage", async () => {

@@ -29,8 +29,10 @@ import {
   apiKeyDailyUsage,
   archiveImportBatches,
   archiveImportCandidates,
+  trustedSourceDomains,
 } from "../drizzle/schema";
 import { ENV } from "./_core/env";
+import { ARCHIVE_METADATA_RETRY_LIMIT } from "./archiveReview";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
@@ -128,6 +130,7 @@ export async function getUserById(id: number) {
 export type PiiFreeArchiveCandidateInput = {
   candidateHash: string;
   url: string;
+  registrableDomain?: string;
   canonicalUrl?: string;
   title?: string;
   description?: string;
@@ -173,6 +176,42 @@ export async function getPiiFreeArchiveImportBatch(batchId: number) {
   return { batch, candidates };
 }
 
+export async function getPiiFreeArchiveCandidate(candidateId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const [candidate] = await db.select().from(archiveImportCandidates).where(eq(archiveImportCandidates.id, candidateId)).limit(1);
+  return candidate;
+}
+
+export async function updatePiiFreeArchiveCandidateDomain(candidateId: number, registrableDomain: string) {
+  const db = await getDb();
+  if (!db) return false;
+  const result = await db.update(archiveImportCandidates).set({ registrableDomain }).where(eq(archiveImportCandidates.id, candidateId));
+  return (result[0] as { affectedRows?: number } | undefined)?.affectedRows === 1;
+}
+
+export async function listFailedPiiFreeArchiveCandidates(limit: number = 50) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(archiveImportCandidates)
+    .where(eq(archiveImportCandidates.status, "failed"))
+    .orderBy(asc(archiveImportCandidates.lastRetryAt), asc(archiveImportCandidates.id))
+    .limit(Math.min(Math.max(limit, 1), 50));
+}
+
+export async function beginPiiFreeArchiveCandidateRetry(candidateId: number, maxRetries: number = ARCHIVE_METADATA_RETRY_LIMIT) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const [candidate] = await db.select().from(archiveImportCandidates).where(eq(archiveImportCandidates.id, candidateId)).limit(1);
+  if (!candidate || candidate.status !== "failed" || candidate.retryCount >= maxRetries) return undefined;
+  const lastRetryAt = new Date();
+  const result = await db.update(archiveImportCandidates)
+    .set({ retryCount: candidate.retryCount + 1, lastRetryAt })
+    .where(and(eq(archiveImportCandidates.id, candidateId), eq(archiveImportCandidates.status, "failed"), eq(archiveImportCandidates.retryCount, candidate.retryCount)));
+  if ((result[0] as { affectedRows?: number } | undefined)?.affectedRows !== 1) return undefined;
+  return { ...candidate, retryCount: candidate.retryCount + 1, lastRetryAt };
+}
+
 export async function markPiiFreeArchiveCandidateSubmitted(input: { candidateId: number; submissionId: number }) {
   const db = await getDb();
   if (!db) return false;
@@ -182,7 +221,7 @@ export async function markPiiFreeArchiveCandidateSubmitted(input: { candidateId:
   return (result[0] as { affectedRows?: number } | undefined)?.affectedRows === 1;
 }
 
-export async function excludePiiFreeArchiveCandidate(input: { candidateId: number; reason: "video_host" | "editorial_content" | "social_or_profile" }) {
+export async function excludePiiFreeArchiveCandidate(input: { candidateId: number; reason: "video_host" | "editorial_content" | "social_or_profile" | "google_workspace" | "luma_calendar" | "meeting_link" | "direct_document" }) {
   const db = await getDb();
   if (!db) return false;
   const result = await db.update(archiveImportCandidates)
@@ -221,6 +260,52 @@ export async function listPiiFreeArchiveImportBatches(limit: number = 20) {
   const db = await getDb();
   if (!db) return [];
   return db.select().from(archiveImportBatches).orderBy(desc(archiveImportBatches.createdAt)).limit(Math.min(Math.max(limit, 1), 100));
+}
+
+/** Aggregate-only status history; intentionally contains no contributor or artifact identity. */
+export async function listPiiFreeArchiveImportHistory(limit: number = 20) {
+  const db = await getDb();
+  if (!db) return [];
+  const batches = await listPiiFreeArchiveImportBatches(limit);
+  if (!batches.length) return [];
+  const rows = await db.select({ batchId: archiveImportCandidates.batchId, status: archiveImportCandidates.status, count: sql<number>`count(*)` })
+    .from(archiveImportCandidates)
+    .where(inArray(archiveImportCandidates.batchId, batches.map((batch) => batch.id)))
+    .groupBy(archiveImportCandidates.batchId, archiveImportCandidates.status);
+  const counts = new Map<number, Record<string, number>>();
+  for (const row of rows) counts.set(row.batchId, { ...(counts.get(row.batchId) ?? {}), [row.status]: Number(row.count) });
+  return batches.map((batch) => ({
+    ...batch,
+    statusCounts: {
+      reviewReady: counts.get(batch.id)?.review_ready ?? 0,
+      excluded: counts.get(batch.id)?.excluded ?? 0,
+      submitted: counts.get(batch.id)?.submitted ?? 0,
+      retryNeeded: counts.get(batch.id)?.failed ?? 0,
+    },
+  }));
+}
+
+export async function listTrustedSourceDomains(includeDisabled: boolean = false) {
+  const db = await getDb();
+  if (!db) return [];
+  const query = db.select().from(trustedSourceDomains);
+  return includeDisabled
+    ? query.orderBy(asc(trustedSourceDomains.domain))
+    : query.where(eq(trustedSourceDomains.status, "active")).orderBy(asc(trustedSourceDomains.domain));
+}
+
+export async function createTrustedSourceDomain(input: { domain: string; note?: string }) {
+  const db = await getDb();
+  if (!db) throw new Error("Database unavailable");
+  const result = await db.insert(trustedSourceDomains).values({ domain: input.domain, note: input.note?.trim() || undefined });
+  return result[0].insertId;
+}
+
+export async function updateTrustedSourceDomain(input: { id: number; status: "active" | "disabled"; note?: string }) {
+  const db = await getDb();
+  if (!db) return false;
+  const result = await db.update(trustedSourceDomains).set({ status: input.status, note: input.note?.trim() || null }).where(eq(trustedSourceDomains.id, input.id));
+  return (result[0] as { affectedRows?: number } | undefined)?.affectedRows === 1;
 }
 
 // Resources

@@ -21,6 +21,8 @@ import AdminEditSuggestions from "./pages/AdminEditSuggestions";
 import GraphExplorer from "./pages/GraphExplorer";
 import AdminAIDrafts from "./pages/AdminAIDrafts";
 import AdminArchiveImports from "./pages/AdminArchiveImports";
+import AdminArchiveGovernance from "./pages/AdminArchiveGovernance";
+import AdminArchiveBulkReview from "./pages/AdminArchiveBulkReview";
 import Welcome from "./pages/Welcome";
 import Trending from "./pages/Trending";
 import About from "./pages/About";
@@ -63,6 +65,8 @@ function Router() {
         <Route path={"/admin/edit-suggestions"} component={AdminEditSuggestions} />
         <Route path={"/admin/ai-drafts"} component={AdminAIDrafts} />
         <Route path={"/admin/archive-imports"} component={AdminArchiveImports} />
+        <Route path={"/admin/archive-governance"} component={AdminArchiveGovernance} />
+        <Route path={"/admin/archive-bulk-review"} component={AdminArchiveBulkReview} />
 
         {/* 404 */}
         <Route path={"/404"} component={NotFound} />

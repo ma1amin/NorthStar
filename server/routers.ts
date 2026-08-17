@@ -93,8 +93,14 @@ import {
   createPiiFreeArchiveImportBatch,
   getPiiFreeArchiveImportBatch,
   updatePiiFreeArchiveCandidateEnrichment,
-  listPiiFreeArchiveImportBatches,
+  listPiiFreeArchiveImportBatches, listPiiFreeArchiveImportHistory,
   excludePiiFreeArchiveCandidate,
+  getPiiFreeArchiveCandidate,
+  listFailedPiiFreeArchiveCandidates,
+  beginPiiFreeArchiveCandidateRetry,
+  listTrustedSourceDomains,
+  createTrustedSourceDomain,
+  updateTrustedSourceDomain,
 } from "./db";
 import { getDb } from "./db";
 import { TRPCError } from "@trpc/server";
@@ -107,7 +113,7 @@ import { draftResourceReview } from "./aiReview";
 import { getSearchCapabilities } from "./searchCapabilities";
 import { createHash, randomBytes } from "crypto";
 import { extractResourceCandidatesFromArtifact, sanitizePublicResourceMetadata } from "./resourceIntake";
-import { getArchiveContentExclusion, suggestArchiveClassification } from "./archiveReview";
+import { ARCHIVE_BULK_REVIEW_LIMIT, getArchiveContentExclusion, getRegistrableDomain, normalizeTrustedDomain, suggestArchiveClassification } from "./archiveReview";
 
 export const appRouter = router({
   system: systemRouter,
@@ -140,20 +146,31 @@ export const appRouter = router({
       }))
       .mutation(async ({ input, ctx }) => {
         const normalized = Array.from(new Set(input.candidates.map((candidate) => assertSafePublicUrl(candidate.url).toString())));
+        const seenDomains = new Set<string>();
+        let policyRejected = 0;
         const batchId = await createPiiFreeArchiveImportBatch({
           totalUrlMentions: input.totalUrlMentions,
           rejectedUrlMentions: input.rejectedUrlMentions,
-          candidates: normalized.map((url) => ({
-            candidateHash: createHash("sha256").update(url).digest("hex"),
-            url,
-            officialSourceUrl: url,
-            status: "review_ready" as const,
-          })),
+          candidates: normalized.map((url) => {
+            const exclusion = getArchiveContentExclusion(url);
+            const registrableDomain = getRegistrableDomain(url);
+            const duplicateDomain = !exclusion && Boolean(registrableDomain && seenDomains.has(registrableDomain));
+            if (registrableDomain && !exclusion && !duplicateDomain) seenDomains.add(registrableDomain);
+            if (exclusion || duplicateDomain) policyRejected += 1;
+            return {
+              candidateHash: createHash("sha256").update(url).digest("hex"),
+              url,
+              registrableDomain,
+              officialSourceUrl: url,
+              status: exclusion || duplicateDomain ? "excluded" as const : "review_ready" as const,
+              failureCode: exclusion ?? (duplicateDomain ? "root_domain_duplicate" : undefined),
+            };
+          }),
         });
         await createAuditLog(ctx.user.id, "create_pii_free_archive_batch", "archive_import_batch", batchId, {
           candidateCount: normalized.length,
           totalUrlMentions: input.totalUrlMentions,
-          rejectedUrlMentions: input.rejectedUrlMentions,
+          rejectedUrlMentions: input.rejectedUrlMentions + policyRejected,
         });
         return { batchId, candidateCount: normalized.length };
       }),
@@ -164,12 +181,13 @@ export const appRouter = router({
         const result = await getPiiFreeArchiveImportBatch(input.batchId);
         if (!result) throw new TRPCError({ code: "NOT_FOUND", message: "Archive import batch not found" });
         const categories = await getCategories();
+        const trustedDomains = new Set((await listTrustedSourceDomains()).map((domain) => domain.domain));
         const categoryIds = new Map(categories.map((category) => [category.slug, category.id]));
         return {
           ...result,
           candidates: result.candidates.map((candidate) => {
             const suggestion = suggestArchiveClassification(candidate);
-            return { ...candidate, suggestedCategoryId: categoryIds.get(suggestion.categorySlug), suggestedTags: candidate.suggestedTags ?? suggestion.tags };
+            return { ...candidate, suggestedCategoryId: categoryIds.get(suggestion.categorySlug), suggestedTags: candidate.suggestedTags ?? suggestion.tags, isTrustedSource: Boolean(candidate.registrableDomain && trustedDomains.has(candidate.registrableDomain)) };
           }),
         };
       }),
@@ -181,10 +199,10 @@ export const appRouter = router({
     /** Aggregate-only history intentionally has no contributor identity or source-artifact link. */
     contributorHistory: contributionProcedure
       .input(z.object({ limit: z.number().int().min(1).max(50).default(20) }))
-      .query(({ input }) => listPiiFreeArchiveImportBatches(input.limit)),
+      .query(({ input }) => listPiiFreeArchiveImportHistory(input.limit)),
 
     excludeCandidate: adminProcedure
-      .input(z.object({ candidateId: z.number().int().positive(), reason: z.enum(["video_host", "editorial_content", "social_or_profile"]) }))
+      .input(z.object({ candidateId: z.number().int().positive(), reason: z.enum(["video_host", "editorial_content", "social_or_profile", "google_workspace", "luma_calendar", "meeting_link", "direct_document"]) }))
       .mutation(async ({ input, ctx }) => {
         const updated = await excludePiiFreeArchiveCandidate(input);
         if (!updated) throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Candidate is no longer review-ready" });
@@ -209,7 +227,7 @@ export const appRouter = router({
         const excluded = getArchiveContentExclusion(candidate.url);
         if (excluded) {
           await excludePiiFreeArchiveCandidate({ candidateId: candidate.id, reason: excluded });
-          throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Video and editorial content cannot enter resource moderation" });
+          throw new TRPCError({ code: "PRECONDITION_FAILED", message: "This URL type cannot enter resource moderation" });
         }
         const db = await getDb();
         if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
@@ -224,6 +242,91 @@ export const appRouter = router({
         });
         await createAuditLog(ctx.user.id, "submit_archive_candidate_to_moderation", "archive_import_candidate", candidate.id, { submissionId, categoryId: input.categoryId, tags: input.tags });
         return { submissionId, status: "pending" as const };
+      }),
+
+    bulkSubmitCandidatesToModeration: adminProcedure
+      .input(z.object({
+        batchId: z.number().int().positive(),
+        candidateIds: z.array(z.number().int().positive()).min(1).max(ARCHIVE_BULK_REVIEW_LIMIT),
+        categoryId: z.number().int().positive(),
+        pricing: z.enum(["free", "freemium", "paid", "open_source", "enterprise"]),
+        tags: z.array(z.string().trim().min(1).max(64)).max(12).default([]),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const batch = await getPiiFreeArchiveImportBatch(input.batchId);
+        if (!batch) throw new TRPCError({ code: "NOT_FOUND", message: "Archive import batch not found" });
+        const selected = batch.candidates.filter((candidate) => input.candidateIds.includes(candidate.id));
+        if (selected.length !== input.candidateIds.length || selected.some((candidate) => candidate.status !== "review_ready")) throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Only review-ready candidates can be bulk submitted" });
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+        const created: number[] = [];
+        for (const candidate of selected) {
+          const exclusion = getArchiveContentExclusion(candidate.url);
+          if (exclusion) { await excludePiiFreeArchiveCandidate({ candidateId: candidate.id, reason: exclusion }); continue; }
+          const safeUrl = assertSafePublicUrl(candidate.canonicalUrl ?? candidate.url).toString();
+          if (await checkDuplicateByUrl(safeUrl) || await checkPendingSubmissionByUrl(safeUrl)) continue;
+          const submission = await db.transaction(async (tx) => {
+            const result = await tx.insert(submissions).values({ submittedBy: ctx.user.id, title: candidate.title?.trim() || new URL(safeUrl).hostname, url: safeUrl, description: candidate.description ?? undefined, categoryId: input.categoryId, pricing: input.pricing, tags: input.tags, suggestedRelationships: [], status: "pending" });
+            const id = result[0].insertId;
+            const claimed = await tx.update(archiveImportCandidates).set({ status: "submitted", submissionId: id }).where(and(eq(archiveImportCandidates.id, candidate.id), eq(archiveImportCandidates.status, "review_ready")));
+            if ((claimed[0] as { affectedRows?: number } | undefined)?.affectedRows !== 1) throw new TRPCError({ code: "CONFLICT", message: "Candidate was already handled" });
+            return id;
+          });
+          created.push(submission);
+          await createAuditLog(ctx.user.id, "bulk_submit_archive_candidate_to_moderation", "archive_import_candidate", candidate.id, { submissionId: submission, categoryId: input.categoryId, tags: input.tags });
+        }
+        return { submittedCount: created.length, skippedCount: selected.length - created.length };
+      }),
+
+    listRetryQueue: adminProcedure
+      .input(z.object({ limit: z.number().int().min(1).max(50).default(25) }))
+      .query(({ input }) => listFailedPiiFreeArchiveCandidates(input.limit)),
+
+    retryCandidateMetadata: adminProcedure
+      .input(z.object({ candidateId: z.number().int().positive() }))
+      .mutation(async ({ input, ctx }) => {
+        const candidate = await beginPiiFreeArchiveCandidateRetry(input.candidateId);
+        if (!candidate) throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Candidate is unavailable or has reached the retry limit" });
+        const exclusion = getArchiveContentExclusion(candidate.url);
+        if (exclusion) {
+          await updatePiiFreeArchiveCandidateEnrichment({ candidateId: candidate.id, status: "excluded", failureCode: exclusion });
+          return { status: "excluded" as const };
+        }
+        try {
+          const metadata = await fetchResourceMetadata(candidate.url);
+          await updatePiiFreeArchiveCandidateEnrichment({ candidateId: candidate.id, canonicalUrl: metadata.canonicalUrl ?? metadata.url, title: sanitizePublicResourceMetadata(metadata.title, 255), description: sanitizePublicResourceMetadata(metadata.description, 5_000), officialSourceUrl: metadata.canonicalUrl ?? metadata.url, status: "review_ready" });
+          await createAuditLog(ctx.user.id, "retry_archive_candidate_metadata", "archive_import_candidate", candidate.id, { retryCount: candidate.retryCount, outcome: "review_ready" });
+          return { status: "review_ready" as const };
+        } catch {
+          await updatePiiFreeArchiveCandidateEnrichment({ candidateId: candidate.id, status: "failed", failureCode: "metadata_unavailable" });
+          await createAuditLog(ctx.user.id, "retry_archive_candidate_metadata", "archive_import_candidate", candidate.id, { retryCount: candidate.retryCount, outcome: "failed" });
+          return { status: "failed" as const };
+        }
+      }),
+
+    listTrustedDomains: adminProcedure.query(() => listTrustedSourceDomains(true)),
+
+    addTrustedDomain: adminProcedure
+      .input(z.object({ domain: z.string().trim().min(1).max(255), note: z.string().trim().max(500).optional() }))
+      .mutation(async ({ input, ctx }) => {
+        const domain = normalizeTrustedDomain(input.domain);
+        if (!domain) throw new TRPCError({ code: "BAD_REQUEST", message: "Enter a valid public domain" });
+        try {
+          const id = await createTrustedSourceDomain({ domain, note: input.note });
+          await createAuditLog(ctx.user.id, "add_trusted_source_domain", "trusted_source_domain", id, { domain, mode: "advisory" });
+          return { id, domain };
+        } catch {
+          throw new TRPCError({ code: "CONFLICT", message: "This trusted domain already exists" });
+        }
+      }),
+
+    updateTrustedDomain: adminProcedure
+      .input(z.object({ id: z.number().int().positive(), status: z.enum(["active", "disabled"]), note: z.string().trim().max(500).optional() }))
+      .mutation(async ({ input, ctx }) => {
+        const updated = await updateTrustedSourceDomain(input);
+        if (!updated) throw new TRPCError({ code: "NOT_FOUND", message: "Trusted domain not found" });
+        await createAuditLog(ctx.user.id, "update_trusted_source_domain", "trusted_source_domain", input.id, { status: input.status });
+        return { success: true };
       }),
 
     /** Fetches bounded public-page metadata for candidates; it never sends source-chat content anywhere. */

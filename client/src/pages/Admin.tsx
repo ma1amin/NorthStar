@@ -72,6 +72,8 @@ export default function Admin() {
       { label: t("editSuggestions"), detail: t("editSuggestionsDetail"), icon: Pencil, href: "/admin/edit-suggestions" },
       { label: t("aiReviewDrafts"), detail: t("aiReviewDraftsDetail"), icon: Sparkles, href: "/admin/ai-drafts" },
       { label: "Archive Imports", detail: "Review privacy-screened candidates and send approved selections to moderation.", icon: FileCheck2, href: "/admin/archive-imports" },
+      { label: "Archive Governance", detail: "Manage bounded metadata retries and advisory trusted source domains.", icon: ShieldCheck, href: "/admin/archive-governance" },
+      { label: "Archive Bulk Review", detail: "Confirm a category and hand a selected set of candidates to moderation.", icon: FileCheck2, href: "/admin/archive-bulk-review" },
       { label: t("userManagement"), detail: t("userManagementDetail"), icon: Users, href: "/admin/users" },
     ] : []),
   ];

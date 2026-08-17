@@ -653,6 +653,7 @@ export const archiveImportCandidates = mysqlTable(
     batchId: int("batchId").notNull(),
     candidateHash: varchar("candidateHash", { length: 64 }).notNull(),
     url: varchar("url", { length: 2048 }).notNull(),
+    registrableDomain: varchar("registrableDomain", { length: 255 }),
     canonicalUrl: varchar("canonicalUrl", { length: 2048 }),
     title: varchar("title", { length: 255 }),
     description: text("description"),
@@ -666,11 +667,14 @@ export const archiveImportCandidates = mysqlTable(
     status: mysqlEnum("status", ["review_ready", "duplicate", "excluded", "submitted", "failed"]).default("review_ready").notNull(),
     failureCode: varchar("failureCode", { length: 96 }),
     submissionId: int("submissionId"),
+    retryCount: int("retryCount").default(0).notNull(),
+    lastRetryAt: timestamp("lastRetryAt"),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
     updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   },
   (table) => ({
     batchStatusIdx: index("archive_import_candidates_batch_status_idx").on(table.batchId, table.status),
+    batchDomainIdx: index("archive_import_candidates_batch_domain_idx").on(table.batchId, table.registrableDomain),
     batchHashUq: uniqueIndex("archive_import_candidates_batch_hash_uq").on(table.batchId, table.candidateHash),
     duplicateResourceIdx: index("archive_import_candidates_duplicate_resource_idx").on(table.duplicateResourceId),
     batchFk: foreignKey({ columns: [table.batchId], foreignColumns: [archiveImportBatches.id] }).onDelete("cascade"),
@@ -680,6 +684,26 @@ export const archiveImportCandidates = mysqlTable(
 );
 
 export type ArchiveImportCandidate = typeof archiveImportCandidates.$inferSelect;
+
+/** Owner-managed, non-identifying trusted source domains. Advisory mode does not auto-publish or auto-approve candidates. */
+export const trustedSourceDomains = mysqlTable(
+  "trusted_source_domains",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    domain: varchar("domain", { length: 255 }).notNull(),
+    status: mysqlEnum("status", ["active", "disabled"]).default("active").notNull(),
+    mode: mysqlEnum("mode", ["advisory"]).default("advisory").notNull(),
+    note: varchar("note", { length: 500 }),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  (table) => ({
+    domainUq: uniqueIndex("trusted_source_domains_domain_uq").on(table.domain),
+    statusIdx: index("trusted_source_domains_status_idx").on(table.status),
+  })
+);
+
+export type TrustedSourceDomain = typeof trustedSourceDomains.$inferSelect;
 
 /**
  * Audit log for tracking changes and moderation actions.

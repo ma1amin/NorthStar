@@ -428,3 +428,10 @@ Any newly proposed product, infrastructure, integration, or UX enhancement is he
 
 ## Archive Review Mutation Regression
 - [x] Replace the ESM-incompatible `require` invocation in the archive-review moderation handoff, add regression coverage, validate the browser mutation path, and repair the source-map warning if it is application-owned.
+
+## Strict Domain Deduplication and Archive Governance
+- [x] Add schema and tested policy contracts for strict registrable-domain deduplication, Google Workspace/Luma/meeting/direct-document exclusions, bounded retries, and advisory trusted source domains.
+- [x] Build protected archive APIs for bulk reviewer-confirmed handoff, metadata retry, and owner-managed trusted-domain records with audit logging and no automatic publication.
+- [x] Enhance administrator Archive Imports with root-domain grouping, bulk classification confirmation, retry queue, and trusted-domain administration; extend contributor aggregate history with the new status counts.
+- [x] Reconcile existing archive batch #1 under the strict root-domain and expanded exclusion policy, retaining all exclusions for auditability and verifying no ineligible candidate remains review-ready.
+- [x] Add tests, migration, browser verification, privacy/documentation updates, checkpoint, and GitHub synchronization.
