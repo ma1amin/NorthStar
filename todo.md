@@ -425,3 +425,6 @@ Any newly proposed product, infrastructure, integration, or UX enhancement is he
 - [x] Add automated but non-publishing category/tag suggestions; require a reviewer to explicitly confirm or revise them before creating a pending resource submission.
 - [x] Add a contributor-visible, aggregate-only import history with non-identifying batch status and deletion-safe retention controls.
 - [x] Exclude YouTube, video-hosting, blogs, articles, and editorial/news-style URLs from new intake and apply the exclusion policy to the existing review batch without deleting auditability.
+
+## Archive Review Mutation Regression
+- [x] Replace the ESM-incompatible `require` invocation in the archive-review moderation handoff, add regression coverage, validate the browser mutation path, and repair the source-map warning if it is application-owned.

@@ -3,6 +3,11 @@ import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, adminProcedure, contributionProcedure, metadataProcedure, aiDraftProcedure, router } from "./_core/trpc";
 import { z } from "zod";
+import { createRequire } from "node:module";
+
+// This router contains legacy schema lookups that use CommonJS require at mutation time.
+// Define a scoped Node ESM-compatible loader so those server-only paths remain valid.
+const require = createRequire(import.meta.url);
 
 const relationshipTypeValues = [
   "alternative_to",
