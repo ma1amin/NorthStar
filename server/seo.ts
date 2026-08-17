@@ -5,6 +5,13 @@ const DEFAULT_TITLE = "NorthStar — Resource Intelligence Platform";
 const DEFAULT_DESCRIPTION = "Discover, compare, and organize digital resources through verified knowledge-graph relationships.";
 const SERVER_FALLBACK_STYLE_ID = "northstar-server-fallback-styles";
 const SERVER_FALLBACK_STYLES = `<style id="${SERVER_FALLBACK_STYLE_ID}">
+  [data-server-loading] { display: flex; align-items: center; gap: .8rem; max-width: 1180px; margin: 0 auto; padding: 1.4rem clamp(1.5rem, 5vw, 3.5rem) 0; color: #0369a1; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+  [data-server-loading-mark] { position: relative; width: 2rem; height: 2rem; border: 2px solid rgba(14, 165, 233, .22); border-radius: .65rem; background: linear-gradient(135deg, #0ea5e9, #6366f1); box-shadow: 0 8px 18px rgba(14, 165, 233, .18); overflow: hidden; }
+  [data-server-loading-mark]::before { content: ""; position: absolute; inset: .42rem; border: 1.5px solid rgba(255,255,255,.92); border-radius: 50%; animation: northstar-orbit 1.25s cubic-bezier(.23, 1, .32, 1) infinite; }
+  [data-server-loading-mark]::after { content: ""; position: absolute; width: .34rem; height: .34rem; top: .23rem; right: .24rem; border-radius: 50%; background: #fff; box-shadow: 0 0 0 3px rgba(255,255,255,.18); animation: northstar-pulse 1.25s ease-in-out infinite; }
+  [data-server-loading-copy] { display: grid; gap: .08rem; }
+  [data-server-loading-copy] strong { color: #0f172a; font-size: .78rem; letter-spacing: .1em; text-transform: uppercase; }
+  [data-server-loading-copy] span { color: #64748b; font-size: .8rem; }
   [data-server-content] { box-sizing: border-box; max-width: 1180px; margin: 0 auto; padding: clamp(3rem, 8vw, 8rem) clamp(1.5rem, 5vw, 3.5rem); color: #0f172a; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
   [data-server-content] header, [data-server-content] article { max-width: 760px; }
   [data-server-content] header > p:first-child, [data-server-content] article > p:first-child { color: #0369a1; font-size: .76rem; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; }
@@ -17,7 +24,11 @@ const SERVER_FALLBACK_STYLES = `<style id="${SERVER_FALLBACK_STYLE_ID}">
   [data-server-content] dl > div { border: 1px solid #e2e8f0; border-radius: .9rem; background: #fff; padding: 1rem; }
   [data-server-content] dt { color: #64748b; font-size: .72rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
   [data-server-content] dd { margin: .35rem 0 0; color: #0f172a; font-size: .95rem; font-weight: 700; }
+  @keyframes northstar-orbit { from { transform: rotate(0deg) scale(.82); opacity: .68; } 50% { opacity: 1; } to { transform: rotate(360deg) scale(.82); opacity: .68; } }
+  @keyframes northstar-pulse { 0%, 100% { transform: scale(.72); opacity: .65; } 50% { transform: scale(1); opacity: 1; } }
+  @media (prefers-reduced-motion: reduce) { [data-server-loading-mark]::before, [data-server-loading-mark]::after { animation: none; } }
 </style>`;
+const SERVER_LOADING_MARKUP = `<div data-server-loading role="status" aria-live="polite"><span data-server-loading-mark aria-hidden="true"></span><span data-server-loading-copy><strong>NorthStar</strong><span>Preparing the resource graph</span></span></div>`;
 
 export type PublicSeoMetadata = {
   title: string;
@@ -163,5 +174,5 @@ export async function renderPublicFallback(pathname: string) {
 
 export function injectPublicFallback(template: string, content: string) {
   if (!content) return template;
-  return template.replace('<div id="root"></div>', `${SERVER_FALLBACK_STYLES}<div id="root">${content}</div>`);
+  return template.replace('<div id="root"></div>', `${SERVER_FALLBACK_STYLES}<div id="root">${SERVER_LOADING_MARKUP}${content}</div>`);
 }

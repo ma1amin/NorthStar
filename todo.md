@@ -398,3 +398,6 @@ Any newly proposed product, infrastructure, integration, or UX enhancement is he
 
 ## Active Static Preview Bundle Repair
 - [x] Replace the preview’s runtime Vite module delivery with a prebuilt static client bundle, retain API and SEO fallback routes, verify the actual user-facing preview startup, and synchronize the fix only after it eliminates the stalled fallback.
+
+## Initial Loading Experience
+- [x] Add a smooth, non-blocking initial loading animation that transitions into the static-bundle application, does not delay hydration, and honors `prefers-reduced-motion`; verify, checkpoint, and synchronize GitHub.

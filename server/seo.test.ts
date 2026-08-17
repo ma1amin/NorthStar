@@ -33,6 +33,9 @@ describe("NorthStar public SEO helpers", () => {
     const fallback = await renderPublicFallback("/search");
     const result = injectPublicFallback('<div id="root"></div>', fallback);
     expect(result).toContain('id="northstar-server-fallback-styles"');
+    expect(result).toContain('data-server-loading');
+    expect(result).toContain("Preparing the resource graph");
+    expect(result).toContain("prefers-reduced-motion: reduce");
     expect(result).toContain('data-server-content="search"');
     expect(result).toContain("Relationship-aware resource search");
   });
