@@ -27,6 +27,8 @@ import {
   resourceDuplicateResolutions,
   apiKeys,
   apiKeyDailyUsage,
+  archiveImportBatches,
+  archiveImportCandidates,
 } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
@@ -121,6 +123,95 @@ export async function getUserById(id: number) {
 
   const result = await db.select().from(users).where(eq(users.id, id)).limit(1);
   return result.length > 0 ? result[0] : undefined;
+}
+
+export type PiiFreeArchiveCandidateInput = {
+  candidateHash: string;
+  url: string;
+  canonicalUrl?: string;
+  title?: string;
+  description?: string;
+  builtBy?: string;
+  builtByUrl?: string;
+  suggestedPricing?: "free" | "freemium" | "paid" | "open_source" | "enterprise";
+  suggestedLicense?: string;
+  suggestedTags?: string[];
+  officialSourceUrl?: string;
+  duplicateResourceId?: number;
+  status: "review_ready" | "duplicate" | "excluded" | "failed";
+  failureCode?: string;
+};
+
+export async function createPiiFreeArchiveImportBatch(input: {
+  totalUrlMentions: number;
+  rejectedUrlMentions: number;
+  candidates: PiiFreeArchiveCandidateInput[];
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database unavailable");
+
+  const [batch] = await db.insert(archiveImportBatches).values({
+    status: "review_ready",
+    totalUrlMentions: input.totalUrlMentions,
+    uniqueCandidates: input.candidates.length,
+    rejectedUrlMentions: input.rejectedUrlMentions,
+  }).$returningId();
+  if (!batch) throw new Error("Unable to create archive import batch");
+
+  if (input.candidates.length) {
+    await db.insert(archiveImportCandidates).values(input.candidates.map((candidate) => ({ ...candidate, batchId: batch.id })));
+  }
+  return batch.id;
+}
+
+export async function getPiiFreeArchiveImportBatch(batchId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const [batch] = await db.select().from(archiveImportBatches).where(eq(archiveImportBatches.id, batchId)).limit(1);
+  if (!batch) return undefined;
+  const candidates = await db.select().from(archiveImportCandidates).where(eq(archiveImportCandidates.batchId, batchId)).orderBy(asc(archiveImportCandidates.id));
+  return { batch, candidates };
+}
+
+export async function markPiiFreeArchiveCandidateSubmitted(input: { candidateId: number; submissionId: number }) {
+  const db = await getDb();
+  if (!db) return false;
+  const result = await db.update(archiveImportCandidates)
+    .set({ status: "submitted", submissionId: input.submissionId })
+    .where(and(eq(archiveImportCandidates.id, input.candidateId), eq(archiveImportCandidates.status, "review_ready")));
+  return (result[0] as { affectedRows?: number } | undefined)?.affectedRows === 1;
+}
+
+export async function updatePiiFreeArchiveCandidateEnrichment(input: {
+  candidateId: number;
+  canonicalUrl?: string;
+  title?: string;
+  description?: string;
+  officialSourceUrl?: string;
+  duplicateResourceId?: number;
+  status: "review_ready" | "duplicate" | "failed";
+  failureCode?: string;
+}) {
+  const db = await getDb();
+  if (!db) return false;
+  const result = await db.update(archiveImportCandidates)
+    .set({
+      canonicalUrl: input.canonicalUrl ?? null,
+      title: input.title ?? null,
+      description: input.description ?? null,
+      officialSourceUrl: input.officialSourceUrl ?? null,
+      duplicateResourceId: input.duplicateResourceId ?? null,
+      status: input.status,
+      failureCode: input.failureCode ?? null,
+    })
+    .where(eq(archiveImportCandidates.id, input.candidateId));
+  return (result[0] as { affectedRows?: number } | undefined)?.affectedRows === 1;
+}
+
+export async function listPiiFreeArchiveImportBatches(limit: number = 20) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(archiveImportBatches).orderBy(desc(archiveImportBatches.createdAt)).limit(Math.min(Math.max(limit, 1), 100));
 }
 
 // Resources

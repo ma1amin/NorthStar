@@ -71,6 +71,13 @@
       "when": 1786583463218,
       "tag": "0009_low_odin",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "5",
+      "when": 1786997886788,
+      "tag": "0010_peaceful_black_queen",
+      "breakpoints": true
     }
   ]
 }

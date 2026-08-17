@@ -408,3 +408,11 @@ Any newly proposed product, infrastructure, integration, or UX enhancement is he
 ## Active Deployment Recovery and Privileged QA Setup
 - [x] Repair the production deployment build failure introduced by the stylesheet-priority safeguard, add production-build regression validation, and restore the published release.
 - [x] Prepare a legitimate, user-controlled browser session path for privileged QA; require the owner to complete any CAPTCHA and sign-in interaction, then perform only authorized administrator walkthroughs.
+
+## PII-Free Archive Intake and Multi-Format Contributions
+- [x] Audit the supplied WhatsApp ZIP using ephemeral processing only; produce an aggregate, PII-free resource-candidate manifest with no archive, sender, contact, timestamp, or message retention.
+- [x] Implement tested PII detection/redaction, archive/file safety checks, URL normalization, duplicate detection, and official-page enrichment contracts that retain only PII-free candidate data and public-page provenance.
+- [x] Extend the governed intake schema, API procedures, and moderation queue for non-identifying batches, PII-free candidates, review decisions, and audit events without raw artifact or personal-data storage.
+- [x] Add an accessible EN/AR multi-format drag-and-drop contribution workflow for chat exports, text, PDFs, Office documents, spreadsheets, presentations, and images, with ephemeral processing and PII-free candidate review.
+- [x] Process the supplied archive into validated, enriched moderation candidates without automatic publication; record only aggregate PII-free import outcomes.
+- [x] Add and run unit, integration, security, accessibility, responsive, browser, type, production-build, and migration verification; document privacy guarantees, checkpoint, and synchronize GitHub.

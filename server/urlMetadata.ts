@@ -42,7 +42,9 @@ function getAttribute(tag: string, attribute: string) {
 export function extractMetadataFromHtml(html: string) {
   const titleMatch = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
   const metaTags = html.match(/<meta\b[^>]*>/gi) ?? [];
+  const linkTags = html.match(/<link\b[^>]*>/gi) ?? [];
   let description: string | undefined;
+  let canonicalUrl: string | undefined;
 
   for (const tag of metaTags) {
     const name = getAttribute(tag, 'name')?.toLowerCase() ?? getAttribute(tag, 'property')?.toLowerCase();
@@ -52,19 +54,37 @@ export function extractMetadataFromHtml(html: string) {
     }
   }
 
+  for (const tag of linkTags) {
+    const rel = getAttribute(tag, "rel")?.toLowerCase();
+    if (rel?.split(/\s+/).includes("canonical")) {
+      canonicalUrl = getAttribute(tag, "href");
+      if (canonicalUrl) break;
+    }
+  }
+
   return {
     title: titleMatch?.[1] ? decodeHtml(titleMatch[1].replace(/<[^>]+>/g, ' ')) : undefined,
     description,
+    canonicalUrl,
   };
 }
 
 export async function fetchResourceMetadata(rawUrl: string) {
-  const parsed = assertSafePublicUrl(rawUrl);
-  const response = await fetch(parsed, {
-    headers: { accept: 'text/html,application/xhtml+xml' },
-    redirect: 'follow',
-    signal: AbortSignal.timeout(6000),
-  });
+  let parsed = assertSafePublicUrl(rawUrl);
+  let response: Response | undefined;
+  for (let redirectCount = 0; redirectCount <= 3; redirectCount += 1) {
+    response = await fetch(parsed, {
+      headers: { accept: "text/html,application/xhtml+xml" },
+      redirect: "manual",
+      signal: AbortSignal.timeout(6000),
+    });
+    if (![301, 302, 303, 307, 308].includes(response.status)) break;
+    const location = response.headers.get("location");
+    if (!location) throw new Error("Metadata redirect is missing a location");
+    parsed = assertSafePublicUrl(new URL(location, parsed).toString());
+    response = undefined;
+  }
+  if (!response) throw new Error("Metadata redirect limit exceeded");
 
   if (!response.ok) {
     throw new Error(`Metadata request failed with status ${response.status}`);
@@ -72,10 +92,14 @@ export async function fetchResourceMetadata(rawUrl: string) {
 
   const contentType = response.headers.get('content-type') ?? '';
   if (!contentType.includes('text/html')) {
-    return { url: parsed.toString(), title: undefined, description: undefined };
+    return { url: parsed.toString(), title: undefined, description: undefined, canonicalUrl: undefined };
   }
 
   const html = (await response.text()).slice(0, 512_000);
   const metadata = extractMetadataFromHtml(html);
-  return { url: parsed.toString(), ...metadata };
+  let canonicalUrl: string | undefined;
+  if (metadata.canonicalUrl) {
+    try { canonicalUrl = assertSafePublicUrl(new URL(metadata.canonicalUrl, parsed).toString()).toString(); } catch { canonicalUrl = undefined; }
+  }
+  return { url: parsed.toString(), canonicalUrl, title: metadata.title, description: metadata.description };
 }

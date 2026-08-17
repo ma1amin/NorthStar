@@ -13,6 +13,7 @@ describe("resource URL metadata", () => {
     expect(result).toEqual({
       title: "Example Tool",
       description: "A useful example resource",
+      canonicalUrl: undefined,
     });
   });
 
@@ -23,6 +24,16 @@ describe("resource URL metadata", () => {
     `);
 
     expect(result.description).toBe("Social preview");
+  });
+
+  it("extracts a public canonical-link candidate without collecting author data", () => {
+    const result = extractMetadataFromHtml(`
+      <link rel="canonical" href="https://example.com/resources/tool">
+      <meta name="author" content="A personal name that must not be collected">
+    `);
+
+    expect(result.canonicalUrl).toBe("https://example.com/resources/tool");
+    expect(JSON.stringify(result)).not.toContain("personal name");
   });
 
   it("accepts public HTTP and HTTPS URLs", () => {

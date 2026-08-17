@@ -5,9 +5,12 @@ import {
   AlertTriangle,
   CheckCircle,
   ExternalLink,
+  FileText,
   Loader2,
   Plus,
+  ShieldCheck,
   Sparkles,
+  Upload,
   X,
 } from "lucide-react";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -39,6 +42,35 @@ type SuggestedRelationship = {
   rationale?: string;
   sourceContext?: string;
 };
+
+type EphemeralImportSummary = {
+  candidates: string[];
+  totalUrlMentions: number;
+  rejectedUrlMentions: number;
+  personalDataRetained: false;
+  sourceContextRetained: false;
+  requiresLocalOcr: boolean;
+};
+
+function extractBrowserSafeUrls(text: string) {
+  const candidates = new Set<string>();
+  let rejected = 0;
+  for (const raw of text.match(/https?:\/\/[^\s<>"'`()[\]{}]+/gi) ?? []) {
+    try {
+      const parsed = new URL(raw.replace(/[.,;:!?]+$/g, ""));
+      const decoded = decodeURIComponent(`${parsed.pathname}${parsed.search}${parsed.hash}`);
+      if (!["http:", "https:"].includes(parsed.protocol) || parsed.username || parsed.password || /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i.test(decoded)) {
+        rejected += 1;
+      } else {
+        parsed.hash = "";
+        candidates.add(parsed.toString());
+      }
+    } catch {
+      rejected += 1;
+    }
+  }
+  return { candidates: Array.from(candidates), rejected };
+}
 
 const RELATIONSHIP_TYPES = [
   { value: "alternative_to", label: "Alternative To" },
@@ -79,6 +111,9 @@ export default function Submit() {
   const [submitError, setSubmitError] = useState("");
   const [showPreview, setShowPreview] = useState(false);
   const [metadataApplied, setMetadataApplied] = useState(false);
+  const [isDropActive, setIsDropActive] = useState(false);
+  const [importSummary, setImportSummary] = useState<EphemeralImportSummary | null>(null);
+  const [importError, setImportError] = useState("");
   const relationshipLabels: Record<SuggestedRelationship["type"], string> = {
     alternative_to: t("alternativeTo"), similar_to: t("similarTo"), integrates_with: t("integratesWith"), built_by: t("builtBy"), maintained_by: t("maintainedBy"), funded_by: t("fundedBy"), used_by: t("usedBy"), depends_on: t("dependsOn"), part_of: t("partOf"), competitor_of: t("competitorOf"),
   };
@@ -130,6 +165,9 @@ export default function Submit() {
     },
     onError: (error) => setSubmitError(error.message || t("failedToSubmitResource")),
   });
+  const parseArtifactMutation = trpc.archiveIntake.parseEphemeral.useMutation({
+    onError: (error) => setImportError(error.message || "Unable to extract resource links from this file."),
+  });
 
   useEffect(() => {
     if (!metadata || metadataApplied) return;
@@ -148,6 +186,52 @@ export default function Submit() {
   const updateField = <K extends keyof FormData>(field: K, value: FormData[K]) => {
     setFormData((current) => ({ ...current, [field]: value }));
     setSubmitError("");
+  };
+
+  const fileToBase64 = (file: File) => new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("The selected file could not be read."));
+    reader.onload = () => {
+      const value = typeof reader.result === "string" ? reader.result.split(",")[1] : undefined;
+      if (!value) reject(new Error("The selected file could not be read."));
+      else resolve(value);
+    };
+    reader.readAsDataURL(file);
+  });
+
+  const handleImportFile = async (file?: File) => {
+    if (!file) return;
+    setImportError("");
+    setImportSummary(null);
+    if (file.size > 8 * 1024 * 1024) {
+      setImportError("This file exceeds the 8 MB privacy-safe processing limit.");
+      return;
+    }
+    try {
+      if (/\.(png|jpe?g|webp)$/i.test(file.name)) {
+        const { createWorker } = await import("tesseract.js");
+        const worker = await createWorker("eng+ara");
+        try {
+          const result = await worker.recognize(file);
+          const urls = extractBrowserSafeUrls(result.data.text);
+          setImportSummary({ candidates: urls.candidates, totalUrlMentions: urls.candidates.length + urls.rejected, rejectedUrlMentions: urls.rejected, sourceContextRetained: false, personalDataRetained: false, requiresLocalOcr: false });
+        } finally {
+          await worker.terminate();
+        }
+        return;
+      }
+      const base64 = await fileToBase64(file);
+      const result = await parseArtifactMutation.mutateAsync({ filename: file.name, mimeType: file.type || undefined, base64 });
+      setImportSummary(result);
+    } catch (error) {
+      setImportError(error instanceof Error ? error.message : "Unable to extract resource links from this file.");
+    }
+  };
+
+  const useImportedCandidate = (url: string) => {
+    updateField("url", url);
+    setShowPreview(false);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const duplicateCandidates = [duplicateByUrl, ...duplicateByTitle];
@@ -278,6 +362,28 @@ export default function Submit() {
             <div className="flex items-start gap-3"><AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-red-600" /><p>{submitError}</p></div>
           </Card>
         )}
+
+        <Card className="ns-surface mb-6 border-sky-100 bg-white p-6 shadow-sm md:p-8">
+          <div className="flex items-start gap-3">
+            <div className="rounded-xl bg-sky-50 p-2 text-sky-700"><Upload className="h-5 w-5" /></div>
+            <div><h2 className="text-xl font-semibold text-slate-950">{t("importResources")}</h2><p className="mt-1 text-sm leading-6 text-slate-600">{t("importResourcesIntro")}</p></div>
+          </div>
+          <div className="mt-5 flex gap-3 rounded-xl border border-emerald-100 bg-emerald-50/70 p-3 text-sm leading-6 text-emerald-900"><ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" /><p>{t("importPrivacy")}</p></div>
+          <label
+            onDragEnter={(event) => { event.preventDefault(); setIsDropActive(true); }}
+            onDragOver={(event) => event.preventDefault()}
+            onDragLeave={() => setIsDropActive(false)}
+            onDrop={(event) => { event.preventDefault(); setIsDropActive(false); void handleImportFile(event.dataTransfer.files?.[0]); }}
+            className={`mt-5 flex cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed px-5 py-8 text-center transition-colors ${isDropActive ? "border-sky-500 bg-sky-50" : "border-slate-300 bg-slate-50 hover:border-sky-400 hover:bg-sky-50/60"}`}
+          >
+            <FileText className="h-7 w-7 text-sky-600" /><span className="mt-3 font-semibold text-slate-800">{t("dropFile")}</span><span className="mt-1 text-sm text-slate-500">ZIP, TXT, PDF, DOCX, XLSX, PPTX, RTF, CSV, HTML, MD, PNG, JPG · 8 MB max</span>
+            <span className="mt-4 inline-flex rounded-lg bg-slate-900 px-3 py-2 text-sm font-semibold text-white">{t("chooseFile")}</span>
+            <input className="sr-only" type="file" accept=".zip,.txt,.md,.csv,.html,.htm,.pdf,.docx,.xlsx,.pptx,.rtf,.odt,.ods,.odp,.png,.jpg,.jpeg,.webp" onChange={(event) => { void handleImportFile(event.target.files?.[0]); event.currentTarget.value = ""; }} />
+          </label>
+          {parseArtifactMutation.isPending && <p role="status" className="mt-4 flex items-center gap-2 text-sm font-medium text-sky-700"><Loader2 className="h-4 w-4 animate-spin" />{t("processingImport")}</p>}
+          {importError && <p role="alert" className="mt-4 text-sm font-medium text-red-700">{importError}</p>}
+          {importSummary && <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4"><div className="flex flex-wrap items-center justify-between gap-3"><div><p className="font-semibold text-slate-950">{t("importResults")}</p><p className="mt-1 text-sm text-slate-600">{importSummary.candidates.length} {t("foundCandidates")} · {importSummary.rejectedUrlMentions} {t("rejectedLinks")}</p></div><span className="text-xs font-semibold uppercase tracking-[0.12em] text-emerald-700">{t("personalDataDiscarded")}</span></div>{importSummary.requiresLocalOcr && <p className="mt-3 text-sm text-amber-800">{t("imageOcrLocal")}</p>}<div className="mt-4 grid gap-2 md:grid-cols-2">{importSummary.candidates.slice(0, 20).map((url) => <button type="button" key={url} onClick={() => useImportedCandidate(url)} className="flex min-w-0 items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2 text-left text-sm font-medium text-slate-700 hover:border-sky-300 hover:text-sky-800"><span className="truncate">{url}</span><span className="shrink-0 text-xs font-semibold text-sky-700">{t("useCandidate")}</span></button>)}</div>{importSummary.candidates.length > 20 && <p className="mt-3 text-sm text-slate-500">Showing the first 20 candidates. Use a smaller source file to review a focused set.</p>}</div>}
+        </Card>
 
         <form onSubmit={showPreview ? handleSubmit : handlePreview} className="space-y-6">
           <Card className="ns-surface border-slate-200/90 bg-white p-6 shadow-sm md:p-8">

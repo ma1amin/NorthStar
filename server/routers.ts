@@ -85,6 +85,10 @@ import {
   getProposedDuplicateResolutions,
   listOwnerApiKeys,
   revokeApiKeyRecord,
+  createPiiFreeArchiveImportBatch,
+  getPiiFreeArchiveImportBatch,
+  updatePiiFreeArchiveCandidateEnrichment,
+  listPiiFreeArchiveImportBatches,
 } from "./db";
 import { getDb } from "./db";
 import { TRPCError } from "@trpc/server";
@@ -96,6 +100,7 @@ import { canViewCollection, collectionSlug, normalizeProfileUpdate } from "./com
 import { draftResourceReview } from "./aiReview";
 import { getSearchCapabilities } from "./searchCapabilities";
 import { createHash, randomBytes } from "crypto";
+import { extractResourceCandidatesFromArtifact, sanitizePublicResourceMetadata } from "./resourceIntake";
 
 export const appRouter = router({
   system: systemRouter,
@@ -107,6 +112,92 @@ export const appRouter = router({
         const graph = await getGraphNeighborhood(input.resourceId, input.relationshipTypes, input.maxEdges);
         if (!graph) throw new TRPCError({ code: "NOT_FOUND", message: "Approved resource not found" });
         return graph;
+      }),
+  }),
+
+  archiveIntake: router({
+    /** Parses an artifact only in memory. Raw files, chat messages, and personal data are not persisted. */
+    parseEphemeral: contributionProcedure
+      .input(z.object({ filename: z.string().trim().min(1).max(255), mimeType: z.string().max(255).optional(), base64: z.string().min(1).max(12_000_000) }))
+      .mutation(async ({ input }) => {
+        const data = Buffer.from(input.base64, "base64");
+        return extractResourceCandidatesFromArtifact({ filename: input.filename, mimeType: input.mimeType, data });
+      }),
+
+    /** Persists only normalized URLs and public-page facts; caller identity and source artifact stay out of the batch. */
+    createBatch: adminProcedure
+      .input(z.object({
+        totalUrlMentions: z.number().int().min(0).max(100_000),
+        rejectedUrlMentions: z.number().int().min(0).max(100_000),
+        candidates: z.array(z.object({ url: z.string().url().max(2048) })).min(1).max(500),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const normalized = Array.from(new Set(input.candidates.map((candidate) => assertSafePublicUrl(candidate.url).toString())));
+        const batchId = await createPiiFreeArchiveImportBatch({
+          totalUrlMentions: input.totalUrlMentions,
+          rejectedUrlMentions: input.rejectedUrlMentions,
+          candidates: normalized.map((url) => ({
+            candidateHash: createHash("sha256").update(url).digest("hex"),
+            url,
+            officialSourceUrl: url,
+            status: "review_ready" as const,
+          })),
+        });
+        await createAuditLog(ctx.user.id, "create_pii_free_archive_batch", "archive_import_batch", batchId, {
+          candidateCount: normalized.length,
+          totalUrlMentions: input.totalUrlMentions,
+          rejectedUrlMentions: input.rejectedUrlMentions,
+        });
+        return { batchId, candidateCount: normalized.length };
+      }),
+
+    getBatch: adminProcedure
+      .input(z.object({ batchId: z.number().int().positive() }))
+      .query(async ({ input }) => {
+        const result = await getPiiFreeArchiveImportBatch(input.batchId);
+        if (!result) throw new TRPCError({ code: "NOT_FOUND", message: "Archive import batch not found" });
+        return result;
+      }),
+
+    listBatches: adminProcedure
+      .input(z.object({ limit: z.number().int().min(1).max(100).default(20) }))
+      .query(({ input }) => listPiiFreeArchiveImportBatches(input.limit)),
+
+    /** Fetches bounded public-page metadata for candidates; it never sends source-chat content anywhere. */
+    enrichBatch: adminProcedure
+      .input(z.object({ batchId: z.number().int().positive(), limit: z.number().int().min(1).max(50).default(25) }))
+      .mutation(async ({ input, ctx }) => {
+        const result = await getPiiFreeArchiveImportBatch(input.batchId);
+        if (!result) throw new TRPCError({ code: "NOT_FOUND", message: "Archive import batch not found" });
+        const candidates = result.candidates.filter((candidate) => candidate.status === "review_ready").slice(0, input.limit);
+        let enriched = 0;
+        let duplicates = 0;
+        let failed = 0;
+        for (const candidate of candidates) {
+          try {
+            const duplicate = await checkDuplicateByUrl(candidate.url);
+            if (duplicate) {
+              await updatePiiFreeArchiveCandidateEnrichment({ candidateId: candidate.id, duplicateResourceId: duplicate.id, status: "duplicate" });
+              duplicates += 1;
+              continue;
+            }
+            const metadata = await fetchResourceMetadata(candidate.url);
+            await updatePiiFreeArchiveCandidateEnrichment({
+              candidateId: candidate.id,
+              canonicalUrl: metadata.canonicalUrl ?? metadata.url,
+              title: sanitizePublicResourceMetadata(metadata.title, 255),
+              description: sanitizePublicResourceMetadata(metadata.description, 5_000),
+              officialSourceUrl: metadata.canonicalUrl ?? metadata.url,
+              status: "review_ready",
+            });
+            enriched += 1;
+          } catch {
+            await updatePiiFreeArchiveCandidateEnrichment({ candidateId: candidate.id, status: "failed", failureCode: "metadata_unavailable" });
+            failed += 1;
+          }
+        }
+        await createAuditLog(ctx.user.id, "enrich_pii_free_archive_batch", "archive_import_batch", input.batchId, { processed: candidates.length, enriched, duplicates, failed });
+        return { processed: candidates.length, enriched, duplicates, failed };
       }),
   }),
 

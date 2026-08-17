@@ -620,6 +620,68 @@ export type Submission = typeof submissions.$inferSelect;
 export type InsertSubmission = typeof submissions.$inferInsert;
 
 /**
+ * Non-identifying, PII-free archive import batches. Source files, source text,
+ * submitter identity, contact data, timestamps, and file metadata are never
+ * stored here; only aggregate parser outcomes are retained.
+ */
+export const archiveImportBatches = mysqlTable(
+  "archive_import_batches",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    status: mysqlEnum("status", ["parsed", "review_ready", "completed", "failed"]).default("parsed").notNull(),
+    totalUrlMentions: int("totalUrlMentions").default(0).notNull(),
+    uniqueCandidates: int("uniqueCandidates").default(0).notNull(),
+    rejectedUrlMentions: int("rejectedUrlMentions").default(0).notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    completedAt: timestamp("completedAt"),
+  },
+  (table) => ({
+    statusCreatedIdx: index("archive_import_batches_status_created_idx").on(table.status, table.createdAt),
+  })
+);
+
+export type ArchiveImportBatch = typeof archiveImportBatches.$inferSelect;
+
+/**
+ * PII-free candidates derived from ephemeral source parsing. Each field must be
+ * a normalized URL or a fact obtained from that URL's public resource page.
+ */
+export const archiveImportCandidates = mysqlTable(
+  "archive_import_candidates",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    batchId: int("batchId").notNull(),
+    candidateHash: varchar("candidateHash", { length: 64 }).notNull(),
+    url: varchar("url", { length: 2048 }).notNull(),
+    canonicalUrl: varchar("canonicalUrl", { length: 2048 }),
+    title: varchar("title", { length: 255 }),
+    description: text("description"),
+    builtBy: varchar("builtBy", { length: 255 }),
+    builtByUrl: varchar("builtByUrl", { length: 2048 }),
+    suggestedPricing: mysqlEnum("suggestedPricing", ["free", "freemium", "paid", "open_source", "enterprise"]),
+    suggestedLicense: varchar("suggestedLicense", { length: 255 }),
+    suggestedTags: json("suggestedTags").$type<string[]>(),
+    officialSourceUrl: varchar("officialSourceUrl", { length: 2048 }),
+    duplicateResourceId: int("duplicateResourceId"),
+    status: mysqlEnum("status", ["review_ready", "duplicate", "excluded", "submitted", "failed"]).default("review_ready").notNull(),
+    failureCode: varchar("failureCode", { length: 96 }),
+    submissionId: int("submissionId"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  (table) => ({
+    batchStatusIdx: index("archive_import_candidates_batch_status_idx").on(table.batchId, table.status),
+    batchHashUq: uniqueIndex("archive_import_candidates_batch_hash_uq").on(table.batchId, table.candidateHash),
+    duplicateResourceIdx: index("archive_import_candidates_duplicate_resource_idx").on(table.duplicateResourceId),
+    batchFk: foreignKey({ columns: [table.batchId], foreignColumns: [archiveImportBatches.id] }).onDelete("cascade"),
+    duplicateResourceFk: foreignKey({ columns: [table.duplicateResourceId], foreignColumns: [resources.id] }).onDelete("set null"),
+    submissionFk: foreignKey({ columns: [table.submissionId], foreignColumns: [submissions.id] }).onDelete("set null"),
+  })
+);
+
+export type ArchiveImportCandidate = typeof archiveImportCandidates.$inferSelect;
+
+/**
  * Audit log for tracking changes and moderation actions.
  */
 export const auditLogs = mysqlTable(
