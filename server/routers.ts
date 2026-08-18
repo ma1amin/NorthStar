@@ -98,6 +98,10 @@ import {
   getPiiFreeArchiveCandidate,
   listFailedPiiFreeArchiveCandidates,
   beginPiiFreeArchiveCandidateRetry,
+  replaceArchiveCandidateFieldProposals,
+  listArchiveCandidateFieldReviews,
+  decideArchiveCandidateFieldReview,
+  listCurationRegisterSummaries,
   listTrustedSourceDomains,
   createTrustedSourceDomain,
   updateTrustedSourceDomain,
@@ -114,6 +118,7 @@ import { getSearchCapabilities } from "./searchCapabilities";
 import { createHash, randomBytes } from "crypto";
 import { extractResourceCandidatesFromArtifact, sanitizePublicResourceMetadata } from "./resourceIntake";
 import { ARCHIVE_BULK_REVIEW_LIMIT, getArchiveContentExclusion, getRegistrableDomain, normalizeTrustedDomain } from "./archiveReview";
+import { buildArchiveEvidenceProposals } from "./archiveEvidence";
 import { normalizeModerationTags } from "./moderationTags";
 
 export const appRouter = router({
@@ -193,6 +198,8 @@ export const appRouter = router({
     listBatches: adminProcedure
       .input(z.object({ limit: z.number().int().min(1).max(100).default(20) }))
       .query(({ input }) => listPiiFreeArchiveImportBatches(input.limit)),
+
+    listCurationRegisters: adminProcedure.query(() => listCurationRegisterSummaries()),
 
     /** Aggregate-only history intentionally has no contributor identity or source-artifact link. */
     contributorHistory: contributionProcedure
@@ -334,6 +341,51 @@ export const appRouter = router({
           await createAuditLog(ctx.user.id, "refresh_archive_candidate_metadata", "archive_import_candidate", candidate.id, { outcome: "failed" });
           return { status: "failed" as const };
         }
+      }),
+
+    /** Creates public-evidence review proposals; it never applies fetched metadata automatically. */
+    refreshCandidateEvidence: adminProcedure
+      .input(z.object({ candidateId: z.number().int().positive() }))
+      .mutation(async ({ input, ctx }) => {
+        const candidate = await getPiiFreeArchiveCandidate(input.candidateId);
+        if (!candidate || !["review_ready", "failed"].includes(candidate.status)) throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Candidate is unavailable for evidence refresh" });
+        const exclusion = getArchiveContentExclusion(candidate.url);
+        if (exclusion) {
+          await updatePiiFreeArchiveCandidateEnrichment({ candidateId: candidate.id, status: "excluded", failureCode: exclusion });
+          throw new TRPCError({ code: "PRECONDITION_FAILED", message: "This URL type cannot enter resource moderation" });
+        }
+        try {
+          const fetchedAt = new Date();
+          const metadata = await fetchResourceMetadata(candidate.url);
+          const safeMetadata = {
+            url: metadata.url,
+            canonicalUrl: metadata.canonicalUrl ?? undefined,
+            title: sanitizePublicResourceMetadata(metadata.title, 255),
+            description: sanitizePublicResourceMetadata(metadata.description, 5_000),
+          };
+          const proposals = buildArchiveEvidenceProposals({ candidate, metadata: safeMetadata, retrievedAt: fetchedAt });
+          const reviews = await replaceArchiveCandidateFieldProposals(candidate.id, proposals);
+          await updatePiiFreeArchiveCandidateEnrichment({ candidateId: candidate.id, metadataVerificationStatus: "public_page_fetched", metadataFetchedAt: fetchedAt, status: "review_ready" });
+          await createAuditLog(ctx.user.id, "refresh_archive_candidate_evidence", "archive_import_candidate", candidate.id, { proposedFields: proposals.map((proposal) => proposal.field), evidenceUrl: safeMetadata.canonicalUrl ?? safeMetadata.url, fetchedAt: fetchedAt.toISOString() });
+          return { status: "review_ready" as const, reviews };
+        } catch {
+          await updatePiiFreeArchiveCandidateEnrichment({ candidateId: candidate.id, status: "failed", failureCode: "metadata_unavailable" });
+          await createAuditLog(ctx.user.id, "refresh_archive_candidate_evidence", "archive_import_candidate", candidate.id, { outcome: "failed" });
+          return { status: "failed" as const, reviews: [] };
+        }
+      }),
+
+    getCandidateFieldReviews: adminProcedure
+      .input(z.object({ candidateId: z.number().int().positive() }))
+      .query(({ input }) => listArchiveCandidateFieldReviews(input.candidateId)),
+
+    decideCandidateFieldReview: adminProcedure
+      .input(z.object({ reviewId: z.number().int().positive(), decision: z.enum(["accepted", "rejected"]) }))
+      .mutation(async ({ input, ctx }) => {
+        const review = await decideArchiveCandidateFieldReview(input);
+        if (!review) throw new TRPCError({ code: "CONFLICT", message: "This evidence decision was already handled" });
+        await createAuditLog(ctx.user.id, `archive_candidate_field_${input.decision}`, "archive_candidate_field_review", review.id, { candidateId: review.candidateId, field: review.field, evidenceUrl: review.evidenceUrl });
+        return { success: true, review };
       }),
 
     listTrustedDomains: adminProcedure.query(() => listTrustedSourceDomains(true)),

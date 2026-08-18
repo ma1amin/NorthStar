@@ -4,9 +4,9 @@
 
 This release improves NorthStar’s evidence, moderation reliability, discovery interaction, and loading behavior without relaxing human moderation. It does not automatically approve or publish any newly curated resource or relationship.
 
-## Evidence-Backed Curation Batch
+## Evidence-Backed Curation Registers
 
-The first curated expansion batch contains **200 non-public pending submissions** under the non-personal `northstar-curation-system` account. Every candidate has a primary public GitHub repository URL and a repository-source marker. The deterministic staging utility rejects duplicates, direct personal-data markers, absent licenses, and missing public repository evidence before a pending submission is created.
+The curated expansion is now recorded in **four explicit, non-publishing curation registers of 50 candidates each**. Every register entry retains its verified candidate URL and, where available, its linked standard moderation submission. The source account remains the non-personal `northstar-curation-system` account. The register itself does not change a submission’s human-moderation status or publish any resource.
 
 | Category | Pending candidates |
 | --- | ---: |
@@ -20,11 +20,15 @@ The first curated expansion batch contains **200 non-public pending submissions*
 | Security & Observability | 25 |
 | **Total** | **200** |
 
-Candidate source fields are retained through moderation and become a moderator-verified resource source only after an explicit approval decision. Existing public resources remain unchanged by this curation batch.
+The curation manifest was reconciled to 200 unique candidate URLs. Where a public homepage was repeated, the duplicate entry was replaced with a distinct, public GitHub repository-backed resource before register synchronization. Candidate source fields remain through moderation and become a moderator-verified resource source only after an explicit approval decision. Existing public resources remain unchanged by this curation work.
 
 ## Archive Evidence Correction
 
-Archive-candidate refresh now retains only sanitized public-page title, description, canonical URL, declared icon URL, fetch status, and fetch timestamp. It never infers a category, tag, pricing model, or license. Reviewers must explicitly select these classifications before handoff into the ordinary pending moderation queue. The strict registrable-domain, content-exclusion, retry, and no-publication controls remain in force.
+Archive refresh now creates **field-level public-evidence proposals** for title, description, canonical URL, and official source URL. Each proposal preserves its current value, proposed value, evidence URL, extraction method, and retrieval time. A reviewer must explicitly accept or reject each proposal before the stored candidate metadata changes. The workflow never infers category, tags, pricing model, license, builder, or relationships. Reviewers must still explicitly confirm classification before handoff into the ordinary pending moderation queue. The strict registrable-domain, content-exclusion, retry, privacy, and no-publication controls remain in force.
+
+## Moderation Navigation Reliability
+
+All targeted moderation child pages now use one shared, blue **Moderation dashboard** return control. The prior ghost, outlined, and archive-import return variants were removed from the active review views, avoiding duplicate dashboard actions and preserving a consistent escape path from report triage, archive workspaces, AI drafts, bulk review, edit suggestions, user management, and Search Quality.
 
 ## Relationship Evidence
 
@@ -45,7 +49,7 @@ Original resource icons are stored only when an approved resource’s public pag
 
 ## Verification
 
-The release passed TypeScript validation, the full Vitest suite, a production build, and `git diff --check`. The direct resource and graph-neighborhood API probes returned valid public records for Vercel and its approved graph data. A My Browser extension timeout interrupted the visual graph walkthrough after the page began loading; no content, moderation, or account action was performed during that check.
+The completed release passed TypeScript validation, the full Vitest suite, a production build, and `git diff --check`. Focused regression coverage verifies public-evidence proposal construction, preserves omission of inferred classification fields, and confirms that all targeted moderation pages use the shared return control without hardcoded dashboard navigation. The four registers each contain 50 distinct candidate URLs. A temporary preview wake-up failure prevented an additional browser-only visual capture; no content, moderation, or account action was performed during that check.
 
 ## References
 

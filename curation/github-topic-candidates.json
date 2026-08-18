@@ -1563,20 +1563,20 @@
       "githubApiUrl": "https://api.github.com/repos/ROCm/iris"
     },
     {
-      "title": "solidproject.org",
-      "url": "https://solidproject.org/",
-      "sourceUrl": "https://github.com/solid/solidproject.org",
+      "title": "solid-client-js",
+      "url": "https://github.com/inrupt/solid-client-js",
+      "sourceUrl": "https://github.com/inrupt/solid-client-js",
       "sourceType": "repository",
       "categorySlug": "communication",
       "categoryId": 3,
-      "description": "Website for solidproject.org",
+      "description": "Library for accessing data and managing permissions on data stored in a Solid Pod",
       "pricing": "open_source",
       "license": "MIT",
       "tags": [
         "communication"
       ],
-      "repositoryFullName": "solid/solidproject.org",
-      "githubApiUrl": "https://api.github.com/repos/solid/solidproject.org"
+      "repositoryFullName": "inrupt/solid-client-js",
+      "githubApiUrl": "https://api.github.com/repos/inrupt/solid-client-js"
     },
     {
       "title": "rialto",
@@ -1601,7 +1601,7 @@
     },
     {
       "title": "use-chat",
-      "url": "https://chatscope.io/",
+      "url": "https://github.com/chatscope/use-chat",
       "sourceUrl": "https://github.com/chatscope/use-chat",
       "sourceType": "repository",
       "categorySlug": "communication",

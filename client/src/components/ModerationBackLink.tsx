@@ -9,9 +9,8 @@ export function ModerationBackLink({ className }: { className?: string }) {
   return (
     <Button
       type="button"
-      variant="ghost"
       onClick={() => setLocation("/admin")}
-      className={cn("-ml-3 text-slate-600 hover:bg-slate-100 hover:text-slate-950 dark:hover:bg-slate-800", className)}
+      className={cn("bg-sky-600 text-white shadow-sm hover:bg-sky-700 focus-visible:ring-sky-500", className)}
     >
       <ArrowLeft className="mr-2 h-4 w-4" />
       Moderation dashboard

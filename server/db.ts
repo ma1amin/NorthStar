@@ -29,6 +29,9 @@ import {
   apiKeyDailyUsage,
   archiveImportBatches,
   archiveImportCandidates,
+  archiveCandidateFieldReviews,
+  curationRegisters,
+  curationRegisterEntries,
   trustedSourceDomains,
 } from "../drizzle/schema";
 import { ENV } from "./_core/env";
@@ -265,6 +268,87 @@ export async function updatePiiFreeArchiveCandidateEnrichment(input: ArchiveCand
     .set(buildArchiveCandidateEnrichmentPatch(input))
     .where(eq(archiveImportCandidates.id, input.candidateId));
   return (result[0] as { affectedRows?: number } | undefined)?.affectedRows === 1;
+}
+
+export type ArchiveCandidateEvidenceField = "title" | "description" | "canonical_url" | "official_source_url";
+
+export type ArchiveCandidateFieldProposal = {
+  field: ArchiveCandidateEvidenceField;
+  currentValue?: string | null;
+  proposedValue: string;
+  evidenceUrl: string;
+  extractionMethod: "public_page_metadata" | "canonical_redirect";
+  retrievedAt: Date;
+};
+
+/** Stores only public-page facts that differ from the candidate's existing metadata. */
+export async function replaceArchiveCandidateFieldProposals(candidateId: number, proposals: ArchiveCandidateFieldProposal[]) {
+  const db = await getDb();
+  if (!db) throw new Error("Database unavailable");
+  if (!proposals.length) return [];
+
+  return db.transaction(async (tx) => {
+    for (const proposal of proposals) {
+      await tx.delete(archiveCandidateFieldReviews).where(and(
+        eq(archiveCandidateFieldReviews.candidateId, candidateId),
+        eq(archiveCandidateFieldReviews.field, proposal.field),
+        eq(archiveCandidateFieldReviews.state, "pending")
+      ));
+    }
+    await tx.insert(archiveCandidateFieldReviews).values(proposals.map((proposal) => ({ candidateId, ...proposal })));
+    return tx.select().from(archiveCandidateFieldReviews)
+      .where(and(eq(archiveCandidateFieldReviews.candidateId, candidateId), eq(archiveCandidateFieldReviews.state, "pending")))
+      .orderBy(asc(archiveCandidateFieldReviews.id));
+  });
+}
+
+export async function listArchiveCandidateFieldReviews(candidateId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(archiveCandidateFieldReviews)
+    .where(eq(archiveCandidateFieldReviews.candidateId, candidateId))
+    .orderBy(desc(archiveCandidateFieldReviews.createdAt), desc(archiveCandidateFieldReviews.id));
+}
+
+export async function decideArchiveCandidateFieldReview(input: { reviewId: number; decision: "accepted" | "rejected" }) {
+  const db = await getDb();
+  if (!db) return undefined;
+
+  return db.transaction(async (tx) => {
+    const [review] = await tx.select().from(archiveCandidateFieldReviews)
+      .where(and(eq(archiveCandidateFieldReviews.id, input.reviewId), eq(archiveCandidateFieldReviews.state, "pending")))
+      .limit(1);
+    if (!review) return undefined;
+
+    if (input.decision === "accepted") {
+      const patch: Partial<typeof archiveImportCandidates.$inferInsert> = { metadataVerificationStatus: "reviewed" };
+      if (review.field === "title") patch.title = review.proposedValue;
+      if (review.field === "description") patch.description = review.proposedValue;
+      if (review.field === "canonical_url") patch.canonicalUrl = review.proposedValue;
+      if (review.field === "official_source_url") patch.officialSourceUrl = review.proposedValue;
+      await tx.update(archiveImportCandidates).set(patch).where(eq(archiveImportCandidates.id, review.candidateId));
+    }
+
+    const updated = await tx.update(archiveCandidateFieldReviews)
+      .set({ state: input.decision, reviewedAt: new Date() })
+      .where(and(eq(archiveCandidateFieldReviews.id, review.id), eq(archiveCandidateFieldReviews.state, "pending")));
+    if ((updated[0] as { affectedRows?: number } | undefined)?.affectedRows !== 1) return undefined;
+    return { ...review, state: input.decision };
+  });
+}
+
+/** Returns non-personal, read-only evidence-register coverage for the staged curation expansion. */
+export async function listCurationRegisterSummaries() {
+  const db = await getDb();
+  if (!db) return [];
+  const registers = await db.select().from(curationRegisters).orderBy(asc(curationRegisters.id));
+  if (!registers.length) return [];
+  const counts = await db.select({ registerId: curationRegisterEntries.registerId, count: sql<number>`count(*)` })
+    .from(curationRegisterEntries)
+    .where(inArray(curationRegisterEntries.registerId, registers.map((register) => register.id)))
+    .groupBy(curationRegisterEntries.registerId);
+  const countByRegister = new Map(counts.map((row) => [row.registerId, Number(row.count)]));
+  return registers.map((register) => ({ ...register, stagedCount: countByRegister.get(register.id) ?? 0 }));
 }
 
 export async function listPiiFreeArchiveImportBatches(limit: number = 20) {

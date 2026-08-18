@@ -459,3 +459,10 @@ Any newly proposed product, infrastructure, integration, or UX enhancement is he
 
 ## Verified Data and Interactive Experience Release Audit
 - [x] Reconcile every commitment in `NorthStarVerifiedDataandInteractiveExperienceRelease.md` with the current code, tests, deployment, and GitHub state; report any plan-specific gap precisely.
+
+## Verified Data and Interactive Experience Release Completion
+- [x] Add a field-level archive evidence comparison and explicit reviewer acceptance/rejection workflow for supported metadata fields.
+- [x] Record the four evidence-backed curation registers of 50 candidates each without automatic publication.
+- [x] Replace duplicate moderation return links with one retained blue `Moderation dashboard` control on every targeted moderation child page.
+- [x] Add and run focused regression coverage for archive evidence review, staged curation traceability, and standardized moderation navigation.
+- [x] Complete release validation, documentation, checkpointing, and GitHub synchronization.

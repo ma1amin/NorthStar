@@ -689,6 +689,78 @@ export const archiveImportCandidates = mysqlTable(
 
 export type ArchiveImportCandidate = typeof archiveImportCandidates.$inferSelect;
 
+/**
+ * Reviewable public-page facts proposed for an archive candidate. Values are
+ * limited to safe metadata fields and public evidence URLs; source artifacts,
+ * chat content, contact data, and reviewer identity are deliberately absent.
+ */
+export const archiveCandidateFieldReviews = mysqlTable(
+  "archive_candidate_field_reviews",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    candidateId: int("candidateId").notNull(),
+    field: mysqlEnum("field", ["title", "description", "canonical_url", "official_source_url"]).notNull(),
+    currentValue: text("currentValue"),
+    proposedValue: text("proposedValue").notNull(),
+    evidenceUrl: varchar("evidenceUrl", { length: 2048 }).notNull(),
+    extractionMethod: mysqlEnum("extractionMethod", ["public_page_metadata", "canonical_redirect"]).notNull(),
+    state: mysqlEnum("state", ["pending", "accepted", "rejected"]).default("pending").notNull(),
+    retrievedAt: timestamp("retrievedAt").notNull(),
+    reviewedAt: timestamp("reviewedAt"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  (table) => ({
+    candidateStateIdx: index("archive_candidate_field_reviews_candidate_state_idx").on(table.candidateId, table.state),
+    candidateFieldIdx: index("archive_candidate_field_reviews_candidate_field_idx").on(table.candidateId, table.field),
+    candidateFk: foreignKey({ columns: [table.candidateId], foreignColumns: [archiveImportCandidates.id] }).onDelete("cascade"),
+  })
+);
+
+export type ArchiveCandidateFieldReview = typeof archiveCandidateFieldReviews.$inferSelect;
+
+/** A non-publishing curation register groups exactly the staged expansion work and its evidence standard. */
+export const curationRegisters = mysqlTable(
+  "curation_registers",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    slug: varchar("slug", { length: 80 }).notNull(),
+    label: varchar("label", { length: 160 }).notNull(),
+    targetSize: int("targetSize").notNull(),
+    status: mysqlEnum("status", ["staged", "reviewing", "completed"]).default("staged").notNull(),
+    evidenceStandard: varchar("evidenceStandard", { length: 160 }).notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  (table) => ({
+    slugUq: uniqueIndex("curation_registers_slug_uq").on(table.slug),
+    statusIdx: index("curation_registers_status_idx").on(table.status),
+  })
+);
+
+export type CurationRegister = typeof curationRegisters.$inferSelect;
+
+/** Maps a staged pending submission to one curation register without exposing contributor personal data. */
+export const curationRegisterEntries = mysqlTable(
+  "curation_register_entries",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    registerId: int("registerId").notNull(),
+    candidateUrl: varchar("candidateUrl", { length: 2048 }).notNull(),
+    submissionId: int("submissionId"),
+    sequence: int("sequence").notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  (table) => ({
+    registerSequenceUq: uniqueIndex("curation_register_entries_register_sequence_uq").on(table.registerId, table.sequence),
+    candidateUrlUq: uniqueIndex("curation_register_entries_candidate_url_uq").on(table.candidateUrl),
+    registerFk: foreignKey({ columns: [table.registerId], foreignColumns: [curationRegisters.id] }).onDelete("cascade"),
+    submissionFk: foreignKey({ columns: [table.submissionId], foreignColumns: [submissions.id] }).onDelete("cascade"),
+  })
+);
+
+export type CurationRegisterEntry = typeof curationRegisterEntries.$inferSelect;
+
 /** Owner-managed, non-identifying trusted source domains. Advisory mode does not auto-publish or auto-approve candidates. */
 export const trustedSourceDomains = mysqlTable(
   "trusted_source_domains",
