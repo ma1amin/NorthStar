@@ -956,7 +956,7 @@ export const appRouter = router({
     getResourceVote: protectedProcedure
       .input(z.object({ resourceId: z.number() }))
       .query(async ({ input, ctx }) => {
-        return getUserVote(ctx.user.id, input.resourceId);
+        return (await getUserVote(ctx.user.id, input.resourceId)) ?? null;
       }),
 
     // Vote on relationship
@@ -1014,7 +1014,7 @@ export const appRouter = router({
     getRelationshipVote: protectedProcedure
       .input(z.object({ relationshipId: z.number() }))
       .query(async ({ input, ctx }) => {
-        return getUserVote(ctx.user.id, undefined, input.relationshipId);
+        return (await getUserVote(ctx.user.id, undefined, input.relationshipId)) ?? null;
       }),
   }),
 

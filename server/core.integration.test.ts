@@ -44,6 +44,7 @@ const mocks = vi.hoisted(() => ({
   reviewSearchEvaluationCase: vi.fn(),
   runFreshnessReviewSweep: vi.fn(),
   getPiiFreeArchiveImportBatch: vi.fn(),
+  getUserVote: vi.fn(),
 }));
 
 vi.mock("./search", () => ({ searchService: { advancedSearch: mocks.advancedSearch, getSuggestions: vi.fn(), getTrending: vi.fn() } }));
@@ -87,6 +88,7 @@ vi.mock("./db", () => ({
   reviewSearchEvaluationCase: mocks.reviewSearchEvaluationCase,
   runFreshnessReviewSweep: mocks.runFreshnessReviewSweep,
   getPiiFreeArchiveImportBatch: mocks.getPiiFreeArchiveImportBatch,
+  getUserVote: mocks.getUserVote,
 }));
 
 import { appRouter } from "./routers";
@@ -96,6 +98,15 @@ function context(role: "user" | "moderator" | "admin" = "user"): TrpcContext {
 }
 
 describe("core tRPC workflows", () => {
+  it("returns explicit null for authenticated resource and relationship vote lookups with no stored vote", async () => {
+    mocks.getUserVote.mockResolvedValueOnce(undefined).mockResolvedValueOnce(undefined);
+
+    await expect(appRouter.createCaller(context()).votes.getResourceVote({ resourceId: 2 })).resolves.toBeNull();
+    await expect(appRouter.createCaller(context()).votes.getRelationshipVote({ relationshipId: 1 })).resolves.toBeNull();
+    expect(mocks.getUserVote).toHaveBeenNthCalledWith(1, 7, 2);
+    expect(mocks.getUserVote).toHaveBeenNthCalledWith(2, 7, undefined, 1);
+  });
+
   it("forwards relationship-aware structured search through the public router", async () => {
     mocks.advancedSearch.mockResolvedValue([{ id: 2, title: "Linear" }]);
     const result = await appRouter.createCaller(context()).search.advancedSearch({ query: "Jira alternatives", filters: { categoryId: 3, pricing: "freemium", tag: "planning" } });

@@ -445,3 +445,7 @@ Any newly proposed product, infrastructure, integration, or UX enhancement is he
 - [x] Replace the static home hero node with manually controllable, pause-aware three-second featured-resource rotation using approved live data only.
 - [x] Add interactive, bounded, accessible Node View graph preview and Graph Explorer controls while retaining the complete list fallback and evidence context.
 - [x] Add unit, integration, browser, accessibility, performance, migration, and source-evidence tests; update documentation; checkpoint; publish; and synchronize GitHub.
+
+## Vote Query Undefined-Data Regression
+- [x] Diagnose and correct resource and relationship vote queries so they always return a defined null-or-vote result for authenticated users without an existing vote.
+- [x] Add focused regression coverage for empty vote lookups, validate the Resource Node View and relationship cards, checkpoint, publish, and synchronize GitHub.

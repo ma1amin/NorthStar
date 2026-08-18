@@ -767,14 +767,14 @@ export async function getGraphNeighborhood(resourceId: number, relationshipTypes
 // Votes
 export async function getUserVote(userId: number, resourceId?: number, relationshipId?: number) {
   const db = await getDb();
-  if (!db) return undefined;
+  if (!db) return null;
 
   const conditions = [eq(votes.userId, userId)];
   if (resourceId) conditions.push(eq(votes.resourceId, resourceId));
   if (relationshipId) conditions.push(eq(votes.relationshipId, relationshipId));
 
   const result = await db.select().from(votes).where(and(...conditions)).limit(1);
-  return result.length > 0 ? result[0] : undefined;
+  return result[0] ?? null;
 }
 
 // Bookmarks
