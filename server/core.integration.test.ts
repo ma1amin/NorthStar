@@ -45,6 +45,7 @@ const mocks = vi.hoisted(() => ({
   runFreshnessReviewSweep: vi.fn(),
   getPiiFreeArchiveImportBatch: vi.fn(),
   getUserVote: vi.fn(),
+  recordReputationEvent: vi.fn(),
 }));
 
 vi.mock("./search", () => ({ searchService: { advancedSearch: mocks.advancedSearch, getSuggestions: vi.fn(), getTrending: vi.fn() } }));
@@ -89,6 +90,7 @@ vi.mock("./db", () => ({
   runFreshnessReviewSweep: mocks.runFreshnessReviewSweep,
   getPiiFreeArchiveImportBatch: mocks.getPiiFreeArchiveImportBatch,
   getUserVote: mocks.getUserVote,
+  recordReputationEvent: mocks.recordReputationEvent,
 }));
 
 import { appRouter } from "./routers";
@@ -238,6 +240,44 @@ describe("core tRPC workflows", () => {
     await expect(appRouter.createCaller(context("admin")).moderation.approveSubmission({ submissionId: 444 })).rejects.toMatchObject({ code: "CONFLICT" });
     expect(tx.select).toHaveBeenCalledTimes(1);
     expect(mocks.createAuditLog).not.toHaveBeenCalledWith(7, "approve", "submission", 444, expect.anything());
+  });
+
+  it("resolves an existing submission tag in the approval transaction before creating its resource association", async () => {
+    const submission = {
+      id: 501,
+      title: "Kanban Board",
+      description: "A board for visual workflow planning.",
+      url: "https://example.org/kanban",
+      categoryId: 1,
+      subcategoryId: null,
+      tags: ["kanban", "Kanban"],
+      pricing: "freemium" as const,
+      license: null,
+      builtBy: null,
+      builtByUrl: null,
+      submittedBy: 7,
+      sourceUrl: null,
+      sourceType: null,
+      suggestedRelationships: null,
+      status: "pending" as const,
+    };
+    const pendingLimit = vi.fn().mockResolvedValue([submission]);
+    const tagLimit = vi.fn().mockResolvedValue([{ id: 210001 }]);
+    const select = vi.fn()
+      .mockReturnValueOnce({ from: vi.fn().mockReturnValue({ where: vi.fn().mockReturnValue({ limit: pendingLimit }) }) })
+      .mockReturnValueOnce({ from: vi.fn().mockReturnValue({ where: vi.fn().mockReturnValue({ limit: tagLimit }) }) });
+    const resourceValues = vi.fn().mockResolvedValue([{ insertId: 990 }]);
+    const resourceTagValues = vi.fn().mockReturnValue({ onDuplicateKeyUpdate: vi.fn().mockResolvedValue([]) });
+    const insert = vi.fn()
+      .mockReturnValueOnce({ values: resourceValues })
+      .mockReturnValueOnce({ values: resourceTagValues });
+    const update = vi.fn().mockReturnValue({ set: vi.fn().mockReturnValue({ where: vi.fn().mockResolvedValue([{ affectedRows: 1 }]) }) });
+    const tx = { select, insert, update };
+    mocks.getDb.mockResolvedValue({ transaction: async (callback: (transaction: typeof tx) => Promise<unknown>) => callback(tx) });
+
+    await expect(appRouter.createCaller(context("admin")).moderation.approveSubmission({ submissionId: 501 })).resolves.toMatchObject({ success: true, resourceId: 990 });
+    expect(select).toHaveBeenCalledTimes(2);
+    expect(resourceTagValues).toHaveBeenCalledWith({ resourceId: 990, tagId: 210001 });
   });
 
   it("reserves archive governance for administrators, caps bulk handoff at 25, and creates pending submissions rather than public resources", async () => {

@@ -449,3 +449,7 @@ Any newly proposed product, infrastructure, integration, or UX enhancement is he
 ## Vote Query Undefined-Data Regression
 - [x] Diagnose and correct resource and relationship vote queries so they always return a defined null-or-vote result for authenticated users without an existing vote.
 - [x] Add focused regression coverage for empty vote lookups, validate the Resource Node View and relationship cards, checkpoint, publish, and synchronize GitHub.
+
+## Moderation Approval Tag-Reference Regression
+- [x] Diagnose and repair submission approval when a staged tag no longer has a valid database reference, preserving pending moderation state and avoiding partial resource creation.
+- [x] Add regression coverage for stale and valid tag references, validate recovery of the affected approval flow, checkpoint, publish, and synchronize GitHub.

@@ -105,7 +105,7 @@ import {
 import { getDb } from "./db";
 import { TRPCError } from "@trpc/server";
 import { and, eq, isNull } from "drizzle-orm";
-import { archiveImportCandidates, submissions, resourceSources as resourceSourcesTable, resourceTags as resourceTagsTable, relationships as relationshipsTable, resources as resourcesTable } from "../drizzle/schema";
+import { archiveImportCandidates, submissions, resourceSources as resourceSourcesTable, resourceTags as resourceTagsTable, relationships as relationshipsTable, resources as resourcesTable, tags as tagsTable } from "../drizzle/schema";
 import { searchService } from "./search";
 import { assertSafePublicUrl, fetchResourceMetadata } from "./urlMetadata";
 import { canViewCollection, collectionSlug, normalizeProfileUpdate } from "./community";
@@ -114,6 +114,7 @@ import { getSearchCapabilities } from "./searchCapabilities";
 import { createHash, randomBytes } from "crypto";
 import { extractResourceCandidatesFromArtifact, sanitizePublicResourceMetadata } from "./resourceIntake";
 import { ARCHIVE_BULK_REVIEW_LIMIT, getArchiveContentExclusion, getRegistrableDomain, normalizeTrustedDomain } from "./archiveReview";
+import { normalizeModerationTags } from "./moderationTags";
 
 export const appRouter = router({
   system: systemRouter,
@@ -1601,10 +1602,14 @@ export const appRouter = router({
             });
           }
 
-          const tagNames = Array.isArray(submission.tags) ? (submission.tags as string[]) : [];
-          for (const tagName of tagNames) {
-            const tag = await getOrCreateTag(tagName);
-            if (tag) await tx.insert(resourceTagsTable).values({ resourceId, tagId: tag.id });
+          for (const moderationTag of normalizeModerationTags(submission.tags)) {
+            let tag = (await tx.select({ id: tagsTable.id }).from(tagsTable).where(eq(tagsTable.slug, moderationTag.slug)).limit(1))[0];
+            if (!tag) {
+              await tx.insert(tagsTable).values(moderationTag).onDuplicateKeyUpdate({ set: { name: moderationTag.name } });
+              tag = (await tx.select({ id: tagsTable.id }).from(tagsTable).where(eq(tagsTable.slug, moderationTag.slug)).limit(1))[0];
+            }
+            if (!tag) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Unable to resolve a submission tag" });
+            await tx.insert(resourceTagsTable).values({ resourceId, tagId: tag.id }).onDuplicateKeyUpdate({ set: { tagId: tag.id } });
           }
 
           const suggestedRelationships = Array.isArray(submission.suggestedRelationships) ? submission.suggestedRelationships as Array<{ targetId: number; type: (typeof relationshipTypeValues)[number]; evidenceUrl?: string; rationale?: string; sourceContext?: string }> : [];
