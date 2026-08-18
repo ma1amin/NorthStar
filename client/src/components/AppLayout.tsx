@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "wouter";
 import {
   BarChart3,
-  ArrowLeft,
   Compass,
   Code2,
   GitBranch,
@@ -61,6 +60,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [commandOpen, setCommandOpen] = useState(false);
   const [commandQuery, setCommandQuery] = useState("");
+  const [routeProgressVisible, setRouteProgressVisible] = useState(false);
   const ignoreShortcutCharacter = useRef(false);
   const primaryNavigation = [
     { href: "/browse", label: t("explore"), icon: Compass },
@@ -85,14 +85,34 @@ export function AppLayout({ children }: AppLayoutProps) {
   }, []);
 
   const navigate = (href: string) => {
+    setRouteProgressVisible(true);
     setLocation(href);
     setMobileMenuOpen(false);
     setCommandOpen(false);
     setCommandQuery("");
   };
 
+  const prefetchPrimaryRoute = (href: string) => {
+    const loaders: Record<string, () => Promise<unknown>> = {
+      "/browse": () => import("../pages/Browse"),
+      "/search": () => import("../pages/Search"),
+      "/trending": () => import("../pages/Trending"),
+      "/collections": () => import("../pages/Collections"),
+      "/graph": () => import("../pages/GraphExplorer"),
+    };
+    const loader = loaders[href];
+    if (loader) void loader();
+  };
+
+  useEffect(() => {
+    if (!routeProgressVisible) return;
+    const timeout = window.setTimeout(() => setRouteProgressVisible(false), 460);
+    return () => window.clearTimeout(timeout);
+  }, [location, routeProgressVisible]);
+
   return (
     <div className="ns-noise flex min-h-screen flex-col bg-[#f8fafc] text-slate-950">
+      {routeProgressVisible && <div className="ns-route-progress" aria-hidden="true" />}
       <a href="#main-content" className="sr-only z-[60] rounded-b-lg bg-slate-950 px-4 py-2 text-sm font-semibold text-white focus:not-sr-only focus:absolute focus:left-4 focus:top-0">Skip to main content</a>
       <header className="ns-surface sticky top-0 z-50 border-x-0 border-t-0 bg-white/78">
         <div className="container flex h-[4.35rem] items-center justify-between gap-3">
@@ -110,7 +130,7 @@ export function AppLayout({ children }: AppLayoutProps) {
             {primaryNavigation.map((item) => {
               const Icon = item.icon;
               return (
-                <Link key={item.href} href={item.href} className={`inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold transition-all duration-200 ${isNavigatorRouteActive(location, item.href) ? "bg-slate-950 text-white shadow-[0_5px_14px_rgba(15,23,42,0.16)]" : "text-slate-500 hover:bg-slate-50 hover:text-slate-950"}`}>
+                  <Link key={item.href} href={item.href} onMouseEnter={() => prefetchPrimaryRoute(item.href)} onFocus={() => prefetchPrimaryRoute(item.href)} onClick={() => setRouteProgressVisible(true)} aria-current={isNavigatorRouteActive(location, item.href) ? "page" : undefined} className={`inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold transition-all duration-200 ${isNavigatorRouteActive(location, item.href) ? "bg-sky-100 text-sky-950 shadow-[inset_0_0_0_1px_rgba(14,165,233,0.2),0_4px_12px_rgba(14,165,233,0.12)]" : "text-slate-600 hover:bg-slate-50 hover:text-slate-950"}`}>
                   <Icon className="h-3.5 w-3.5" />{item.label}
                 </Link>
               );
@@ -180,14 +200,6 @@ export function AppLayout({ children }: AppLayoutProps) {
       </CommandDialog>
 
       <main id="main-content" className="relative flex-1" tabIndex={-1}>
-        {location.startsWith("/admin/") && (
-          <div className="container pt-4 md:pt-5">
-            <Button type="button" variant="ghost" onClick={() => navigate("/admin")} className="-ml-3 rounded-xl text-slate-600 hover:bg-slate-100 hover:text-slate-950 dark:hover:bg-slate-800">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Moderation dashboard
-            </Button>
-          </div>
-        )}
         {children}
       </main>
 

@@ -24,4 +24,10 @@ describe("moderation return navigation", () => {
       expect(source, page).not.toContain("Back to Archive Imports");
     }
   });
+
+  it("does not inject a second dashboard return control from the global layout", () => {
+    const layout = fs.readFileSync(path.join(projectRoot, "client", "src", "components", "AppLayout.tsx"), "utf8");
+    expect(layout).not.toContain('location.startsWith("/admin/")');
+    expect(layout).not.toContain("Moderation dashboard");
+  });
 });

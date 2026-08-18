@@ -30,6 +30,7 @@ export default function Admin() {
   const [resourceQuery, setResourceQuery] = useState("");
   const [editingResource, setEditingResource] = useState<EditableResource | null>(null);
   const [pendingAction, setPendingAction] = useState<string | null>(null);
+  const [resolvedSubmissionIds, setResolvedSubmissionIds] = useState<number[]>([]);
   const isModerator = isAuthenticated && (user?.role === "admin" || user?.role === "moderator");
   const isAdministrator = user?.role === "admin";
 
@@ -41,7 +42,13 @@ export default function Admin() {
   const { data: auditLogs, isLoading: auditLogsLoading, isError: auditLogsError } = trpc.moderation.getAuditLogs.useQuery({ limit: 50, offset: 0 }, { enabled: isModerator });
   const { data: resourcesData, isLoading: resourcesLoading, refetch: refetchResources } = trpc.resources.listFiltered.useQuery({ limit: 50, offset: 0, sort: "newest" }, { enabled: isAdministrator });
 
-  const approveSubmission = trpc.moderation.approveSubmission.useMutation({ onSuccess: () => { toast.success(t("approved")); refetchSubmissions(); refetchResources(); } });
+  const approveSubmission = trpc.moderation.approveSubmission.useMutation({
+    onSuccess: (result, variables) => {
+      setResolvedSubmissionIds((current) => current.includes(variables.submissionId) ? current : [...current, variables.submissionId]);
+      toast.success(`${t("approved")} · ${Math.max(0, result.approvalDurationMs)} ms`);
+      void refetchSubmissions();
+    },
+  });
   const rejectSubmission = trpc.moderation.rejectSubmission.useMutation({ onSuccess: () => { toast.success(t("reject")); refetchSubmissions(); } });
   const approveRelationship = trpc.relationships.approve.useMutation({ onSuccess: () => { toast.success(t("approved")); refetchRelationships(); } });
   const rejectRelationship = trpc.moderation.rejectRelationship.useMutation({ onSuccess: () => { toast.success(t("reject")); refetchRelationships(); } });
@@ -71,6 +78,7 @@ export default function Admin() {
     const resources = resourcesData?.items ?? [];
     return query ? resources.filter((resource: any) => `${resource.title} ${resource.description ?? ""} ${resource.builtBy ?? ""}`.toLowerCase().includes(query)) : resources;
   }, [resourceQuery, resourcesData]);
+  const visibleSubmissions = useMemo(() => (submissions ?? []).filter((submission) => !resolvedSubmissionIds.includes(submission.id)), [resolvedSubmissionIds, submissions]);
 
   useEffect(() => {
     if (!isAdministrator && selectedTab === "resources") setSelectedTab("submissions");
@@ -119,7 +127,7 @@ export default function Admin() {
           </TabsList>
 
           <TabsContent value="submissions" className="mt-5">
-            {submissionsLoading ? <LoadingState /> : submissions?.length ? <div className="grid gap-4">{submissions.map((submission: any) => { const approveKey = getModerationActionKey("submission", submission.id, "approve"); const rejectKey = getModerationActionKey("submission", submission.id, "reject"); return <Card key={submission.id} className="ns-hover-lift border-l-4 border-l-amber-500 bg-white/90 p-6 shadow-sm"><div className="grid gap-6 md:grid-cols-[minmax(0,1fr)_180px]"><div><div className="flex items-start justify-between gap-4"><div><h2 className="ns-resource-title text-slate-950">{submission.title}</h2><p className="mt-1 break-all text-sm text-sky-700">{submission.url}</p></div><Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100">{t("pending")}</Badge></div><p className="mt-4 text-sm leading-6 text-slate-600">{submission.description || "No description provided."}</p>{submission.sourceUrl && <a href={submission.sourceUrl} target="_blank" rel="noreferrer" className="mt-3 block break-all text-xs font-medium text-violet-700 hover:text-violet-900">Primary evidence · {submission.sourceType ?? "source"} · {submission.sourceUrl}</a>}<p className="mt-3 text-xs text-slate-500">{new Date(submission.createdAt).toLocaleDateString()}</p></div><div className="flex flex-col gap-2"><Button onClick={() => void runQueueAction(approveKey, () => approveSubmission.mutateAsync({ submissionId: submission.id }))} disabled={isModerationActionPending(pendingAction, approveKey)} className="bg-emerald-600 text-white hover:bg-emerald-700">{isModerationActionPending(pendingAction, approveKey) ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle className="mr-2 h-4 w-4" />}{t("approve")}</Button><Button onClick={() => void runQueueAction(rejectKey, () => rejectSubmission.mutateAsync({ submissionId: submission.id }))} disabled={isModerationActionPending(pendingAction, rejectKey)} variant="outline" className="border-red-200 text-red-600 hover:bg-red-50">{isModerationActionPending(pendingAction, rejectKey) ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <XCircle className="mr-2 h-4 w-4" />}{t("reject")}</Button></div></div></Card>; })}</div> : <QueueEmpty label={t("submissions")} />}
+            {submissionsLoading ? <LoadingState /> : visibleSubmissions.length ? <div className="grid gap-4">{visibleSubmissions.map((submission: any) => { const approveKey = getModerationActionKey("submission", submission.id, "approve"); const rejectKey = getModerationActionKey("submission", submission.id, "reject"); return <Card key={submission.id} className="ns-hover-lift border-l-4 border-l-amber-500 bg-white/90 p-6 shadow-sm"><div className="grid gap-6 md:grid-cols-[minmax(0,1fr)_180px]"><div><div className="flex items-start justify-between gap-4"><div><h2 className="ns-resource-title text-slate-950">{submission.title}</h2><p className="mt-1 break-all text-sm text-sky-700">{submission.url}</p></div><Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100">{t("pending")}</Badge></div><p className="mt-4 text-sm leading-6 text-slate-600">{submission.description || "No description provided."}</p>{submission.sourceUrl && <a href={submission.sourceUrl} target="_blank" rel="noreferrer" className="mt-3 block break-all text-xs font-medium text-violet-700 hover:text-violet-900">Primary evidence · {submission.sourceType ?? "source"} · {submission.sourceUrl}</a>}<p className="mt-3 text-xs text-slate-500">{new Date(submission.createdAt).toLocaleDateString()}</p></div><div className="flex flex-col gap-2"><Button onClick={() => void runQueueAction(approveKey, () => approveSubmission.mutateAsync({ submissionId: submission.id }))} disabled={Boolean(pendingAction)} className="bg-emerald-600 text-white hover:bg-emerald-700">{isModerationActionPending(pendingAction, approveKey) ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle className="mr-2 h-4 w-4" />}{t("approve")}</Button><Button onClick={() => void runQueueAction(rejectKey, () => rejectSubmission.mutateAsync({ submissionId: submission.id }))} disabled={Boolean(pendingAction)} variant="outline" className="border-red-200 text-red-600 hover:bg-red-50">{isModerationActionPending(pendingAction, rejectKey) ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <XCircle className="mr-2 h-4 w-4" />}{t("reject")}</Button></div></div></Card>; })}</div> : <QueueEmpty label={t("submissions")} />}
           </TabsContent>
 
           <TabsContent value="relationships" className="mt-5">

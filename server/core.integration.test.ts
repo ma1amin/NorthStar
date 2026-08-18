@@ -262,10 +262,10 @@ describe("core tRPC workflows", () => {
       status: "pending" as const,
     };
     const pendingLimit = vi.fn().mockResolvedValue([submission]);
-    const tagLimit = vi.fn().mockResolvedValue([{ id: 210001 }]);
+    const tagWhere = vi.fn().mockResolvedValue([{ id: 210001, slug: "kanban" }]);
     const select = vi.fn()
       .mockReturnValueOnce({ from: vi.fn().mockReturnValue({ where: vi.fn().mockReturnValue({ limit: pendingLimit }) }) })
-      .mockReturnValueOnce({ from: vi.fn().mockReturnValue({ where: vi.fn().mockReturnValue({ limit: tagLimit }) }) });
+      .mockReturnValueOnce({ from: vi.fn().mockReturnValue({ where: tagWhere }) });
     const resourceValues = vi.fn().mockResolvedValue([{ insertId: 990 }]);
     const resourceTagValues = vi.fn().mockReturnValue({ onDuplicateKeyUpdate: vi.fn().mockResolvedValue([]) });
     const insert = vi.fn()
@@ -277,7 +277,7 @@ describe("core tRPC workflows", () => {
 
     await expect(appRouter.createCaller(context("admin")).moderation.approveSubmission({ submissionId: 501 })).resolves.toMatchObject({ success: true, resourceId: 990 });
     expect(select).toHaveBeenCalledTimes(2);
-    expect(resourceTagValues).toHaveBeenCalledWith({ resourceId: 990, tagId: 210001 });
+    expect(resourceTagValues).toHaveBeenCalledWith([{ resourceId: 990, tagId: 210001 }]);
   });
 
   it("reserves archive governance for administrators, caps bulk handoff at 25, and creates pending submissions rather than public resources", async () => {

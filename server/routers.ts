@@ -108,7 +108,7 @@ import {
 } from "./db";
 import { getDb } from "./db";
 import { TRPCError } from "@trpc/server";
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, inArray, isNull, sql } from "drizzle-orm";
 import { archiveImportCandidates, submissions, resourceSources as resourceSourcesTable, resourceTags as resourceTagsTable, relationships as relationshipsTable, resources as resourcesTable, tags as tagsTable } from "../drizzle/schema";
 import { searchService } from "./search";
 import { assertSafePublicUrl, fetchResourceMetadata } from "./urlMetadata";
@@ -1623,6 +1623,7 @@ export const appRouter = router({
     approveSubmission: adminProcedure
       .input(z.object({ submissionId: z.number() }))
       .mutation(async ({ input, ctx }) => {
+        const startedAt = Date.now();
         const db = await getDb();
         if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
 
@@ -1654,14 +1655,20 @@ export const appRouter = router({
             });
           }
 
-          for (const moderationTag of normalizeModerationTags(submission.tags)) {
-            let tag = (await tx.select({ id: tagsTable.id }).from(tagsTable).where(eq(tagsTable.slug, moderationTag.slug)).limit(1))[0];
-            if (!tag) {
-              await tx.insert(tagsTable).values(moderationTag).onDuplicateKeyUpdate({ set: { name: moderationTag.name } });
-              tag = (await tx.select({ id: tagsTable.id }).from(tagsTable).where(eq(tagsTable.slug, moderationTag.slug)).limit(1))[0];
+          const moderationTags = normalizeModerationTags(submission.tags);
+          if (moderationTags.length) {
+            const requestedTagSlugs = moderationTags.map((tag) => tag.slug);
+            const existingTags = await tx.select({ id: tagsTable.id, slug: tagsTable.slug }).from(tagsTable).where(inArray(tagsTable.slug, requestedTagSlugs));
+            const existingSlugs = new Set(existingTags.map((tag) => tag.slug));
+            const missingTags = moderationTags.filter((tag) => !existingSlugs.has(tag.slug));
+            if (missingTags.length) {
+              await tx.insert(tagsTable).values(missingTags).onDuplicateKeyUpdate({ set: { id: sql`${tagsTable.id}` } });
             }
-            if (!tag) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Unable to resolve a submission tag" });
-            await tx.insert(resourceTagsTable).values({ resourceId, tagId: tag.id }).onDuplicateKeyUpdate({ set: { tagId: tag.id } });
+            const resolvedTags = missingTags.length
+              ? await tx.select({ id: tagsTable.id, slug: tagsTable.slug }).from(tagsTable).where(inArray(tagsTable.slug, requestedTagSlugs))
+              : existingTags;
+            if (resolvedTags.length !== moderationTags.length) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Unable to resolve submission tags" });
+            await tx.insert(resourceTagsTable).values(resolvedTags.map((tag) => ({ resourceId, tagId: tag.id }))).onDuplicateKeyUpdate({ set: { resourceId } });
           }
 
           const suggestedRelationships = Array.isArray(submission.suggestedRelationships) ? submission.suggestedRelationships as Array<{ targetId: number; type: (typeof relationshipTypeValues)[number]; evidenceUrl?: string; rationale?: string; sourceContext?: string }> : [];
@@ -1677,9 +1684,11 @@ export const appRouter = router({
           return { resourceId, slug, submittedBy: submission.submittedBy, suggestedRelationshipCount: suggestedRelationships.length };
         });
 
-        await createAuditLog(ctx.user.id, "approve", "submission", input.submissionId, { resourceId: result.resourceId, suggestedRelationshipCount: result.suggestedRelationshipCount });
-        await recordReputationEvent({ userId: result.submittedBy, points: 10, reason: "Resource submission approved", entityType: "submission", entityId: input.submissionId, eventKey: `submission-approved:${input.submissionId}` });
-        return { success: true, resourceId: result.resourceId, slug: result.slug };
+        await Promise.all([
+          createAuditLog(ctx.user.id, "approve", "submission", input.submissionId, { resourceId: result.resourceId, suggestedRelationshipCount: result.suggestedRelationshipCount }),
+          recordReputationEvent({ userId: result.submittedBy, points: 10, reason: "Resource submission approved", entityType: "submission", entityId: input.submissionId, eventKey: `submission-approved:${input.submissionId}` }),
+        ]);
+        return { success: true, resourceId: result.resourceId, slug: result.slug, approvalDurationMs: Date.now() - startedAt };
       }),
 
     bulkRejectSubmissions: adminProcedure

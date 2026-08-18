@@ -466,3 +466,12 @@ Any newly proposed product, infrastructure, integration, or UX enhancement is he
 - [x] Replace duplicate moderation return links with one retained blue `Moderation dashboard` control on every targeted moderation child page.
 - [x] Add and run focused regression coverage for archive evidence review, staged curation traceability, and standardized moderation navigation.
 - [x] Complete release validation, documentation, checkpointing, and GitHub synchronization.
+
+## Interaction and Performance Repair
+- [x] Capture baseline evidence for navigator selection, moderation back-control duplication, approval latency, graph interaction, route loading, and type scale.
+- [x] Replace black primary-navigation selection styling and remove the layout-level duplicate moderation return control.
+- [x] Normalize responsive page heading and subtitle scale using shared typography tokens.
+- [x] Reduce moderation approval wait time while retaining atomic transaction, human approval, and audit boundaries.
+- [x] Add pan, zoom, keyboard navigation, selection feedback, and motion-aware interaction to the verified one-hop graph.
+- [x] Add route-level loading feedback, targeted loading shells, and low-cost navigation prefetching.
+- [x] Add focused regression coverage, complete browser QA, update evidence, checkpoint, publish, and synchronize GitHub.

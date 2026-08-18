@@ -36,10 +36,10 @@ const SearchQuality = lazy(() => import("./pages/SearchQuality"));
 
 function RouteLoading() {
   return (
-    <div className="container flex min-h-[42vh] items-center justify-center py-10" role="status" aria-live="polite">
-      <div className="ns-surface flex items-center gap-3 rounded-2xl px-5 py-4 text-sm font-semibold text-slate-600 dark:text-slate-300">
-        <Loader2 className="h-5 w-5 animate-spin text-sky-600" />
-        Loading workspace
+    <div className="container py-8 md:py-10" role="status" aria-live="polite">
+      <div className="ns-surface overflow-hidden rounded-3xl border-sky-100 bg-white/80 p-6 shadow-sm md:p-8">
+        <div className="animate-pulse space-y-5"><div className="h-3 w-28 rounded-full bg-sky-100" /><div className="h-9 max-w-md rounded-xl bg-slate-200" /><div className="h-4 max-w-2xl rounded-full bg-slate-100" /><div className="grid gap-4 pt-4 sm:grid-cols-2 lg:grid-cols-3"><div className="h-40 rounded-2xl bg-slate-100" /><div className="h-40 rounded-2xl bg-slate-100" /><div className="h-40 rounded-2xl bg-slate-100" /></div></div>
+        <p className="mt-6 flex items-center gap-2 text-sm font-medium text-slate-500"><Loader2 className="h-4 w-4 animate-spin text-sky-600" />Loading workspace</p>
       </div>
     </div>
   );

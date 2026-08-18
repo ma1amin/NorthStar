@@ -126,17 +126,25 @@ h6 {
 }
 
 h1 {
-  font-size: clamp(2.35rem, 5vw, 4.25rem);
+  font-size: clamp(2rem, 4vw, 3.5rem);
   font-weight: 700;
-  letter-spacing: -0.055em;
-  line-height: 1.02;
+  letter-spacing: -0.048em;
+  line-height: 1.08;
+}
+
+h1[class*="text-3xl"],
+h1[class*="text-4xl"],
+h1[class*="text-5xl"] {
+  font-size: clamp(1.85rem, 2.8vw, 2.9rem) !important;
+  letter-spacing: -0.043em !important;
+  line-height: 1.12 !important;
 }
 
 h2 {
-  font-size: clamp(1.85rem, 3.2vw, 2.75rem);
+  font-size: clamp(1.5rem, 2.4vw, 2.25rem);
   font-weight: 600;
-  letter-spacing: -0.045em;
-  line-height: 1.1;
+  letter-spacing: -0.035em;
+  line-height: 1.16;
 }
 
 h3 {
@@ -248,10 +256,48 @@ svg {
 .ns-resource-title-hero {
   overflow-wrap: anywhere;
   font-family: "Sora", sans-serif;
-  font-size: clamp(2rem, 3vw + 0.85rem, 3.25rem);
+  font-size: clamp(1.8rem, 2.2vw + 0.85rem, 2.75rem);
   font-weight: 700;
   letter-spacing: -0.05em;
   line-height: 1.06;
+}
+
+.ns-page-title {
+  font-family: "Sora", sans-serif;
+  font-size: clamp(1.85rem, 2.6vw, 2.75rem);
+  font-weight: 650;
+  letter-spacing: -0.043em;
+  line-height: 1.12;
+  text-wrap: balance;
+}
+
+.ns-page-title-hero {
+  font-family: "Sora", sans-serif;
+  font-size: clamp(2.25rem, 4.3vw, 3.75rem);
+  font-weight: 700;
+  letter-spacing: -0.052em;
+  line-height: 1.05;
+  text-wrap: balance;
+}
+
+.ns-page-subtitle {
+  max-width: 44rem;
+  color: var(--ns-muted);
+  font-size: clamp(0.95rem, 1vw + 0.7rem, 1.1rem);
+  line-height: 1.6;
+}
+
+.ns-route-progress {
+  position: fixed;
+  top: 0;
+  right: 0;
+  left: 0;
+  z-index: 70;
+  height: 3px;
+  transform-origin: left;
+  background: linear-gradient(90deg, #0ea5e9, #2563eb 58%, #7c3aed);
+  box-shadow: 0 1px 12px rgba(14, 165, 233, 0.45);
+  animation: routeProgress 420ms var(--ns-ease-out) both;
 }
 
 .ns-grid-backdrop {
@@ -396,6 +442,12 @@ svg {
 
 @keyframes spin {
   to { transform: rotate(360deg); }
+}
+
+@keyframes routeProgress {
+  from { opacity: 0; transform: scaleX(0.08); }
+  70% { opacity: 1; transform: scaleX(0.78); }
+  to { opacity: 0; transform: scaleX(1); }
 }
 
 ::-webkit-scrollbar {
