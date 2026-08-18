@@ -475,3 +475,9 @@ Any newly proposed product, infrastructure, integration, or UX enhancement is he
 - [x] Add pan, zoom, keyboard navigation, selection feedback, and motion-aware interaction to the verified one-hop graph.
 - [x] Add route-level loading feedback, targeted loading shells, and low-cost navigation prefetching.
 - [x] Add focused regression coverage, complete browser QA, update evidence, checkpoint, publish, and synchronize GitHub.
+
+## Moderation Action Responsiveness Repair
+- [x] Trace approve, reject, and source-review mutation timing and identify every non-row-scoped pending state.
+- [x] Make all moderation action controls row- and action-scoped, with immediate local reconciliation and no false pending feedback on other rows.
+- [x] Reduce avoidable server and client mutation waits while retaining atomic human moderation, audit, and reputation behavior.
+- [x] Add regression coverage, validate the repaired moderation controls, checkpoint, publish, and synchronize GitHub.

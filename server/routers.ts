@@ -1494,18 +1494,21 @@ export const appRouter = router({
     reviewSource: adminProcedure
       .input(z.object({ sourceId: z.number().int().positive(), status: z.enum(["approved", "rejected", "superseded"]) }))
       .mutation(async ({ input, ctx }) => {
+        const startedAt = Date.now();
         const source = await reviewResourceSource({ ...input, reviewerId: ctx.user.id });
         if (!source) throw new TRPCError({ code: "CONFLICT", message: "This source is no longer pending" });
-        await recordResourceHistory({
-          resourceId: source.resourceId,
-          eventType: "source_verified",
-          summary: input.status === "approved" ? `Verified ${source.sourceType} evidence` : `Reviewed ${source.sourceType} evidence`,
-          changes: { sourceId: source.id, verificationStatus: input.status },
-          isPublic: input.status === "approved",
-          recordedBy: ctx.user.id,
-        });
-        await createAuditLog(ctx.user.id, `review_source_${input.status}`, "resource_source", input.sourceId, { resourceId: source.resourceId });
-        return { success: true, resourceId: source.resourceId };
+        await Promise.all([
+          recordResourceHistory({
+            resourceId: source.resourceId,
+            eventType: "source_verified",
+            summary: input.status === "approved" ? `Verified ${source.sourceType} evidence` : `Reviewed ${source.sourceType} evidence`,
+            changes: { sourceId: source.id, verificationStatus: input.status },
+            isPublic: input.status === "approved",
+            recordedBy: ctx.user.id,
+          }),
+          createAuditLog(ctx.user.id, `review_source_${input.status}`, "resource_source", input.sourceId, { resourceId: source.resourceId }),
+        ]);
+        return { success: true, resourceId: source.resourceId, reviewDurationMs: Date.now() - startedAt };
       }),
 
     getPendingSources: adminProcedure

@@ -344,7 +344,7 @@ describe("core tRPC workflows", () => {
     mocks.reviewResourceSource.mockResolvedValue({ id: 5, resourceId: 1, sourceType: "official" });
     mocks.getResourceById.mockResolvedValue({ id: 1, title: "Resource" });
     mocks.createFreshnessReview.mockResolvedValue(9);
-    await expect(appRouter.createCaller(context("moderator")).moderation.reviewSource({ sourceId: 5, status: "approved" })).resolves.toEqual({ success: true, resourceId: 1 });
+    await expect(appRouter.createCaller(context("moderator")).moderation.reviewSource({ sourceId: 5, status: "approved" })).resolves.toMatchObject({ success: true, resourceId: 1, reviewDurationMs: expect.any(Number) });
     await expect(appRouter.createCaller(context("moderator")).moderation.recordFreshness({ resourceId: 1, status: "current", note: "Official site reachable." })).resolves.toEqual({ success: true, reviewId: 9 });
     expect(mocks.recordResourceHistory).toHaveBeenCalledWith(expect.objectContaining({ resourceId: 1, eventType: "source_verified", isPublic: true }));
     expect(mocks.createAuditLog).toHaveBeenCalledWith(7, "record_freshness", "resource", 1, { reviewId: 9, status: "current" });
