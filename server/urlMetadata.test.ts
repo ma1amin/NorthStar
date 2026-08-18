@@ -14,6 +14,7 @@ describe("resource URL metadata", () => {
       title: "Example Tool",
       description: "A useful example resource",
       canonicalUrl: undefined,
+      iconUrl: undefined,
     });
   });
 
@@ -34,6 +35,16 @@ describe("resource URL metadata", () => {
 
     expect(result.canonicalUrl).toBe("https://example.com/resources/tool");
     expect(JSON.stringify(result)).not.toContain("personal name");
+  });
+
+  it("extracts a page-declared icon candidate without using a social preview image", () => {
+    const result = extractMetadataFromHtml(`
+      <link rel="icon" href="/brand-icon.svg">
+      <meta property="og:image" content="https://example.com/social-card.png">
+    `);
+
+    expect(result.iconUrl).toBe("/brand-icon.svg");
+    expect(result).not.toHaveProperty("ogImage");
   });
 
   it("accepts public HTTP and HTTPS URLs", () => {

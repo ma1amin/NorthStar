@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { trpc } from "@/lib/trpc";
 import { applyClientSeo } from "@/lib/seo";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { ResourceIcon } from "@/components/ResourceIcon";
 
 const ITEMS_PER_PAGE = 12;
 
@@ -346,13 +347,16 @@ export default function Browse() {
                     <Card className={`h-full border-slate-200 p-6 transition-all group-hover:-translate-y-0.5 group-hover:border-sky-200 group-hover:shadow-lg ${viewMode === "list" ? "md:flex md:items-center md:justify-between" : ""}`}>
                       <div className="min-w-0">
                         <div className="flex items-start justify-between gap-4">
-                          <div>
+                          <div className="flex min-w-0 items-start gap-3">
+                            <ResourceIcon logo={resource.logo} title={resource.title} className="h-11 w-11 rounded-xl" />
+                            <div className="min-w-0">
                             <p className="mb-2 text-xs font-semibold uppercase tracking-[0.12em] text-sky-600">
                               {resource.categoryName ?? t("uncategorized")}
                             </p>
-                            <h2 className="text-xl font-semibold text-slate-950 group-hover:text-sky-700">
+                            <h2 className="ns-resource-title text-slate-950 group-hover:text-sky-700">
                               {resource.title}
                             </h2>
+                            </div>
                           </div>
                           {resource.featured && <span className="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700">{t("featured")}</span>}
                         </div>

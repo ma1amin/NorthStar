@@ -1,40 +1,55 @@
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Route, Switch } from "wouter";
+import { lazy, Suspense } from "react";
+import { Loader2 } from "lucide-react";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { LanguageProvider } from "./contexts/LanguageContext";
 import { AppLayout } from "./components/AppLayout";
 import Home from "./pages/Home";
-import Browse from "./pages/Browse";
-import ResourceDetail from "./pages/ResourceDetail";
-import Search from "./pages/Search";
-import Submit from "./pages/Submit";
-import Profile from "./pages/Profile";
-import Collections from "./pages/Collections";
-import CollectionDetail from "./pages/CollectionDetail";
-import Admin from "./pages/Admin";
-import AdminUsers from "./pages/AdminUsers";
-import AdminReports from "./pages/AdminReports";
-import AdminBulk from "./pages/AdminBulk";
-import AdminEditSuggestions from "./pages/AdminEditSuggestions";
-import GraphExplorer from "./pages/GraphExplorer";
-import AdminAIDrafts from "./pages/AdminAIDrafts";
-import AdminArchiveImports from "./pages/AdminArchiveImports";
-import AdminArchiveGovernance from "./pages/AdminArchiveGovernance";
-import AdminArchiveBulkReview from "./pages/AdminArchiveBulkReview";
-import Welcome from "./pages/Welcome";
-import Trending from "./pages/Trending";
-import About from "./pages/About";
-import Developer from "./pages/Developer";
-import Settings from "./pages/Settings";
-import SearchQuality from "./pages/SearchQuality";
 import NotFound from "./pages/NotFound";
+
+const Browse = lazy(() => import("./pages/Browse"));
+const ResourceDetail = lazy(() => import("./pages/ResourceDetail"));
+const Search = lazy(() => import("./pages/Search"));
+const Submit = lazy(() => import("./pages/Submit"));
+const Profile = lazy(() => import("./pages/Profile"));
+const Collections = lazy(() => import("./pages/Collections"));
+const CollectionDetail = lazy(() => import("./pages/CollectionDetail"));
+const Admin = lazy(() => import("./pages/Admin"));
+const AdminUsers = lazy(() => import("./pages/AdminUsers"));
+const AdminReports = lazy(() => import("./pages/AdminReports"));
+const AdminBulk = lazy(() => import("./pages/AdminBulk"));
+const AdminEditSuggestions = lazy(() => import("./pages/AdminEditSuggestions"));
+const GraphExplorer = lazy(() => import("./pages/GraphExplorer"));
+const AdminAIDrafts = lazy(() => import("./pages/AdminAIDrafts"));
+const AdminArchiveImports = lazy(() => import("./pages/AdminArchiveImports"));
+const AdminArchiveGovernance = lazy(() => import("./pages/AdminArchiveGovernance"));
+const AdminArchiveBulkReview = lazy(() => import("./pages/AdminArchiveBulkReview"));
+const Welcome = lazy(() => import("./pages/Welcome"));
+const Trending = lazy(() => import("./pages/Trending"));
+const About = lazy(() => import("./pages/About"));
+const Developer = lazy(() => import("./pages/Developer"));
+const Settings = lazy(() => import("./pages/Settings"));
+const SearchQuality = lazy(() => import("./pages/SearchQuality"));
+
+function RouteLoading() {
+  return (
+    <div className="container flex min-h-[42vh] items-center justify-center py-10" role="status" aria-live="polite">
+      <div className="ns-surface flex items-center gap-3 rounded-2xl px-5 py-4 text-sm font-semibold text-slate-600 dark:text-slate-300">
+        <Loader2 className="h-5 w-5 animate-spin text-sky-600" />
+        Loading workspace
+      </div>
+    </div>
+  );
+}
 
 function Router() {
   return (
     <AppLayout>
-      <Switch>
+      <Suspense fallback={<RouteLoading />}>
+        <Switch>
         {/* Public pages */}
         <Route path={"/"} component={Home} />
         <Route path={"/welcome"} component={Welcome} />
@@ -71,7 +86,8 @@ function Router() {
         {/* 404 */}
         <Route path={"/404"} component={NotFound} />
         <Route component={NotFound} />
-      </Switch>
+        </Switch>
+      </Suspense>
     </AppLayout>
   );
 }

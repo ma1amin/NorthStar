@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "wouter";
 import {
   BarChart3,
+  ArrowLeft,
   Compass,
   Code2,
   GitBranch,
@@ -129,26 +130,26 @@ export function AppLayout({ children }: AppLayoutProps) {
             {isAuthenticated && user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="h-9 gap-2 rounded-xl px-1.5 pr-2.5 hover:bg-slate-100">
+                  <Button variant="ghost" size="sm" className="h-9 gap-2 rounded-xl bg-white/75 px-1.5 pr-2.5 shadow-sm hover:bg-white dark:bg-slate-900 dark:hover:bg-slate-800">
                     <div className="flex h-7 w-7 items-center justify-center overflow-hidden rounded-lg bg-slate-900 text-xs font-bold text-white">{user.avatar ? <img src={user.avatar} alt="" className="h-full w-full object-cover" /> : user.name?.charAt(0).toUpperCase() || "U"}</div>
                     <span className="hidden max-w-24 truncate text-sm font-semibold text-slate-700 lg:inline">{user.name || "Account"}</span>
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-52 rounded-xl border-slate-200 p-1.5">
-                  <div className="px-2 py-2"><p className="truncate text-sm font-semibold text-slate-900">{user.name || "NorthStar member"}</p><p className="mt-0.5 text-xs text-slate-500">{user.reputation ?? 0} reputation</p></div>
+                <DropdownMenuContent align="end" className="ns-menu-surface w-64 rounded-2xl p-2 text-slate-900 dark:text-slate-100">
+                  <div className="rounded-xl bg-slate-50 px-3 py-3 dark:bg-slate-800/90"><p className="truncate text-sm font-semibold text-slate-900 dark:text-slate-100">{user.name || "NorthStar member"}</p><p className="mt-0.5 text-xs font-medium text-slate-500 dark:text-slate-400">{user.reputation ?? 0} reputation</p></div>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => navigate("/profile")}><UserRound className="mr-2 h-4 w-4" />Profile</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => navigate("/settings")}><Settings className="mr-2 h-4 w-4" />{t("settings")}</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => navigate("/collections")}><FolderOpen className="mr-2 h-4 w-4" />Collections</DropdownMenuItem>
-                  {(user.role === "admin" || user.role === "moderator") && <DropdownMenuItem onClick={() => navigate("/admin")}><Network className="mr-2 h-4 w-4" />Moderation</DropdownMenuItem>}
-                  {(user.role === "admin" || user.role === "moderator") && <DropdownMenuItem onClick={() => navigate("/admin/search-quality")}><BarChart3 className="mr-2 h-4 w-4" />{t("searchQuality")}</DropdownMenuItem>}
-                  {(user.role === "admin" || user.role === "moderator") && <DropdownMenuItem onClick={() => navigate("/admin/reports")}><Flag className="mr-2 h-4 w-4" />Report triage</DropdownMenuItem>}
-                  {(user.role === "admin" || user.role === "moderator") && <DropdownMenuItem onClick={() => navigate("/admin/bulk")}><ListChecks className="mr-2 h-4 w-4" />Bulk rejection</DropdownMenuItem>}
-                  {user.role === "admin" && <DropdownMenuItem onClick={() => navigate("/admin/edit-suggestions")}><FilePenLine className="mr-2 h-4 w-4" />Edit suggestions</DropdownMenuItem>}
-                  {user.role === "admin" && <DropdownMenuItem onClick={() => navigate("/admin/ai-drafts")}><Sparkles className="mr-2 h-4 w-4" />AI review drafts</DropdownMenuItem>}
-                  {user.role === "admin" && <DropdownMenuItem onClick={() => navigate("/admin/users")}><Users className="mr-2 h-4 w-4" />User management</DropdownMenuItem>}
+                  <DropdownMenuItem className="rounded-xl px-3 py-2 text-slate-700 focus:bg-sky-50 focus:text-sky-900 dark:text-slate-200 dark:focus:bg-slate-800 dark:focus:text-sky-200" onClick={() => navigate("/profile")}><UserRound className="mr-2 h-4 w-4" />Profile</DropdownMenuItem>
+                  <DropdownMenuItem className="rounded-xl px-3 py-2 text-slate-700 focus:bg-sky-50 focus:text-sky-900 dark:text-slate-200 dark:focus:bg-slate-800 dark:focus:text-sky-200" onClick={() => navigate("/settings")}><Settings className="mr-2 h-4 w-4" />{t("settings")}</DropdownMenuItem>
+                  <DropdownMenuItem className="rounded-xl px-3 py-2 text-slate-700 focus:bg-sky-50 focus:text-sky-900 dark:text-slate-200 dark:focus:bg-slate-800 dark:focus:text-sky-200" onClick={() => navigate("/collections")}><FolderOpen className="mr-2 h-4 w-4" />Collections</DropdownMenuItem>
+                  {(user.role === "admin" || user.role === "moderator") && <DropdownMenuItem className="rounded-xl px-3 py-2 text-slate-700 focus:bg-sky-50 focus:text-sky-900 dark:text-slate-200 dark:focus:bg-slate-800 dark:focus:text-sky-200" onClick={() => navigate("/admin")}><Network className="mr-2 h-4 w-4" />Moderation</DropdownMenuItem>}
+                  {(user.role === "admin" || user.role === "moderator") && <DropdownMenuItem className="rounded-xl px-3 py-2 text-slate-700 focus:bg-sky-50 focus:text-sky-900 dark:text-slate-200 dark:focus:bg-slate-800 dark:focus:text-sky-200" onClick={() => navigate("/admin/search-quality")}><BarChart3 className="mr-2 h-4 w-4" />{t("searchQuality")}</DropdownMenuItem>}
+                  {(user.role === "admin" || user.role === "moderator") && <DropdownMenuItem className="rounded-xl px-3 py-2 text-slate-700 focus:bg-sky-50 focus:text-sky-900 dark:text-slate-200 dark:focus:bg-slate-800 dark:focus:text-sky-200" onClick={() => navigate("/admin/reports")}><Flag className="mr-2 h-4 w-4" />Report triage</DropdownMenuItem>}
+                  {(user.role === "admin" || user.role === "moderator") && <DropdownMenuItem className="rounded-xl px-3 py-2 text-slate-700 focus:bg-sky-50 focus:text-sky-900 dark:text-slate-200 dark:focus:bg-slate-800 dark:focus:text-sky-200" onClick={() => navigate("/admin/bulk")}><ListChecks className="mr-2 h-4 w-4" />Bulk rejection</DropdownMenuItem>}
+                  {user.role === "admin" && <DropdownMenuItem className="rounded-xl px-3 py-2 text-slate-700 focus:bg-sky-50 focus:text-sky-900 dark:text-slate-200 dark:focus:bg-slate-800 dark:focus:text-sky-200" onClick={() => navigate("/admin/edit-suggestions")}><FilePenLine className="mr-2 h-4 w-4" />Edit suggestions</DropdownMenuItem>}
+                  {user.role === "admin" && <DropdownMenuItem className="rounded-xl px-3 py-2 text-slate-700 focus:bg-sky-50 focus:text-sky-900 dark:text-slate-200 dark:focus:bg-slate-800 dark:focus:text-sky-200" onClick={() => navigate("/admin/ai-drafts")}><Sparkles className="mr-2 h-4 w-4" />AI review drafts</DropdownMenuItem>}
+                  {user.role === "admin" && <DropdownMenuItem className="rounded-xl px-3 py-2 text-slate-700 focus:bg-sky-50 focus:text-sky-900 dark:text-slate-200 dark:focus:bg-slate-800 dark:focus:text-sky-200" onClick={() => navigate("/admin/users")}><Users className="mr-2 h-4 w-4" />User management</DropdownMenuItem>}
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => logout()} className="text-red-600 focus:text-red-700"><LogOut className="mr-2 h-4 w-4" />Log out</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => logout()} className="rounded-xl px-3 py-2 text-red-600 focus:bg-red-50 focus:text-red-700 dark:focus:bg-red-950/40"><LogOut className="mr-2 h-4 w-4" />Log out</DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : <Link href="/welcome"><Button size="sm" className="h-9 rounded-xl bg-slate-900 px-3.5 text-white shadow-sm hover:bg-slate-800">{t("signIn")}</Button></Link>}
@@ -178,7 +179,17 @@ export function AppLayout({ children }: AppLayoutProps) {
         </CommandList>
       </CommandDialog>
 
-      <main id="main-content" className="relative flex-1" tabIndex={-1}>{children}</main>
+      <main id="main-content" className="relative flex-1" tabIndex={-1}>
+        {location.startsWith("/admin/") && (
+          <div className="container pt-4 md:pt-5">
+            <Button type="button" variant="ghost" onClick={() => navigate("/admin")} className="-ml-3 rounded-xl text-slate-600 hover:bg-slate-100 hover:text-slate-950 dark:hover:bg-slate-800">
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Moderation dashboard
+            </Button>
+          </div>
+        )}
+        {children}
+      </main>
 
       <footer className="mt-16 border-t border-slate-200/80 bg-white/75">
         <div className="container py-10"><div className="flex flex-col gap-8 md:flex-row md:items-start md:justify-between"><div className="max-w-sm"><div className="flex items-center gap-2"><div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-900 text-white"><Network className="h-4 w-4" /></div><span className="font-['Sora'] font-bold text-slate-950">NorthStar</span></div><p className="mt-3 text-sm leading-6 text-slate-500">An open resource intelligence platform for discovering tools, understanding context, and navigating the relationships between them.</p></div><div className="grid grid-cols-2 gap-x-10 gap-y-3 text-sm"><Link href="/browse" className="font-medium text-slate-600 hover:text-sky-700">Explore resources</Link><Link href="/search" className="font-medium text-slate-600 hover:text-sky-700">Relationship search</Link><Link href="/collections" className="font-medium text-slate-600 hover:text-sky-700">Collections</Link><Link href="/submit" className="font-medium text-slate-600 hover:text-sky-700">Submit a resource</Link></div></div><div className="mt-8 flex flex-col gap-2 border-t border-slate-100 pt-5 text-xs text-slate-400 sm:flex-row sm:items-center sm:justify-between"><span>© 2026 NorthStar. Open resource intelligence.</span><span>Designed for discovery, context, and community verification.</span></div></div>

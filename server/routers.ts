@@ -104,8 +104,8 @@ import {
 } from "./db";
 import { getDb } from "./db";
 import { TRPCError } from "@trpc/server";
-import { and, eq } from "drizzle-orm";
-import { archiveImportCandidates, submissions } from "../drizzle/schema";
+import { and, eq, isNull } from "drizzle-orm";
+import { archiveImportCandidates, submissions, resourceSources as resourceSourcesTable, resourceTags as resourceTagsTable, relationships as relationshipsTable, resources as resourcesTable } from "../drizzle/schema";
 import { searchService } from "./search";
 import { assertSafePublicUrl, fetchResourceMetadata } from "./urlMetadata";
 import { canViewCollection, collectionSlug, normalizeProfileUpdate } from "./community";
@@ -113,7 +113,7 @@ import { draftResourceReview } from "./aiReview";
 import { getSearchCapabilities } from "./searchCapabilities";
 import { createHash, randomBytes } from "crypto";
 import { extractResourceCandidatesFromArtifact, sanitizePublicResourceMetadata } from "./resourceIntake";
-import { ARCHIVE_BULK_REVIEW_LIMIT, getArchiveContentExclusion, getRegistrableDomain, normalizeTrustedDomain, suggestArchiveClassification } from "./archiveReview";
+import { ARCHIVE_BULK_REVIEW_LIMIT, getArchiveContentExclusion, getRegistrableDomain, normalizeTrustedDomain } from "./archiveReview";
 
 export const appRouter = router({
   system: systemRouter,
@@ -180,14 +180,11 @@ export const appRouter = router({
       .query(async ({ input }) => {
         const result = await getPiiFreeArchiveImportBatch(input.batchId);
         if (!result) throw new TRPCError({ code: "NOT_FOUND", message: "Archive import batch not found" });
-        const categories = await getCategories();
         const trustedDomains = new Set((await listTrustedSourceDomains()).map((domain) => domain.domain));
-        const categoryIds = new Map(categories.map((category) => [category.slug, category.id]));
         return {
           ...result,
           candidates: result.candidates.map((candidate) => {
-            const suggestion = suggestArchiveClassification(candidate);
-            return { ...candidate, suggestedCategoryId: categoryIds.get(suggestion.categorySlug), suggestedTags: candidate.suggestedTags ?? suggestion.tags, isTrustedSource: Boolean(candidate.registrableDomain && trustedDomains.has(candidate.registrableDomain)) };
+            return { ...candidate, suggestedCategoryId: undefined, suggestedTags: candidate.suggestedTags ?? [], isTrustedSource: Boolean(candidate.registrableDomain && trustedDomains.has(candidate.registrableDomain)) };
           }),
         };
       }),
@@ -236,7 +233,7 @@ export const appRouter = router({
         const submissionId = await db.transaction(async (tx) => {
           const submission = await tx.insert(submissions).values({ submittedBy: ctx.user.id, title: input.title, url: safeUrl, description: input.description, categoryId: input.categoryId, pricing: input.pricing, tags: input.tags, suggestedRelationships: [], status: "pending" });
           const id = submission[0].insertId;
-          const claimed = await tx.update(archiveImportCandidates).set({ status: "submitted", submissionId: id }).where(and(eq(archiveImportCandidates.id, candidate.id), eq(archiveImportCandidates.status, "review_ready")));
+          const claimed = await tx.update(archiveImportCandidates).set({ status: "submitted", submissionId: id, metadataVerificationStatus: "reviewed" }).where(and(eq(archiveImportCandidates.id, candidate.id), eq(archiveImportCandidates.status, "review_ready")));
           if ((claimed[0] as { affectedRows?: number } | undefined)?.affectedRows !== 1) throw new TRPCError({ code: "CONFLICT", message: "Candidate was already handled" });
           return id;
         });
@@ -268,7 +265,7 @@ export const appRouter = router({
           const submission = await db.transaction(async (tx) => {
             const result = await tx.insert(submissions).values({ submittedBy: ctx.user.id, title: candidate.title?.trim() || new URL(safeUrl).hostname, url: safeUrl, description: candidate.description ?? undefined, categoryId: input.categoryId, pricing: input.pricing, tags: input.tags, suggestedRelationships: [], status: "pending" });
             const id = result[0].insertId;
-            const claimed = await tx.update(archiveImportCandidates).set({ status: "submitted", submissionId: id }).where(and(eq(archiveImportCandidates.id, candidate.id), eq(archiveImportCandidates.status, "review_ready")));
+            const claimed = await tx.update(archiveImportCandidates).set({ status: "submitted", submissionId: id, metadataVerificationStatus: "reviewed" }).where(and(eq(archiveImportCandidates.id, candidate.id), eq(archiveImportCandidates.status, "review_ready")));
             if ((claimed[0] as { affectedRows?: number } | undefined)?.affectedRows !== 1) throw new TRPCError({ code: "CONFLICT", message: "Candidate was already handled" });
             return id;
           });
@@ -294,12 +291,46 @@ export const appRouter = router({
         }
         try {
           const metadata = await fetchResourceMetadata(candidate.url);
-          await updatePiiFreeArchiveCandidateEnrichment({ candidateId: candidate.id, canonicalUrl: metadata.canonicalUrl ?? metadata.url, title: sanitizePublicResourceMetadata(metadata.title, 255), description: sanitizePublicResourceMetadata(metadata.description, 5_000), officialSourceUrl: metadata.canonicalUrl ?? metadata.url, status: "review_ready" });
+          await updatePiiFreeArchiveCandidateEnrichment({ candidateId: candidate.id, canonicalUrl: metadata.canonicalUrl ?? metadata.url, title: sanitizePublicResourceMetadata(metadata.title, 255), description: sanitizePublicResourceMetadata(metadata.description, 5_000), officialSourceUrl: metadata.canonicalUrl ?? metadata.url, metadataVerificationStatus: "public_page_fetched", metadataFetchedAt: new Date(), status: "review_ready" });
           await createAuditLog(ctx.user.id, "retry_archive_candidate_metadata", "archive_import_candidate", candidate.id, { retryCount: candidate.retryCount, outcome: "review_ready" });
           return { status: "review_ready" as const };
         } catch {
           await updatePiiFreeArchiveCandidateEnrichment({ candidateId: candidate.id, status: "failed", failureCode: "metadata_unavailable" });
           await createAuditLog(ctx.user.id, "retry_archive_candidate_metadata", "archive_import_candidate", candidate.id, { retryCount: candidate.retryCount, outcome: "failed" });
+          return { status: "failed" as const };
+        }
+      }),
+
+    /** Public-page refresh only; it does not infer or overwrite reviewer-confirmed category, tags, pricing, or license. */
+    refreshCandidateMetadata: adminProcedure
+      .input(z.object({ candidateId: z.number().int().positive() }))
+      .mutation(async ({ input, ctx }) => {
+        const candidate = await getPiiFreeArchiveCandidate(input.candidateId);
+        if (!candidate || !["review_ready", "failed"].includes(candidate.status)) throw new TRPCError({ code: "PRECONDITION_FAILED", message: "Candidate is unavailable for metadata refresh" });
+        const exclusion = getArchiveContentExclusion(candidate.url);
+        if (exclusion) {
+          await updatePiiFreeArchiveCandidateEnrichment({ candidateId: candidate.id, status: "excluded", failureCode: exclusion });
+          throw new TRPCError({ code: "PRECONDITION_FAILED", message: "This URL type cannot enter resource moderation" });
+        }
+        try {
+          const metadata = await fetchResourceMetadata(candidate.url);
+          const fetchedAt = new Date();
+          const sourceUrl = metadata.canonicalUrl ?? metadata.url;
+          await updatePiiFreeArchiveCandidateEnrichment({
+            candidateId: candidate.id,
+            canonicalUrl: sourceUrl,
+            title: sanitizePublicResourceMetadata(metadata.title, 255),
+            description: sanitizePublicResourceMetadata(metadata.description, 5_000),
+            officialSourceUrl: sourceUrl,
+            metadataVerificationStatus: "public_page_fetched",
+            metadataFetchedAt: fetchedAt,
+            status: "review_ready",
+          });
+          await createAuditLog(ctx.user.id, "refresh_archive_candidate_metadata", "archive_import_candidate", candidate.id, { sourceUrl, fetchedAt: fetchedAt.toISOString() });
+          return { status: "review_ready" as const, sourceUrl };
+        } catch {
+          await updatePiiFreeArchiveCandidateEnrichment({ candidateId: candidate.id, status: "failed", failureCode: "metadata_unavailable" });
+          await createAuditLog(ctx.user.id, "refresh_archive_candidate_metadata", "archive_import_candidate", candidate.id, { outcome: "failed" });
           return { status: "failed" as const };
         }
       }),
@@ -855,14 +886,15 @@ export const appRouter = router({
         const relationship = await db
           .select()
           .from(require("../drizzle/schema").relationships)
-          .where(require("drizzle-orm").eq(require("../drizzle/schema").relationships.id, input.id))
+          .where(require("drizzle-orm").and(require("drizzle-orm").eq(require("../drizzle/schema").relationships.id, input.id), require("drizzle-orm").eq(require("../drizzle/schema").relationships.status, "pending")))
           .limit(1);
-        if (!relationship[0]) throw new TRPCError({ code: "NOT_FOUND" });
+        if (!relationship[0]) throw new TRPCError({ code: "CONFLICT", message: "This relationship is no longer pending" });
 
-        await db
+        const result = await db
           .update(require("../drizzle/schema").relationships)
           .set({ status: "approved", verified: true })
-          .where(require("drizzle-orm").eq(require("../drizzle/schema").relationships.id, input.id));
+          .where(require("drizzle-orm").and(require("drizzle-orm").eq(require("../drizzle/schema").relationships.id, input.id), require("drizzle-orm").eq(require("../drizzle/schema").relationships.status, "pending")));
+        if (Number(result[0]?.affectedRows ?? 0) !== 1) throw new TRPCError({ code: "CONFLICT", message: "This relationship was handled by another moderator" });
 
         await createAuditLog(ctx.user.id, "approve", "relationship", input.id);
         await recordReputationEvent({ userId: relationship[0].createdBy, points: 5, reason: "Relationship approved by moderation", entityType: "relationship", entityId: input.id, eventKey: `relationship-approved:${input.id}` });
@@ -1541,75 +1573,56 @@ export const appRouter = router({
         const db = await getDb();
         if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
 
-        const submission = await getSubmissionById(input.submissionId);
-        if (!submission) {
-          throw new TRPCError({ code: "NOT_FOUND" });
-        }
+        const result = await db.transaction(async (tx) => {
+          const rows = await tx.select().from(submissions).where(and(eq(submissions.id, input.submissionId), eq(submissions.status, "pending"), isNull(submissions.resourceId))).limit(1);
+          const submission = rows[0];
+          if (!submission) throw new TRPCError({ code: "CONFLICT", message: "This submission is no longer pending" });
 
-        if (submission.resourceId) {
-          return { success: true, resourceId: submission.resourceId };
-        }
+          const reviewedAt = new Date();
+          const claim = await tx.update(submissions).set({ status: "approved", reviewedBy: ctx.user.id, reviewedAt }).where(and(eq(submissions.id, input.submissionId), eq(submissions.status, "pending"), isNull(submissions.resourceId)));
+          if (Number(claim[0]?.affectedRows ?? 0) !== 1) throw new TRPCError({ code: "CONFLICT", message: "This submission was handled by another moderator" });
 
-        const baseSlug = submission.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
-        const slug = `${baseSlug || "resource"}-${submission.id}`;
-        const resourceResult = await db.insert(require("../drizzle/schema").resources).values({
-          title: submission.title,
-          slug,
-          description: submission.description,
-          url: submission.url,
-          categoryId: submission.categoryId,
-          subcategoryId: submission.subcategoryId,
-          pricing: submission.pricing,
-          license: submission.license,
-          builtBy: submission.builtBy,
-          builtByUrl: submission.builtByUrl,
-          submittedBy: submission.submittedBy,
-          status: "approved",
-          approvedAt: new Date(),
-        });
-        const resourceId = resourceResult[0].insertId;
+          const baseSlug = submission.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+          const slug = `${baseSlug || "resource"}-${submission.id}`;
+          const resourceResult = await tx.insert(resourcesTable).values({ title: submission.title, slug, description: submission.description, url: submission.url, categoryId: submission.categoryId, subcategoryId: submission.subcategoryId, pricing: submission.pricing, license: submission.license, builtBy: submission.builtBy, builtByUrl: submission.builtByUrl, submittedBy: submission.submittedBy, status: "approved", approvedAt: reviewedAt });
+          const resourceId = resourceResult[0].insertId;
 
-        const tagNames = Array.isArray(submission.tags) ? (submission.tags as string[]) : [];
-        for (const tagName of tagNames) {
-          const tag = await getOrCreateTag(tagName);
-          if (tag) {
-            await db.insert(require("../drizzle/schema").resourceTags).values({ resourceId, tagId: tag.id });
-          }
-        }
-
-        const suggestedRelationships = Array.isArray(submission.suggestedRelationships) ? submission.suggestedRelationships as Array<{ targetId: number; type: (typeof relationshipTypeValues)[number]; evidenceUrl?: string; rationale?: string; sourceContext?: string }> : [];
-        for (const suggested of suggestedRelationships) {
-          try {
-            await db.insert(require("../drizzle/schema").relationships).values({
-              sourceId: resourceId,
-              targetId: suggested.targetId,
-              type: suggested.type,
-              strength: "0.50",
-              evidenceUrl: suggested.evidenceUrl,
-              rationale: suggested.rationale,
-              sourceContext: suggested.sourceContext,
-              createdBy: submission.submittedBy,
-              status: "pending",
+          if (submission.sourceUrl && submission.sourceType) {
+            await tx.insert(resourceSourcesTable).values({
+              resourceId,
+              url: submission.sourceUrl,
+              sourceType: submission.sourceType,
+              attribution: "Primary source verified during moderation",
+              licenseNote: submission.license ?? undefined,
+              verificationStatus: "approved",
+              addedBy: ctx.user.id,
+              verifiedBy: ctx.user.id,
+              verifiedAt: reviewedAt,
             });
-          } catch (error) {
-            console.warn("[Moderation] Skipped duplicate or invalid suggested relationship", { submissionId: submission.id, targetId: suggested.targetId, type: suggested.type });
           }
-        }
 
-        await db
-          .update(require("../drizzle/schema").submissions)
-          .set({
-            status: "approved",
-            resourceId,
-            reviewedBy: ctx.user.id,
-            reviewedAt: new Date(),
-          })
-          .where(require("drizzle-orm").eq(require("../drizzle/schema").submissions.id, input.submissionId));
+          const tagNames = Array.isArray(submission.tags) ? (submission.tags as string[]) : [];
+          for (const tagName of tagNames) {
+            const tag = await getOrCreateTag(tagName);
+            if (tag) await tx.insert(resourceTagsTable).values({ resourceId, tagId: tag.id });
+          }
 
-        await createAuditLog(ctx.user.id, "approve", "submission", input.submissionId, { resourceId, suggestedRelationshipCount: suggestedRelationships.length });
-        await recordReputationEvent({ userId: submission.submittedBy, points: 10, reason: "Resource submission approved", entityType: "submission", entityId: input.submissionId, eventKey: `submission-approved:${input.submissionId}` });
+          const suggestedRelationships = Array.isArray(submission.suggestedRelationships) ? submission.suggestedRelationships as Array<{ targetId: number; type: (typeof relationshipTypeValues)[number]; evidenceUrl?: string; rationale?: string; sourceContext?: string }> : [];
+          for (const suggested of suggestedRelationships) {
+            try {
+              await tx.insert(relationshipsTable).values({ sourceId: resourceId, targetId: suggested.targetId, type: suggested.type, strength: "0.50", evidenceUrl: suggested.evidenceUrl, rationale: suggested.rationale, sourceContext: suggested.sourceContext, createdBy: submission.submittedBy, status: "pending" });
+            } catch (error) {
+              console.warn("[Moderation] Skipped duplicate or invalid suggested relationship", { submissionId: submission.id, targetId: suggested.targetId, type: suggested.type });
+            }
+          }
 
-        return { success: true, resourceId, slug };
+          await tx.update(submissions).set({ resourceId }).where(eq(submissions.id, input.submissionId));
+          return { resourceId, slug, submittedBy: submission.submittedBy, suggestedRelationshipCount: suggestedRelationships.length };
+        });
+
+        await createAuditLog(ctx.user.id, "approve", "submission", input.submissionId, { resourceId: result.resourceId, suggestedRelationshipCount: result.suggestedRelationshipCount });
+        await recordReputationEvent({ userId: result.submittedBy, points: 10, reason: "Resource submission approved", entityType: "submission", entityId: input.submissionId, eventKey: `submission-approved:${input.submissionId}` });
+        return { success: true, resourceId: result.resourceId, slug: result.slug };
       }),
 
     bulkRejectSubmissions: adminProcedure
@@ -1635,10 +1648,11 @@ export const appRouter = router({
       .mutation(async ({ input, ctx }) => {
         const db = await getDb();
         if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
-        await db
+        const result = await db
           .update(require("../drizzle/schema").relationships)
           .set({ status: "rejected" })
-          .where(require("drizzle-orm").eq(require("../drizzle/schema").relationships.id, input.relationshipId));
+          .where(require("drizzle-orm").and(require("drizzle-orm").eq(require("../drizzle/schema").relationships.id, input.relationshipId), require("drizzle-orm").eq(require("../drizzle/schema").relationships.status, "pending")));
+        if (Number(result[0]?.affectedRows ?? 0) !== 1) throw new TRPCError({ code: "CONFLICT", message: "This relationship is no longer pending" });
         await createAuditLog(ctx.user.id, "reject", "relationship", input.relationshipId, { reason: input.reason });
         return { success: true };
       }),
@@ -1655,7 +1669,7 @@ export const appRouter = router({
         const db = await getDb();
         if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
 
-        await db
+        const result = await db
           .update(require("../drizzle/schema").submissions)
           .set({
             status: "rejected",
@@ -1663,7 +1677,8 @@ export const appRouter = router({
             reviewedBy: ctx.user.id,
             reviewedAt: new Date(),
           })
-          .where(require("drizzle-orm").eq(require("../drizzle/schema").submissions.id, input.submissionId));
+          .where(require("drizzle-orm").and(require("drizzle-orm").eq(require("../drizzle/schema").submissions.id, input.submissionId), require("drizzle-orm").eq(require("../drizzle/schema").submissions.status, "pending"), require("drizzle-orm").isNull(require("../drizzle/schema").submissions.resourceId)));
+        if (Number(result[0]?.affectedRows ?? 0) !== 1) throw new TRPCError({ code: "CONFLICT", message: "This submission is no longer pending" });
 
         await createAuditLog(ctx.user.id, "reject", "submission", input.submissionId, {
           reason: input.reason,

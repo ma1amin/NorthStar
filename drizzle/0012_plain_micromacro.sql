@@ -1,0 +1,2 @@
+ALTER TABLE `archive_import_candidates` ADD `metadataVerificationStatus` enum('unverified','public_page_fetched','reviewed') DEFAULT 'unverified' NOT NULL;--> statement-breakpoint
+ALTER TABLE `archive_import_candidates` ADD `metadataFetchedAt` timestamp;

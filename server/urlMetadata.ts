@@ -45,6 +45,7 @@ export function extractMetadataFromHtml(html: string) {
   const linkTags = html.match(/<link\b[^>]*>/gi) ?? [];
   let description: string | undefined;
   let canonicalUrl: string | undefined;
+  let iconUrl: string | undefined;
 
   for (const tag of metaTags) {
     const name = getAttribute(tag, 'name')?.toLowerCase() ?? getAttribute(tag, 'property')?.toLowerCase();
@@ -58,14 +59,15 @@ export function extractMetadataFromHtml(html: string) {
     const rel = getAttribute(tag, "rel")?.toLowerCase();
     if (rel?.split(/\s+/).includes("canonical")) {
       canonicalUrl = getAttribute(tag, "href");
-      if (canonicalUrl) break;
     }
+    if (!iconUrl && rel?.split(/\s+/).some((value) => value === "icon" || value === "shortcut" || value === "apple-touch-icon")) iconUrl = getAttribute(tag, "href");
   }
 
   return {
     title: titleMatch?.[1] ? decodeHtml(titleMatch[1].replace(/<[^>]+>/g, ' ')) : undefined,
     description,
     canonicalUrl,
+    iconUrl,
   };
 }
 
@@ -92,14 +94,18 @@ export async function fetchResourceMetadata(rawUrl: string) {
 
   const contentType = response.headers.get('content-type') ?? '';
   if (!contentType.includes('text/html')) {
-    return { url: parsed.toString(), title: undefined, description: undefined, canonicalUrl: undefined };
+    return { url: parsed.toString(), title: undefined, description: undefined, canonicalUrl: undefined, iconUrl: undefined };
   }
 
   const html = (await response.text()).slice(0, 512_000);
   const metadata = extractMetadataFromHtml(html);
   let canonicalUrl: string | undefined;
+  let iconUrl: string | undefined;
   if (metadata.canonicalUrl) {
     try { canonicalUrl = assertSafePublicUrl(new URL(metadata.canonicalUrl, parsed).toString()).toString(); } catch { canonicalUrl = undefined; }
   }
-  return { url: parsed.toString(), canonicalUrl, title: metadata.title, description: metadata.description };
+  if (metadata.iconUrl) {
+    try { iconUrl = assertSafePublicUrl(new URL(metadata.iconUrl, parsed).toString()).toString(); } catch { iconUrl = undefined; }
+  }
+  return { url: parsed.toString(), canonicalUrl, iconUrl, title: metadata.title, description: metadata.description };
 }

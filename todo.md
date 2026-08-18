@@ -435,3 +435,13 @@ Any newly proposed product, infrastructure, integration, or UX enhancement is he
 - [x] Enhance administrator Archive Imports with root-domain grouping, bulk classification confirmation, retry queue, and trusted-domain administration; extend contributor aggregate history with the new status counts.
 - [x] Reconcile existing archive batch #1 under the strict root-domain and expanded exclusion policy, retaining all exclusions for auditability and verifying no ineligible candidate remains review-ready.
 - [x] Add tests, migration, browser verification, privacy/documentation updates, checkpoint, and GitHub synchronization.
+
+## Verified Data, Moderation Reliability, and Interactive Experience Release
+- [x] Audit current resource and archive metadata against official-source evidence and introduce reviewable, no-guessing field-level evidence contracts.
+- [x] Correct eligible archive-import metadata from safe public official sources, preserving PII-free retention, strict root-domain rules, exclusion audit records, and mandatory human approval.
+- [x] Prepare 200 evidence-backed, staged resource and relationship candidates across supported categories without automatic publication or unsupported claims.
+- [x] Fix moderation queues with item-scoped action state, expected-state server transitions, clear conflict feedback, and a shared back-to-moderation control on every moderation subpage.
+- [x] Improve the profile dropdown, route loading states, resource-title typography, and verified resource-icon rendering with accessible light/dark/RTL behavior.
+- [x] Replace the static home hero node with manually controllable, pause-aware three-second featured-resource rotation using approved live data only.
+- [x] Add interactive, bounded, accessible Node View graph preview and Graph Explorer controls while retaining the complete list fallback and evidence context.
+- [x] Add unit, integration, browser, accessibility, performance, migration, and source-evidence tests; update documentation; checkpoint; publish; and synchronize GitHub.

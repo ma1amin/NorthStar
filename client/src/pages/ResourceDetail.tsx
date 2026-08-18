@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useRoute } from "wouter";
+import { Link, useParams } from "wouter";
 import {
   ArrowLeft,
   Bookmark,
@@ -26,6 +26,7 @@ import { ReportResourceDialog } from "@/components/ReportResourceDialog";
 import { SuggestResourceEditDialog } from "@/components/SuggestResourceEditDialog";
 import { SubmitSourceDialog } from "@/components/SubmitSourceDialog";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { ResourceIcon } from "@/components/ResourceIcon";
 
 const RELATIONSHIP_TABS = [
   { value: "alternatives", label: "Alternatives", type: "alternative_to" as const },
@@ -112,7 +113,7 @@ function RelationshipCard({ relationship }: { relationship: any }) {
 }
 
 export default function ResourceDetail() {
-  const [, params] = useRoute("/resource/:slug");
+  const params = useParams<{ slug?: string }>();
   const slug = params?.slug ?? "";
   const { isAuthenticated, startLogin } = useAuth();
   const { t } = useLanguage();
@@ -124,11 +125,15 @@ export default function ResourceDetail() {
 
   const { data: resource, isLoading: resourceLoading } = trpc.resources.getBySlug.useQuery(
     { slug },
-    { enabled: Boolean(slug), retry: false }
+    { enabled: Boolean(slug), retry: false, networkMode: "always" }
   );
   const { data: categories = [] } = trpc.categories.list.useQuery();
   const { data: trustContext } = trpc.resources.getTrustContext.useQuery(
     { resourceId: resource?.id ?? 0 },
+    { enabled: Boolean(resource?.id) }
+  );
+  const { data: graphPreview } = trpc.graph.neighborhood.useQuery(
+    { resourceId: resource?.id ?? 0, maxEdges: 12 },
     { enabled: Boolean(resource?.id) }
   );
   const category = useMemo(
@@ -390,15 +395,13 @@ export default function ResourceDetail() {
             </Card>
           )}
           <div className="mt-8 flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
-            <div className="flex items-start gap-5">
-              <div className="ns-glow-ring flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-500 to-blue-600 text-xl font-bold text-white shadow-lg">
-                {resource.title.slice(0, 2).toUpperCase()}
-              </div>
+              <div className="flex items-start gap-5">
+              <ResourceIcon logo={resource.logo} title={resource.title} priority className="ns-glow-ring h-16 w-16 rounded-2xl shadow-lg" />
               <div>
                 <p className="text-sm font-semibold uppercase tracking-[0.14em] text-sky-600">
                   {category?.name ?? t("resourceNode")}
                 </p>
-                <h1 className="mt-2 text-4xl font-bold tracking-tight text-slate-950 md:text-5xl">{resource.title}</h1>
+                <h1 className="ns-resource-title-hero mt-2 text-slate-950">{resource.title}</h1>
                 <p className="mt-3 max-w-2xl text-lg leading-8 text-slate-600">
                   {resource.description || t("resourceGraphDescription")}
                 </p>
@@ -466,6 +469,11 @@ export default function ResourceDetail() {
                 </div>
               </div>
             </Card>
+
+            <section className="mt-8">
+              <Card className="ns-surface border-sky-100 bg-[radial-gradient(circle_at_50%_20%,rgba(14,165,233,0.10),transparent_42%),linear-gradient(145deg,#ffffff,#f8fbff)] p-6 md:p-7">
+                <div className="flex flex-wrap items-start justify-between gap-4"><div><p className="text-sm font-semibold uppercase tracking-[0.14em] text-sky-600">Interactive node preview</p><h2 className="mt-2 text-2xl font-bold text-slate-950">Explore real connected resources</h2><p className="mt-2 text-sm leading-6 text-slate-600">Select an approved neighbor to continue discovery, or open the full bounded graph with evidence links and filters.</p></div><Link href={`/graph/${resource.slug}`}><Button variant="outline"><Network className="mr-2 h-4 w-4" />{t("openGraph")}</Button></Link></div><div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3"><div className="flex min-h-24 items-center gap-3 rounded-2xl border border-slate-900 bg-slate-950 p-4 text-white"><ResourceIcon logo={resource.logo} title={resource.title} className="h-10 w-10 rounded-xl" /><div className="min-w-0"><p className="text-xs font-semibold uppercase tracking-[0.12em] text-sky-300">Focus</p><p className="mt-1 truncate font-semibold">{resource.title}</p></div></div>{graphPreview?.nodes?.slice(0, 5).map((node) => <Link key={node.id} href={`/resource/${node.slug}`} className="group rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-sky-300 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"><span className="flex items-center gap-3"><ResourceIcon logo={node.logo} title={node.title} className="h-10 w-10 rounded-xl" /><span className="min-w-0"><span className="block truncate font-semibold text-slate-950 group-hover:text-sky-700">{node.title}</span><span className="mt-1 block line-clamp-2 text-xs leading-5 text-slate-500">{node.description || t("connectedResource")}</span></span></span></Link>)}</div>{graphPreview && graphPreview.nodes.length === 0 && <p className="mt-5 rounded-xl border border-dashed border-slate-200 bg-white/70 p-4 text-sm text-slate-600">{t("graphNoEdgesDescription")}</p>}</Card>
+            </section>
 
             <section className="mt-8">
               <div className="mb-5">

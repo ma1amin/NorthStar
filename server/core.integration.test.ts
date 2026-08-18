@@ -217,6 +217,18 @@ describe("core tRPC workflows", () => {
     expect(mocks.createAuditLog).not.toHaveBeenCalledWith(7, "bulk_reject", "submission", 3, expect.anything());
   });
 
+  it("refuses to approve a submission that has already left the pending queue", async () => {
+    const limit = vi.fn().mockResolvedValue([]);
+    const where = vi.fn().mockReturnValue({ limit });
+    const from = vi.fn().mockReturnValue({ where });
+    const tx = { select: vi.fn().mockReturnValue({ from }) };
+    mocks.getDb.mockResolvedValue({ transaction: async (callback: (transaction: typeof tx) => Promise<unknown>) => callback(tx) });
+
+    await expect(appRouter.createCaller(context("admin")).moderation.approveSubmission({ submissionId: 444 })).rejects.toMatchObject({ code: "CONFLICT" });
+    expect(tx.select).toHaveBeenCalledTimes(1);
+    expect(mocks.createAuditLog).not.toHaveBeenCalledWith(7, "approve", "submission", 444, expect.anything());
+  });
+
   it("reserves archive governance for administrators, caps bulk handoff at 25, and creates pending submissions rather than public resources", async () => {
     await expect(appRouter.createCaller(context()).archiveIntake.listRetryQueue({ limit: 25 })).rejects.toMatchObject({ code: "FORBIDDEN" });
     await expect(appRouter.createCaller(context()).archiveIntake.addTrustedDomain({ domain: "example.org" })).rejects.toMatchObject({ code: "FORBIDDEN" });

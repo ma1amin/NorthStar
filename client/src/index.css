@@ -10,6 +10,8 @@
   --ns-line: rgba(148, 163, 184, 0.22);
   --ns-surface: rgba(255, 255, 255, 0.86);
   --ns-surface-strong: #ffffff;
+  --ns-menu-bg: #ffffff;
+  --ns-menu-border: rgba(148, 163, 184, 0.34);
   --ns-sky: #0ea5e9;
   --ns-violet: #7c3aed;
   --ns-ease-out: cubic-bezier(0.23, 1, 0.32, 1);
@@ -23,6 +25,8 @@
   --ns-line: rgba(148, 163, 184, 0.2);
   --ns-surface: rgba(15, 23, 42, 0.86);
   --ns-surface-strong: #0f172a;
+  --ns-menu-bg: #0f172a;
+  --ns-menu-border: rgba(100, 116, 139, 0.72);
 }
 
 * {
@@ -205,6 +209,49 @@ svg {
   border: 1px solid rgba(226, 232, 240, 0.92);
   background: var(--ns-surface-strong);
   box-shadow: 0 12px 34px rgba(15, 23, 42, 0.07);
+}
+
+.ns-menu-surface {
+  border-color: var(--ns-menu-border) !important;
+  background: var(--ns-menu-bg) !important;
+  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.2), 0 0 0 1px rgba(15, 23, 42, 0.03);
+}
+
+.ns-resource-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  flex: 0 0 auto;
+  border: 1px solid rgba(148, 163, 184, 0.26);
+  border-radius: 1rem;
+  background: #ffffff;
+  color: #0284c7;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.1);
+}
+
+.dark .ns-resource-icon {
+  border-color: rgba(100, 116, 139, 0.66);
+  background: #0f172a;
+  color: #7dd3fc;
+}
+
+.ns-resource-title {
+  overflow-wrap: anywhere;
+  font-family: "Sora", sans-serif;
+  font-size: clamp(1.05rem, 1.2vw + 0.82rem, 1.35rem);
+  font-weight: 600;
+  letter-spacing: -0.028em;
+  line-height: 1.22;
+}
+
+.ns-resource-title-hero {
+  overflow-wrap: anywhere;
+  font-family: "Sora", sans-serif;
+  font-size: clamp(2rem, 3vw + 0.85rem, 3.25rem);
+  font-weight: 700;
+  letter-spacing: -0.05em;
+  line-height: 1.06;
 }
 
 .ns-grid-backdrop {

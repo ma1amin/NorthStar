@@ -230,28 +230,39 @@ export async function excludePiiFreeArchiveCandidate(input: { candidateId: numbe
   return (result[0] as { affectedRows?: number } | undefined)?.affectedRows === 1;
 }
 
-export async function updatePiiFreeArchiveCandidateEnrichment(input: {
+export type ArchiveCandidateEnrichmentInput = {
   candidateId: number;
-  canonicalUrl?: string;
-  title?: string;
-  description?: string;
-  officialSourceUrl?: string;
-  duplicateResourceId?: number;
+  canonicalUrl?: string | null;
+  title?: string | null;
+  description?: string | null;
+  officialSourceUrl?: string | null;
+  duplicateResourceId?: number | null;
+  metadataVerificationStatus?: "unverified" | "public_page_fetched" | "reviewed";
+  metadataFetchedAt?: Date | null;
   status: "review_ready" | "duplicate" | "excluded" | "failed";
   failureCode?: string;
-}) {
+};
+
+export function buildArchiveCandidateEnrichmentPatch(input: ArchiveCandidateEnrichmentInput): Partial<typeof archiveImportCandidates.$inferInsert> {
+  const values: Partial<typeof archiveImportCandidates.$inferInsert> = {
+    status: input.status,
+    failureCode: input.failureCode ?? null,
+  };
+  if (input.canonicalUrl !== undefined) values.canonicalUrl = input.canonicalUrl;
+  if (input.title !== undefined) values.title = input.title;
+  if (input.description !== undefined) values.description = input.description;
+  if (input.officialSourceUrl !== undefined) values.officialSourceUrl = input.officialSourceUrl;
+  if (input.duplicateResourceId !== undefined) values.duplicateResourceId = input.duplicateResourceId;
+  if (input.metadataVerificationStatus !== undefined) values.metadataVerificationStatus = input.metadataVerificationStatus;
+  if (input.metadataFetchedAt !== undefined) values.metadataFetchedAt = input.metadataFetchedAt;
+  return values;
+}
+
+export async function updatePiiFreeArchiveCandidateEnrichment(input: ArchiveCandidateEnrichmentInput) {
   const db = await getDb();
   if (!db) return false;
   const result = await db.update(archiveImportCandidates)
-    .set({
-      canonicalUrl: input.canonicalUrl ?? null,
-      title: input.title ?? null,
-      description: input.description ?? null,
-      officialSourceUrl: input.officialSourceUrl ?? null,
-      duplicateResourceId: input.duplicateResourceId ?? null,
-      status: input.status,
-      failureCode: input.failureCode ?? null,
-    })
+    .set(buildArchiveCandidateEnrichmentPatch(input))
     .where(eq(archiveImportCandidates.id, input.candidateId));
   return (result[0] as { affectedRows?: number } | undefined)?.affectedRows === 1;
 }
@@ -743,13 +754,13 @@ export async function getRelationshipsByTarget(targetId: number, type?: string) 
 export async function getGraphNeighborhood(resourceId: number, relationshipTypes?: string[], maxEdges: number = 80) {
   const db = await getDb();
   if (!db) return undefined;
-  const [center] = await db.select({ id: resources.id, title: resources.title, slug: resources.slug, description: resources.description, pricing: resources.pricing }).from(resources).where(and(eq(resources.id, resourceId), eq(resources.status, "approved"))).limit(1);
+  const [center] = await db.select({ id: resources.id, title: resources.title, slug: resources.slug, description: resources.description, pricing: resources.pricing, logo: resources.logo }).from(resources).where(and(eq(resources.id, resourceId), eq(resources.status, "approved"))).limit(1);
   if (!center) return undefined;
   const conditions = [eq(relationships.status, "approved"), or(eq(relationships.sourceId, resourceId), eq(relationships.targetId, resourceId))];
   if (relationshipTypes?.length) conditions.push(inArray(relationships.type, relationshipTypes as any));
   const edges = await db.select().from(relationships).where(and(...conditions)).orderBy(desc(relationships.upvotes)).limit(Math.min(Math.max(maxEdges, 1), 80));
   const nodeIds = Array.from(new Set(edges.flatMap((edge) => [edge.sourceId, edge.targetId]).filter((id) => id !== resourceId)));
-  const nodes = nodeIds.length ? await db.select({ id: resources.id, title: resources.title, slug: resources.slug, description: resources.description, pricing: resources.pricing }).from(resources).where(and(eq(resources.status, "approved"), inArray(resources.id, nodeIds))) : [];
+  const nodes = nodeIds.length ? await db.select({ id: resources.id, title: resources.title, slug: resources.slug, description: resources.description, pricing: resources.pricing, logo: resources.logo }).from(resources).where(and(eq(resources.status, "approved"), inArray(resources.id, nodeIds))) : [];
   return { center, nodes, edges };
 }
 
